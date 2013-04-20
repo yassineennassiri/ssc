@@ -780,7 +780,7 @@ public:
 		std::vector<ssc_number_t> monthly_revenue_w_sys(12), monthly_revenue_wo_sys(12),
 			monthly_fixed_charges(12),
 			monthly_dc_fixed(12), monthly_dc_tou(12),
-			monthly_tr_charges(12), monthly_tr_rates(12);
+			monthly_ec_charges(12), monthly_ec_rates(12);
 
 		/* allocate outputs */		
 		ssc_number_t *annual_net_revenue = allocate("energy_value", nyears);
@@ -814,18 +814,18 @@ public:
 		ssc_number_t *ch_dc_tou_nov = allocate("charge_dc_tou_nov", nyears );
 		ssc_number_t *ch_dc_tou_dec = allocate("charge_dc_tou_dec", nyears );
 		
-		ssc_number_t *ch_tr_jan = allocate("charge_tr_jan", nyears );
-		ssc_number_t *ch_tr_feb = allocate("charge_tr_feb", nyears );
-		ssc_number_t *ch_tr_mar = allocate("charge_tr_mar", nyears );
-		ssc_number_t *ch_tr_apr = allocate("charge_tr_apr", nyears );
-		ssc_number_t *ch_tr_may = allocate("charge_tr_may", nyears );
-		ssc_number_t *ch_tr_jun = allocate("charge_tr_jun", nyears );
-		ssc_number_t *ch_tr_jul = allocate("charge_tr_jul", nyears );
-		ssc_number_t *ch_tr_aug = allocate("charge_tr_aug", nyears );
-		ssc_number_t *ch_tr_sep = allocate("charge_tr_sep", nyears );
-		ssc_number_t *ch_tr_oct = allocate("charge_tr_oct", nyears );
-		ssc_number_t *ch_tr_nov = allocate("charge_tr_nov", nyears );
-		ssc_number_t *ch_tr_dec = allocate("charge_tr_dec", nyears );
+		ssc_number_t *ch_tr_jan = allocate("charge_ec_jan", nyears );
+		ssc_number_t *ch_tr_feb = allocate("charge_ec_feb", nyears );
+		ssc_number_t *ch_tr_mar = allocate("charge_ec_mar", nyears );
+		ssc_number_t *ch_tr_apr = allocate("charge_ec_apr", nyears );
+		ssc_number_t *ch_tr_may = allocate("charge_ec_may", nyears );
+		ssc_number_t *ch_tr_jun = allocate("charge_ec_jun", nyears );
+		ssc_number_t *ch_tr_jul = allocate("charge_ec_jul", nyears );
+		ssc_number_t *ch_tr_aug = allocate("charge_ec_aug", nyears );
+		ssc_number_t *ch_tr_sep = allocate("charge_ec_sep", nyears );
+		ssc_number_t *ch_tr_oct = allocate("charge_ec_oct", nyears );
+		ssc_number_t *ch_tr_nov = allocate("charge_ec_nov", nyears );
+		ssc_number_t *ch_tr_dec = allocate("charge_ec_dec", nyears );
 
 		for (i=0;i<nyears;i++)
 		{
@@ -847,7 +847,7 @@ public:
 				&revenue_w_sys[0], &payment[0], &income[0], &price[0],
 				&monthly_fixed_charges[0],
 				&monthly_dc_fixed[0], &monthly_dc_tou[0],
-				&monthly_tr_charges[0], &monthly_tr_rates[0] );
+				&monthly_ec_charges[0], &monthly_ec_rates[0] );
 
 			if (i == 0)
 			{
@@ -976,7 +976,7 @@ public:
 		ssc_number_t revenue[8760], ssc_number_t payment[8760], ssc_number_t income[8760], ssc_number_t price[8760],
 		ssc_number_t monthly_fixed_charges[12],
 		ssc_number_t monthly_dc_fixed[12], ssc_number_t monthly_dc_tou[12],
-		ssc_number_t monthly_tr_charges[12], ssc_number_t monthly_tr_rates[12] ) throw(general_error)
+		ssc_number_t monthly_ec_charges[12], ssc_number_t monthly_ec_rates[12] ) throw(general_error)
 	{
 		int i;
 
@@ -987,7 +987,7 @@ public:
 		{
 			monthly_fixed_charges[i] 
 				= monthly_dc_fixed[i] = monthly_dc_tou[i] 
-				= monthly_tr_charges[i] = monthly_tr_rates[i] = 0.0;
+				= monthly_ec_charges[i] = monthly_ec_rates[i] = 0.0;
 		}
 
 		// process basic flat rate
@@ -997,16 +997,16 @@ public:
 		process_monthly_charge( payment, monthly_fixed_charges );
 
 		// process time of use charges
-		if (as_boolean("ur_tou_enable"))
-			process_tou_rate( e_in, payment, income, price );
+//		if (as_boolean("ur_tou_enable"))
+//			process_tou_rate( e_in, payment, income, price );
 
 		// process demand charges
 		if (as_boolean("ur_dc_enable"))
 			process_demand_charge( p_in, payment, monthly_dc_fixed, monthly_dc_tou );
 
-		// process tiered rate charges
+		// process energy charges
 		if (as_boolean("ur_tr_enable"))
-			process_tiered_rate( e_in, payment, income, monthly_tr_charges, monthly_tr_rates );
+			process_energy_charge( e_in, payment, income, monthly_ec_charges, monthly_ec_rates );
 
 		// compute revenue ( = income - payment )
 		for (i=0;i<8760;i++)
@@ -1062,47 +1062,155 @@ public:
 		}
 	}
 
-	void process_tou_rate( ssc_number_t e[8760],
+	void process_energy_charge( ssc_number_t e[8760],
 			ssc_number_t payment[8760],
 			ssc_number_t income[8760],
-			ssc_number_t price[8760] )
+			ssc_number_t ec_charge[12],
+			ssc_number_t ec_rate[12])
 	{
-		ssc_number_t rates[9][2];
+		// 12 periods with 6 tiers each rates 3rd index = 0 = buy and 1=sell
+		ssc_number_t rates[12][6][2]; 
+		ssc_number_t energy_ub[12][6];
 
-		const char *schedwkday = as_string("ur_tou_sched_weekday");
-		const char *schedwkend = as_string("ur_tou_sched_weekend");
+		const char *schedwkday = as_string("ur_ec_sched_weekday");
+		const char *schedwkend = as_string("ur_ec_sched_weekend");
 
 		int tod[8760];
 
-		if (!util::translate_schedule( tod, schedwkday, schedwkend, 0, 8))
-			throw general_error("could not translate weekday and weekend schedules for time-of-use rate");
+		if (!util::translate_schedule( tod, schedwkday, schedwkend, 0, 11))
+			throw general_error("could not translate weekday and weekend schedules for energy charges");
 
 		bool sell_eq_buy = as_boolean("ur_sell_eq_buy");
 
-		for (int i=0;i<9;i++)
-		{
-			std::string nstr = util::to_string( i+1 );
-			rates[i][0] = as_number("ur_tou_p" + nstr + "_buy_rate");
-			rates[i][1] = sell_eq_buy ? rates[i][0] : as_number("ur_tou_p" + nstr + "_sell_rate");
-		}
 
-		for (int i=0;i<8760;i++)
-		{
-			int tod_p = tod[i];
-			ssc_number_t buy = rates[tod_p][0];
-			ssc_number_t sell = rates[tod_p][1];
+		// tiered rates for all 6 tiers in each of the 12 periods
 
-			if (e[i] < 0)
+		for (int period=0;period<12;period++)
+		{
+			std::string str_period = util::to_string( period+1 );
+
+			for (int tier=0; tier<6; tier++)
 			{
-				payment[i] += -1.0f*e[i]*buy;
-				price[i] += buy;
-			}
-			else
-			{
-				income[i] += e[i]*sell;
-				price[i] += sell;
+				std::string str_tier = util::to_string( tier+1 );
+
+				rates[period][tier][0] = as_number("ur_ec_p" + str_period + "_t" + str_tier + "_br");
+				rates[period][tier][1] = sell_eq_buy ? rates[period][tier][0] : as_number("ur_ec_p" + str_period + "_t" + str_tier + "_sr");
+				energy_ub[period][tier] = as_number("ur_ec_p" + str_period + "_t" + str_tier + "_ub");
 			}
 		}
+
+
+
+
+		// calculate the monthly net energy per period
+		int m,d,h,period,tier;
+		ssc_number_t energy_use[12][12]; // 12 months, 12 periods
+		int hours[12][12];
+		int c=0;
+		for (m=0;m<12;m++)
+		{
+			for (period=0;period<12;period++) 
+			{
+				energy_use[m][period] = 0;
+				hours[m][period] = 0;
+			}
+
+			for (d=0;d<util::nday[m];d++)
+			{
+				for(h=0;h<24;h++)
+				{
+					int todp = tod[c];
+					// net energy use per period per month
+					energy_use[m][todp] += e[c];
+					// hours per period per month
+					hours[m][period]++;
+					c++;
+				}
+			}
+		}
+
+		// go through each period and tier and calculate per SAM_V2_RATES.docx - Nathan Clark 3/6/13
+		// reconcile on monthly basis
+		ssc_number_t charge[12][12];
+		ssc_number_t credit[12][12];
+		c=0;
+		for (m=0;m<12;m++)
+		{
+			ssc_number_t monthly_energy = 0;
+			for (period=0;period<12;period++)
+			{
+				charge[m][period]=0;
+				credit[m][period]=0;
+
+				if (energy_use[m][period] <= 0.0)
+				{ // calculate income
+					ssc_number_t credit_amt = 0;
+					ssc_number_t energy_surplus = -energy_use[m][period];
+					tier=0;
+					while (tier<6)
+					{
+						// add up the charge amount for this block
+						ssc_number_t e_upper = energy_ub[period][tier];
+						ssc_number_t e_lower = tier > 0 ? energy_ub[period][tier-1] : (ssc_number_t)0.0;
+
+						if (energy_surplus > e_upper)
+							credit_amt += (e_upper-e_lower)*rates[period][tier][1];
+						else
+							credit_amt += (energy_surplus-e_lower)*rates[period][tier][1];
+	
+						if ( energy_surplus < e_upper )
+							break;
+					}
+					credit[m][period] = credit_amt;
+					ec_charge[m] -= credit_amt;
+				}
+				else
+				{ // calculate payment
+					ssc_number_t charge_amt = 0;
+					tier=0;
+					while (tier<6)
+					{
+						// add up the charge amount for this block
+						ssc_number_t e_upper = energy_ub[period][tier];
+						ssc_number_t e_lower = tier > 0 ? energy_ub[period][tier-1] : (ssc_number_t)0.0;
+
+						if (energy_use[m][period] > e_upper)
+							charge_amt += (e_upper-e_lower)*rates[period][tier][0];
+						else
+							charge_amt += (energy_use[m][period]-e_lower)*rates[period][tier][0];
+	
+						if ( energy_use[m][period] < e_upper )
+							break;
+	
+					}
+					charge[m][period] = charge_amt;
+					ec_charge[m] += charge_amt;
+				}
+				monthly_energy += energy_use[m][period];
+			}
+			ec_rate[m] = monthly_energy > 0 ? ec_charge[m]/monthly_energy : (ssc_number_t)0.0;
+		}
+
+
+		// back out hourly values based on monthly reconciliation
+		c=0;
+		for (m=0;m<12;m++)
+		{
+			for (d=0;d<util::nday[m];d++)
+			{
+				for(h=0;h<24;h++)
+				{
+					int todp = tod[c];
+					if (hours[m][todp] > 0)
+					{
+						payment[c] += charge[m][todp]/hours[m][todp];
+						income[c] += credit[m][todp]/hours[m][todp];
+					}
+					c++;
+				}
+			}
+		}
+
 	}
 
 	void process_demand_charge( ssc_number_t p[8760],
@@ -1189,104 +1297,10 @@ public:
 
 	}
 
-	void process_tiered_rate( ssc_number_t e[8760],
-			ssc_number_t payment[8760],
-			ssc_number_t income[8760],
-			ssc_number_t tr_charge[12],
-			ssc_number_t tr_rate[12] )
-	{
-		int i,m,d,h,c;
-
-		ssc_number_t energy_ub[6];
-		ssc_number_t rates[6];
-		ssc_number_t sell_rate=0, tier_rate=0;
-
-		c=0;
-		for (m=0;m<12;m++)
-		{
-			// compute total monthly energy use (net)
-			ssc_number_t energy_use = 0;
-			for (d=0;d<util::nday[m];d++)
-			{
-				for (h=0;h<24;h++)
-				{
-					energy_use += -1.0f*e[c]; // add up total energy use
-					c++;
-				}
-			}
-
-
-			int period = as_integer(util::format("ur_tr_sched_m%d",m+1)); // 0..5
-			if (period < 0) period = 0;
-			if (period > 5) period = 5;
-
-			if (energy_use > 0)
-			{
-
-				for (i=0;i<6;i++)
-				{
-					energy_ub[i] = as_number(util::format("ur_tr_s%d_energy_ub%d", period+1, i+1));
-					rates[i] = as_number(util::format("ur_tr_s%d_rate%d", period+1, i+1));
-				}
-				
-				ssc_number_t charge_amt = 0;
-				i=0;
-				while (i<6)
-				{
-					// add up the charge amount for this block
-					ssc_number_t e_upper = energy_ub[i];
-					ssc_number_t e_lower = i > 0 ? energy_ub[i-1] : (ssc_number_t)0.0;
-	
-					if (energy_use > e_upper)
-						charge_amt += (e_upper-e_lower)*rates[i];
-					else
-						charge_amt += (energy_use-e_lower)*rates[i];
-	
-					if ( energy_use < e_upper )
-						break;
-	
-					i++;
-				}
-	
-				tr_rate[m] = energy_use > 0 ? charge_amt/energy_use : (ssc_number_t)0.0;
-				tr_charge[m] = charge_amt;
-				payment[c-1] += charge_amt;
-			}
-			else // sell excess
-			{
-				tr_rate[m] = 0;
-				tr_charge[m] = 0;
-				sell_rate = 0;
-				switch (as_integer("ur_tr_sell_mode"))
-				{
-				case 0: // flat tiered sell rate
-					sell_rate = as_number("ur_tr_sell_rate");
-					break;
-				case 1: // Tier 1 rate
-					sell_rate = as_number(util::format("ur_tr_s%d_rate1", period+1));
-					break;
-				case 2: // cheapest rate for tier structure
-					sell_rate = as_number(util::format("ur_tr_s%d_rate1", period+1));
-					for (int j=1; j<6; j++)
-					{
-						tier_rate = as_number(util::format("ur_tr_s%d_rate%d", period+1, j+1));
-						if (tier_rate < sell_rate) sell_rate = tier_rate;
-					}
-					break;
-				default:
-					throw general_error("invalid sell rate mode. must be 0, 1, or 2");
-					break;
-				}
-
-				income[c-1] -= sell_rate * energy_use;
-			}
-		}
-	
-	}
 
 
 };
 
-DEFINE_MODULE_ENTRY( utilityrate, "Complex utility rate structure net revenue calculator", 3 );
+DEFINE_MODULE_ENTRY( utilityrate, "Complex utility rate structure net revenue calculator OpenEI Version 2", 4 );
 
 
