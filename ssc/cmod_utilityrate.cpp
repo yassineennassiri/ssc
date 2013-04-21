@@ -259,8 +259,8 @@ static var_info vtab_utility_rate[] = {
 	// Demand Charge Inputs
 	{ SSC_INPUT,        SSC_NUMBER,     "ur_dc_enable",            "Enable Demand Charge",        "0/1",    "",                      "",             "?=0",                       "BOOLEAN",                       "" },
 
-	{ SSC_INPUT,        SSC_STRING,     "ur_dc_sched_weekday",     "Demand Charge Weekday Schedule",            "",       "288 digits 1-12, 24x12", "",             "ur_ec_enable=1",           "TOUSCHED",                      "" },
-	{ SSC_INPUT,        SSC_STRING,     "ur_dc_sched_weekend",     "Demend Charge Weekend Schedule",            "",       "288 digits 1-12, 24x12", "",             "ur_ec_enable=1",           "TOUSCHED",                      "" },
+	{ SSC_INPUT,        SSC_STRING,     "ur_dc_sched_weekday",     "Demand Charge Weekday Schedule",            "",       "288 digits 1-12, 24x12", "",             "ur_dc_enable=1",           "TOUSCHED",                      "" },
+	{ SSC_INPUT,        SSC_STRING,     "ur_dc_sched_weekend",     "Demend Charge Weekend Schedule",            "",       "288 digits 1-12, 24x12", "",             "ur_dc_enable=1",           "TOUSCHED",                      "" },
 
 	{ SSC_INPUT,        SSC_NUMBER,     "ur_dc_p1_t1_dc",       "Period 1 Tier 1 Demand Charge",         "$/kW",  "",                      "",             "?=0.0",                     "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,     "ur_dc_p1_t1_ub",       "Period 1 Tier 1 Peak Demand",         "kW",  "",                      "",             "?=0.0",                     "",                              "" },
@@ -1001,7 +1001,7 @@ public:
 			process_demand_charge( p_in, payment, monthly_dc_fixed, monthly_dc_tou );
 
 		// process energy charges
-		if (as_boolean("ur_tr_enable"))
+		if (as_boolean("ur_ec_enable"))
 			process_energy_charge( e_in, payment, income, monthly_ec_charges, monthly_ec_rates );
 
 		// compute revenue ( = income - payment )
