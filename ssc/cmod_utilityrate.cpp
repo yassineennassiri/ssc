@@ -610,13 +610,13 @@ static var_info vtab_utility_rate[] = {
 	
 	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_dc_fixed_with_system",      "Year 1 monthly demand charge (Fixed) with system",    "$", "", "",          "*",                         "LENGTH=12",                     "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_dc_tou_with_system",        "Year 1 monthly demand charge (TOU) with system",      "$", "", "",          "*",                         "LENGTH=12",                     "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_tr_charge_with_system",     "Year 1 monthly tiered charge with system",            "$", "", "",          "*",                         "LENGTH=12",                     "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_tr_rate_with_system",       "Year 1 monthly tiered rate with system",              "$", "", "",          "*",                         "LENGTH=12",                     "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_ec_charge_with_system",     "Year 1 monthly energy charge with system",            "$", "", "",          "*",                         "LENGTH=12",                     "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_ec_rate_with_system",       "Year 1 monthly energy rate with system",              "$", "", "",          "*",                         "LENGTH=12",                     "" },
 	
 	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_dc_fixed_without_system",   "Year 1 monthly demand charge (Fixed) without system", "$", "", "",          "*",                         "LENGTH=12",                     "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_dc_tou_without_system",     "Year 1 monthly demand charge (TOU) without system",   "$", "", "",          "*",                         "LENGTH=12",                     "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_tr_charge_without_system",  "Year 1 monthly tiered charge without system",         "$", "", "",          "*",                         "LENGTH=12",                     "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_tr_rate_without_system",    "Year 1 monthly tiered rate without system",           "$", "", "",          "*",                         "LENGTH=12",                     "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_ec_charge_without_system",  "Year 1 monthly energy charge without system",         "$", "", "",          "*",                         "LENGTH=12",                     "" },
+	{ SSC_OUTPUT,       SSC_ARRAY,      "year1_monthly_ec_rate_without_system",    "Year 1 monthly energy charge without system",           "$", "", "",          "*",                         "LENGTH=12",                     "" },
 	
 	{ SSC_OUTPUT,       SSC_ARRAY,      "charge_dc_fixed_jan",      "Demand Charge (Fixed) in Jan",    "$",      "",                      "",             "*",                         "LENGTH_EQUAL=analysis_years",   "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,      "charge_dc_fixed_feb",      "Demand Charge (Fixed) in Feb",    "$",      "",                      "",             "*",                         "LENGTH_EQUAL=analysis_years",   "" },
@@ -996,10 +996,6 @@ public:
 		// process monthly fixed charges
 		process_monthly_charge( payment, monthly_fixed_charges );
 
-		// process time of use charges
-//		if (as_boolean("ur_tou_enable"))
-//			process_tou_rate( e_in, payment, income, price );
-
 		// process demand charges
 		if (as_boolean("ur_dc_enable"))
 			process_demand_charge( p_in, payment, monthly_dc_fixed, monthly_dc_tou );
@@ -1018,25 +1014,54 @@ public:
 			ssc_number_t income[8760],
 			ssc_number_t price[8760] )
 	{
-		int i;
 		ssc_number_t buy = as_number("ur_flat_buy_rate");
 		ssc_number_t sell = as_number("ur_flat_sell_rate");
 
 		if (as_boolean("ur_sell_eq_buy")) sell = buy;
 
-		for (i=0;i<8760;i++)
+		// calculate the monthly net energy and monthly hours
+		int m,d,h;
+		ssc_number_t energy_use[12]; // 12 months
+		int hours[12];
+		int c=0;
+		for (m=0;m<12;m++)
 		{
-			if (e[i] < 0) // must buy from grid
+			energy_use[m] = 0;
+			hours[m] = 0;
+			for (d=0;d<util::nday[m];d++)
 			{
-				payment[i] += -1.0f*e[i]*buy;
-				price[i] += buy;
-			}
-			else
-			{
-				income[i] += e[i]*sell;
-				price[i] += sell;
+				for(h=0;h<24;h++)
+				{
+					// net energy use per month
+					energy_use[m] += e[c];
+					// hours per period per month
+					hours[m]++;
+					c++;
+				}
 			}
 		}
+
+
+		// back calculate hourly income and payments based on monthly values
+		// back out hourly values based on monthly reconciliation
+		c=0;
+		for (m=0;m<12;m++)
+		{
+			if (hours[m] <= 0) break;
+
+			for (d=0;d<util::nday[m];d++)
+			{
+				for(h=0;h<24;h++)
+				{
+					if ( energy_use[m] < 0 ) // buy from grid
+						payment[c] += -energy_use[m]/hours[m] * buy;
+					else // sell to grid
+						income[c] += energy_use[m]/hours[m] * sell;
+					c++;
+				}
+			}
+		}
+
 	}
 
 	void process_monthly_charge( ssc_number_t payment[8760], ssc_number_t charges[12] )
@@ -1123,7 +1148,7 @@ public:
 					// net energy use per period per month
 					energy_use[m][todp] += e[c];
 					// hours per period per month
-					hours[m][period]++;
+					hours[m][todp]++;
 					c++;
 				}
 			}
@@ -1143,7 +1168,7 @@ public:
 				credit[m][period]=0;
 
 				if (energy_use[m][period] <= 0.0)
-				{ // calculate income
+				{ // calculate income or credit
 					ssc_number_t credit_amt = 0;
 					ssc_number_t energy_surplus = -energy_use[m][period];
 					tier=0;
@@ -1160,12 +1185,13 @@ public:
 	
 						if ( energy_surplus < e_upper )
 							break;
+						tier++;
 					}
 					credit[m][period] = credit_amt;
 					ec_charge[m] -= credit_amt;
 				}
 				else
-				{ // calculate payment
+				{ // calculate payment or charge
 					ssc_number_t charge_amt = 0;
 					tier=0;
 					while (tier<6)
@@ -1181,7 +1207,7 @@ public:
 	
 						if ( energy_use[m][period] < e_upper )
 							break;
-	
+						tier++;
 					}
 					charge[m][period] = charge_amt;
 					ec_charge[m] += charge_amt;
@@ -1213,20 +1239,41 @@ public:
 
 	}
 
+
+
+
 	void process_demand_charge( ssc_number_t p[8760],
 			ssc_number_t payment[8760],
 			ssc_number_t dc_fixed[12],
 			ssc_number_t dc_tou[12] )
 	{
-		int i,m,d,h,c;
+		int i,m,d,h,c,tier;
+
+		// 12 months for fixed demand charges, 12 periods for TOU demand charges. Each with 6 tiers.
+		ssc_number_t charges[12][6]; 
+		ssc_number_t energy_ub[12][6];
 
 
-		// compute fixed monthly demand charges
-		c=0;
+
+		for (m=1;m<=12;m++)
+		{
+			for (tier=0; tier<6; tier++)
+			{
+				std::string str_tier = util::to_string( tier+1 );
+				charges[m][tier] = as_number("ur_dc_" + util::schedule_int_to_month(m) + "_t" + str_tier + "_dc");
+				energy_ub[m][tier] = as_number("ur_dc_" + util::schedule_int_to_month(m) + "_t" + str_tier + "_ub");
+			}
+		}
+
+
+		
+		// compute fixed monthly demand charges - add to last hour of the month (payments)
+		c=0; // hourly count
 		for (m=0;m<12;m++)
 		{
 			ssc_number_t charge = 0.0;
-			ssc_number_t mpeak = 0.0;
+			ssc_number_t mpeak = 0.0;  // peak usage for the month (negative value)
+			ssc_number_t peak_demand=0;
 			for (d=0;d<util::nday[m];d++)
 			{
 				for (h=0;h<24;h++)
@@ -1236,8 +1283,26 @@ public:
 
 					if (d==util::nday[m]-1 && h==23)
 					{
-						charge = as_number(util::format("ur_dc_fixed_m%d", m+1));
-						dc_fixed[m] = -mpeak*charge;
+						// compute charge based on tier structure for the month
+						tier=0;
+						peak_demand = -mpeak; // energy demands are negative.
+						while (tier<6)
+						{
+							// add up the charge amount for this block
+							ssc_number_t e_upper = energy_ub[m][tier];
+							ssc_number_t e_lower = tier > 0 ? energy_ub[m][tier-1] : (ssc_number_t)0.0;
+
+							if (peak_demand > e_upper)
+								charge += (e_upper-e_lower)*charges[m][tier];
+							else
+								charge += (peak_demand-e_lower)*charges[m][tier];
+	
+							if ( peak_demand < e_upper )
+								break;
+							tier++;
+						}
+
+						dc_fixed[m] = charge;
 						payment[c] += dc_fixed[m];
 					}
 
@@ -1249,7 +1314,7 @@ public:
 
 		// compute time-of-use based demand charge
 		// for each month:
-		// 1. find peak demand in each period (1-9)
+		// 1. find peak demand in each period (1-12)
 		// 2. multiply each period's peak demand by period price and add to payment for that month
 
 		// extract schedules
@@ -1260,15 +1325,27 @@ public:
 			throw general_error("could not translate weekday and weekend schedules for demand charge time-of-use rate");
 
 		// extract rate info
-		ssc_number_t period_price[9];
-		for (i=0;i<9;i++)
-			period_price[i] = as_number(util::format("ur_dc_p%d", i+1));
 
-		ssc_number_t ppeaks[9];
+		int period;
+		for (period=0;period<12;period++)
+		{
+			std::string str_period = util::to_string( period+1 );
+			for (tier=0; tier<6; tier++)
+			{
+				std::string str_tier = util::to_string( tier+1 );
+				charges[period][tier] = as_number("ur_dc_p" + str_period + "_t" + str_tier + "_dc");
+				energy_ub[period][tier] = as_number("ur_dc_p" + str_period + "_t" + str_tier + "_ub");
+			}
+		}
+
+
+
+		// find peak demand per month for each of the twelve periods
+		ssc_number_t ppeaks[12]; // period peak demand 
 		c=0;
 		for (m=0;m<12;m++)
 		{
-			for (i=0;i<9;i++) ppeaks[i] = 0;
+			for (i=0;i<12;i++) ppeaks[i] = 0; // reset each month
 
 			for (d=0;d<util::nday[m];d++)
 			{
@@ -1282,12 +1359,31 @@ public:
 					{
 						// sum up all peak demand charges at end of month
 						ssc_number_t charge=0;
-						for (i=0;i<9;i++)
-							charge += -ppeaks[i]*period_price[i];
+						ssc_number_t peak_demand=0;
+						for (period=0;period<12;period++)
+						{
+							tier=0;
+							peak_demand=-ppeaks[period];
+							while (tier<6)
+							{
+								// add up the charge amount for this block
+								ssc_number_t e_upper = energy_ub[period][tier];
+								ssc_number_t e_lower = tier > 0 ? energy_ub[period][tier-1] : (ssc_number_t)0.0;
 
+								if (peak_demand > e_upper)
+									charge += (e_upper-e_lower)*charges[period][tier];
+								else
+									charge += (peak_demand-e_lower)*charges[period][tier];
+	
+								if ( peak_demand < e_upper )
+									break;
+
+								tier++;
+							}
+						}
 						// add to payments
 						dc_tou[m] = charge;
-						payment[c] += charge;
+						payment[c] += dc_tou[m]; // apply to last hour of the month
 					}
 
 					c++;
