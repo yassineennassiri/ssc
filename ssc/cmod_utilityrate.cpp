@@ -814,18 +814,18 @@ public:
 		ssc_number_t *ch_dc_tou_nov = allocate("charge_dc_tou_nov", nyears );
 		ssc_number_t *ch_dc_tou_dec = allocate("charge_dc_tou_dec", nyears );
 		
-		ssc_number_t *ch_tr_jan = allocate("charge_ec_jan", nyears );
-		ssc_number_t *ch_tr_feb = allocate("charge_ec_feb", nyears );
-		ssc_number_t *ch_tr_mar = allocate("charge_ec_mar", nyears );
-		ssc_number_t *ch_tr_apr = allocate("charge_ec_apr", nyears );
-		ssc_number_t *ch_tr_may = allocate("charge_ec_may", nyears );
-		ssc_number_t *ch_tr_jun = allocate("charge_ec_jun", nyears );
-		ssc_number_t *ch_tr_jul = allocate("charge_ec_jul", nyears );
-		ssc_number_t *ch_tr_aug = allocate("charge_ec_aug", nyears );
-		ssc_number_t *ch_tr_sep = allocate("charge_ec_sep", nyears );
-		ssc_number_t *ch_tr_oct = allocate("charge_ec_oct", nyears );
-		ssc_number_t *ch_tr_nov = allocate("charge_ec_nov", nyears );
-		ssc_number_t *ch_tr_dec = allocate("charge_ec_dec", nyears );
+		ssc_number_t *ch_ec_jan = allocate("charge_ec_jan", nyears );
+		ssc_number_t *ch_ec_feb = allocate("charge_ec_feb", nyears );
+		ssc_number_t *ch_ec_mar = allocate("charge_ec_mar", nyears );
+		ssc_number_t *ch_ec_apr = allocate("charge_ec_apr", nyears );
+		ssc_number_t *ch_ec_may = allocate("charge_ec_may", nyears );
+		ssc_number_t *ch_ec_jun = allocate("charge_ec_jun", nyears );
+		ssc_number_t *ch_ec_jul = allocate("charge_ec_jul", nyears );
+		ssc_number_t *ch_ec_aug = allocate("charge_ec_aug", nyears );
+		ssc_number_t *ch_ec_sep = allocate("charge_ec_sep", nyears );
+		ssc_number_t *ch_ec_oct = allocate("charge_ec_oct", nyears );
+		ssc_number_t *ch_ec_nov = allocate("charge_ec_nov", nyears );
+		ssc_number_t *ch_ec_dec = allocate("charge_ec_dec", nyears );
 
 		for (i=0;i<nyears;i++)
 		{
@@ -886,8 +886,8 @@ public:
 				
 				assign( "year1_monthly_dc_fixed_with_system", var_data(&monthly_dc_fixed[0], 12) );
 				assign( "year1_monthly_dc_tou_with_system", var_data(&monthly_dc_tou[0], 12) );
-				assign( "year1_monthly_tr_charge_with_system", var_data(&monthly_tr_charges[0], 12) );
-				assign( "year1_monthly_tr_rate_with_system", var_data(&monthly_tr_rates[0], 12) );
+				assign( "year1_monthly_tr_charge_with_system", var_data(&monthly_ec_charges[0], 12) );
+				assign( "year1_monthly_tr_rate_with_system", var_data(&monthly_ec_rates[0], 12) );
 			}
 
 			// now recalculate revenue without solar system (using load only)
@@ -895,7 +895,7 @@ public:
 				&revenue_wo_sys[0], &payment[0], &income[0], &price[0],
 				&monthly_fixed_charges[0],
 				&monthly_dc_fixed[0], &monthly_dc_tou[0],
-				&monthly_tr_charges[0], &monthly_tr_rates[0] );
+				&monthly_ec_charges[0], &monthly_ec_rates[0] );
 
 			if (i == 0)
 			{
@@ -906,8 +906,8 @@ public:
 								
 				assign( "year1_monthly_dc_fixed_without_system", var_data(&monthly_dc_fixed[0], 12) );
 				assign( "year1_monthly_dc_tou_without_system", var_data(&monthly_dc_tou[0], 12) );
-				assign( "year1_monthly_tr_charge_without_system", var_data(&monthly_tr_charges[0], 12) );
-				assign( "year1_monthly_tr_rate_without_system", var_data(&monthly_tr_rates[0], 12) );
+				assign( "year1_monthly_tr_charge_without_system", var_data(&monthly_ec_charges[0], 12) );
+				assign( "year1_monthly_tr_rate_without_system", var_data(&monthly_ec_rates[0], 12) );
 			}
 
 			// determine net-revenue benefit due to solar for year 'i'
@@ -955,18 +955,18 @@ public:
 			ch_dc_tou_nov[i] = monthly_dc_tou[10] * rate_scale[i];
 			ch_dc_tou_dec[i] = monthly_dc_tou[11] * rate_scale[i];
 		
-			ch_tr_jan[i] = monthly_tr_charges[0] * rate_scale[i];
-			ch_tr_feb[i] = monthly_tr_charges[1] * rate_scale[i];
-			ch_tr_mar[i] = monthly_tr_charges[2] * rate_scale[i];
-			ch_tr_apr[i] = monthly_tr_charges[3] * rate_scale[i];
-			ch_tr_may[i] = monthly_tr_charges[4] * rate_scale[i];
-			ch_tr_jun[i] = monthly_tr_charges[5] * rate_scale[i];
-			ch_tr_jul[i] = monthly_tr_charges[6] * rate_scale[i];
-			ch_tr_aug[i] = monthly_tr_charges[7] * rate_scale[i];
-			ch_tr_sep[i] = monthly_tr_charges[8] * rate_scale[i];
-			ch_tr_oct[i] = monthly_tr_charges[9] * rate_scale[i];
-			ch_tr_nov[i] = monthly_tr_charges[10] * rate_scale[i];
-			ch_tr_dec[i] = monthly_tr_charges[11] * rate_scale[i];			
+			ch_ec_jan[i] = monthly_ec_charges[0] * rate_scale[i];
+			ch_ec_feb[i] = monthly_ec_charges[1] * rate_scale[i];
+			ch_ec_mar[i] = monthly_ec_charges[2] * rate_scale[i];
+			ch_ec_apr[i] = monthly_ec_charges[3] * rate_scale[i];
+			ch_ec_may[i] = monthly_ec_charges[4] * rate_scale[i];
+			ch_ec_jun[i] = monthly_ec_charges[5] * rate_scale[i];
+			ch_ec_jul[i] = monthly_ec_charges[6] * rate_scale[i];
+			ch_ec_aug[i] = monthly_ec_charges[7] * rate_scale[i];
+			ch_ec_sep[i] = monthly_ec_charges[8] * rate_scale[i];
+			ch_ec_oct[i] = monthly_ec_charges[9] * rate_scale[i];
+			ch_ec_nov[i] = monthly_ec_charges[10] * rate_scale[i];
+			ch_ec_dec[i] = monthly_ec_charges[11] * rate_scale[i];			
 		}
 	
 	}
