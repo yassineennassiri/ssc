@@ -886,8 +886,8 @@ public:
 				
 				assign( "year1_monthly_dc_fixed_with_system", var_data(&monthly_dc_fixed[0], 12) );
 				assign( "year1_monthly_dc_tou_with_system", var_data(&monthly_dc_tou[0], 12) );
-				assign( "year1_monthly_tr_charge_with_system", var_data(&monthly_ec_charges[0], 12) );
-				assign( "year1_monthly_tr_rate_with_system", var_data(&monthly_ec_rates[0], 12) );
+				assign( "year1_monthly_ec_charge_with_system", var_data(&monthly_ec_charges[0], 12) );
+				assign( "year1_monthly_ec_rate_with_system", var_data(&monthly_ec_rates[0], 12) );
 			}
 
 			// now recalculate revenue without solar system (using load only)
@@ -906,8 +906,8 @@ public:
 								
 				assign( "year1_monthly_dc_fixed_without_system", var_data(&monthly_dc_fixed[0], 12) );
 				assign( "year1_monthly_dc_tou_without_system", var_data(&monthly_dc_tou[0], 12) );
-				assign( "year1_monthly_tr_charge_without_system", var_data(&monthly_ec_charges[0], 12) );
-				assign( "year1_monthly_tr_rate_without_system", var_data(&monthly_ec_rates[0], 12) );
+				assign( "year1_monthly_ec_charge_without_system", var_data(&monthly_ec_charges[0], 12) );
+				assign( "year1_monthly_ec_rate_without_system", var_data(&monthly_ec_rates[0], 12) );
 			}
 
 			// determine net-revenue benefit due to solar for year 'i'
