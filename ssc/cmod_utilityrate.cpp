@@ -1255,7 +1255,7 @@ public:
 
 
 
-		for (m=1;m<=12;m++)
+		for (m=0;m<12;m++)
 		{
 			for (tier=0; tier<6; tier++)
 			{

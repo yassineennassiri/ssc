@@ -837,18 +837,18 @@ std::string util::schedule_int_to_month( int m )
 	std::string ret = "";
 	switch (m)
 	{
-		case 1: ret = "jan"; break;
-		case 2: ret = "feb"; break;
-		case 3: ret = "mar"; break;
-		case 4: ret = "apr"; break;
-		case 5: ret = "may"; break;
-		case 6: ret = "jun"; break;
-		case 7: ret = "jul"; break;
-		case 8: ret = "aug"; break;
-		case 9: ret = "sep"; break;
-		case 10: ret = "oct"; break;
-		case 11: ret = "nov"; break;
-		case 12: ret = "dec"; break;
+		case 0: ret = "jan"; break;
+		case 1: ret = "feb"; break;
+		case 2: ret = "mar"; break;
+		case 3: ret = "apr"; break;
+		case 4: ret = "may"; break;
+		case 5: ret = "jun"; break;
+		case 6: ret = "jul"; break;
+		case 7: ret = "aug"; break;
+		case 8: ret = "sep"; break;
+		case 9: ret = "oct"; break;
+		case 10: ret = "nov"; break;
+		case 11: ret = "dec"; break;
 	}
 	return ret;
 }
