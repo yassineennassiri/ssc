@@ -1105,7 +1105,7 @@ public:
 		if (!util::translate_schedule( tod, schedwkday, schedwkend, 0, 11))
 			throw general_error("could not translate weekday and weekend schedules for energy charges");
 
-		bool sell_eq_buy = as_boolean("ur_sell_eq_buy");
+	//	bool sell_eq_buy = as_boolean("ur_sell_eq_buy");
 
 
 		// tiered rates for all 6 tiers in each of the 12 periods
@@ -1119,7 +1119,7 @@ public:
 				std::string str_tier = util::to_string( tier+1 );
 
 				rates[period][tier][0] = as_number("ur_ec_p" + str_period + "_t" + str_tier + "_br");
-				rates[period][tier][1] = sell_eq_buy ? rates[period][tier][0] : as_number("ur_ec_p" + str_period + "_t" + str_tier + "_sr");
+				rates[period][tier][1] = as_boolean("ur_sell_eq_buy") ? rates[period][tier][0] : as_number("ur_ec_p" + str_period + "_t" + str_tier + "_sr");
 				energy_ub[period][tier] = as_number("ur_ec_p" + str_period + "_t" + str_tier + "_ub");
 			}
 		}
@@ -1129,14 +1129,14 @@ public:
 
 		// calculate the monthly net energy per period
 		int m,d,h,period,tier;
-		ssc_number_t energy_use[12][12]; // 12 months, 12 periods
+		ssc_number_t energy_net[12][12]; // 12 months, 12 periods
 		int hours[12][12];
 		int c=0;
 		for (m=0;m<12;m++)
 		{
 			for (period=0;period<12;period++) 
 			{
-				energy_use[m][period] = 0;
+				energy_net[m][period] = 0;
 				hours[m][period] = 0;
 			}
 
@@ -1146,7 +1146,7 @@ public:
 				{
 					int todp = tod[c];
 					// net energy use per period per month
-					energy_use[m][todp] += e[c];
+					energy_net[m][todp] += e[c];
 					// hours per period per month
 					hours[m][todp]++;
 					c++;
@@ -1167,10 +1167,10 @@ public:
 				charge[m][period]=0;
 				credit[m][period]=0;
 
-				if (energy_use[m][period] <= 0.0)
+				if (energy_net[m][period] >= 0.0)
 				{ // calculate income or credit
 					ssc_number_t credit_amt = 0;
-					ssc_number_t energy_surplus = -energy_use[m][period];
+					ssc_number_t energy_surplus = energy_net[m][period];
 					tier=0;
 					while (tier<6)
 					{
@@ -1193,6 +1193,7 @@ public:
 				else
 				{ // calculate payment or charge
 					ssc_number_t charge_amt = 0;
+					ssc_number_t energy_deficit = -energy_net[m][period];
 					tier=0;
 					while (tier<6)
 					{
@@ -1200,19 +1201,19 @@ public:
 						ssc_number_t e_upper = energy_ub[period][tier];
 						ssc_number_t e_lower = tier > 0 ? energy_ub[period][tier-1] : (ssc_number_t)0.0;
 
-						if (energy_use[m][period] > e_upper)
+						if (energy_deficit > e_upper)
 							charge_amt += (e_upper-e_lower)*rates[period][tier][0];
 						else
-							charge_amt += (energy_use[m][period]-e_lower)*rates[period][tier][0];
+							charge_amt += (energy_deficit-e_lower)*rates[period][tier][0];
 	
-						if ( energy_use[m][period] < e_upper )
+						if ( energy_deficit < e_upper )
 							break;
 						tier++;
 					}
 					charge[m][period] = charge_amt;
 					ec_charge[m] += charge_amt;
 				}
-				monthly_energy += energy_use[m][period];
+				monthly_energy += energy_net[m][period];
 			}
 			ec_rate[m] = monthly_energy > 0 ? ec_charge[m]/monthly_energy : (ssc_number_t)0.0;
 		}

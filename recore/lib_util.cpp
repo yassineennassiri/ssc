@@ -875,7 +875,8 @@ bool util::translate_schedule( int tod[8760], const char *wkday, const char *wke
 			for (int h=0;h<24;h++)
 			{
 //				tod[i] = (int)(sptr[ m*24 + h ]-'1');
-				tod[i] = schedule_char_to_int(sptr[ m*24 + h ]-'1');
+//				tod[i] = schedule_char_to_int(sptr[ m*24 + h ]-'1');
+				tod[i] = schedule_char_to_int(sptr[ m*24 + h ])-1;
 				if (tod[i] < min_val) tod[i] = min_val;
 				if (tod[i] > max_val) tod[i] = max_val;
 				i++;
