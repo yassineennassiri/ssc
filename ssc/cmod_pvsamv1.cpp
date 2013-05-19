@@ -217,8 +217,8 @@ static var_info _cm_vtab_pvsamv1[] = {
 	
 	{ SSC_INPUT,        SSC_NUMBER,      "inverter_model",                              "Inverter model specifier",                                "",       "0=spe,1=sandia",        "pvsamv1",       "*",                                 "INTEGER,MIN=0,MAX=1",           "" },
 	
-	{ SSC_INPUT,        SSC_NUMBER,      "inv_spe_efficiency",                          "Single point inverter efficiency",                        "%",       "",                     "pvsamv1",       "inverter_model=0",                  "MIN=0,MAX=100",                 "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "inv_spe_power_ac",                            "Rated inverter power",                                    "Wac",     "",                     "pvsamv1",       "inverter_model=0",                  "POSITIVE",                      "" },
+//	{ SSC_INPUT,        SSC_NUMBER,      "inv_spe_efficiency",                          "Single point inverter efficiency",                        "%",       "",                     "pvsamv1",       "inverter_model=0",                  "MIN=0,MAX=100",                 "" },
+//	{ SSC_INPUT,        SSC_NUMBER,      "inv_spe_power_ac",                            "Rated inverter power",                                    "Wac",     "",                     "pvsamv1",       "inverter_model=0",                  "POSITIVE",                      "" },
 	
 	{ SSC_INPUT,        SSC_NUMBER,      "inv_snl_c0",                                  "Curvature between ac-power and dc-power at ref",          "1/W",     "",                     "pvsamv1",       "inverter_model=1",                    "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "inv_snl_c1",                                  "Coefficient of Pdco variation with dc input voltage",     "1/V",     "",                     "pvsamv1",       "inverter_model=1",                    "",                              "" },
@@ -923,13 +923,13 @@ public:
 		::sandia_inverter_t snlinv;
 
 		int inv_type = as_integer("inverter_model");
-		if ( inv_type == 0 )
-		{
-			speinv_pac = as_double("inv_spe_power_ac");
-			speinv_eff = as_double("inv_spe_efficiency");
-		}
-		else
-		{
+//		if ( inv_type == 0 )
+//		{
+//			speinv_pac = as_double("inv_spe_power_ac");
+//			speinv_eff = as_double("inv_spe_efficiency");
+//		}
+//		else
+//		{
 			snlinv.Paco = as_double("inv_snl_paco");
 			snlinv.Pdco = as_double("inv_snl_pdco");
 			snlinv.Vdco = as_double("inv_snl_vdco");
@@ -939,7 +939,7 @@ public:
 			snlinv.C1 = as_double("inv_snl_c1");
 			snlinv.C2 = as_double("inv_snl_c2");
 			snlinv.C3 = as_double("inv_snl_c3");
-		}
+//		}
 
 
 
@@ -1543,11 +1543,11 @@ public:
 		switch (invType)
 		{
 			case 0: // spe
-				ratedACOutput = as_double("inv_spe_power_ac");
-				inv_eff = as_double("inv_spe_efficiency") / 100.0;
-				if (inv_eff > 0)
-					ratedDCOutput = ratedACOutput / inv_eff;
-				break;
+//				ratedACOutput = as_double("inv_spe_power_ac");
+//				inv_eff = as_double("inv_spe_efficiency") / 100.0;
+//				if (inv_eff > 0)
+//					ratedDCOutput = ratedACOutput / inv_eff;
+//			break;
 			case 1: // sandia
 				ratedACOutput = as_double("inv_snl_paco");
 				ratedDCOutput = as_double("inv_snl_pdco");
