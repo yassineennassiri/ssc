@@ -1,7 +1,7 @@
 #ifndef __lib_pvinv_h
 #define __lib_pvinv_h
 
-
+#include <vector>
 /*
 	Implementation of inverter partload curve with linear interpolation
 */
@@ -13,9 +13,9 @@ public:
 
 	double Paco;    /* Maximum AC power rating, upper limit value  (Wac) */
 	double Pdco;    /* DC power level at which Paco is achieved (Wdc) */
-	double *Partload; /* Array of partload values (Pdc/Paco) for linear interpolation */
-	double *Efficiency; /* Array of efficiencies corresponding to partload values */
-	
+	std::vector<double> Partload; /* Array of partload values (Pdc/Paco) for linear interpolation */
+	std::vector<double> Efficiency; /* Array of efficiencies corresponding to partload values */
+	int n; /* Number of points in the partload curve provided by user */
 
 	bool acpower(	/* inputs */
 		double Pdc,     /* Input power to inverter (Wdc) */

@@ -8,6 +8,7 @@
 partload_inverter_t::partload_inverter_t( )
 {
 	Paco = Pdco = std::numeric_limits<double>::quiet_NaN();
+	n = 0;
 }
 
 bool partload_inverter_t::acpower(
@@ -21,15 +22,60 @@ bool partload_inverter_t::acpower(
 	)
 {
 
-	// linear interpolation based on Pdc/Pdco and *Partload and *Efficiency arrays
+	if ( Pdco <= 0 ) return false;
 
+	// handle limits - can send error back or record out of range values
+	if ( Pdc < 0 ) Pdc = 0;
+	if ( Pdc > Pdco ) Pdc = Pdco;
+
+
+	// linear interpolation based on Pdc/Pdco and *Partload and *Efficiency arrays
+	double x = 100.0 * Pdc / Pdco; // percentages in partload ratio
+
+	bool ascnd = (Partload[n-1] > Partload[0]); // check ascending order
+	int ndx;
+	int nu = n-1;
+	int nl = 0;
+
+	// Numerical Recipes in C p.117
+	while ( (nu-nl) > 1 )
+	{
+		ndx = (nu + nl) >> 1; // divide by 2
+		if ( x >= Partload[ndx] == ascnd )
+			nl = ndx;
+		else 
+			nu = ndx;
+	}
+	if ( x == Partload[0] )
+		ndx = 0;
+	else if ( x == Partload[n-1] )
+		ndx = n-1;
+	else
+		ndx = nl;
+
+	// check in range
+	if (ndx >= (n-1))
+		ndx = n-2;
+	if ( ndx < 0 ) 
+		ndx =0;
+
+	// x between Partload[ndx] and Partload[ndx-1]
+	if ( x > Partload[ndx] )
+		*Eff = Efficiency[ndx] + ((Efficiency[ndx+1] / Efficiency[ndx]) / 
+									(Partload[ndx+1] / Partload[ndx] )) * x;
+	else
+		*Eff = Efficiency[ndx];
+
+	if ( *Eff < 0.0 ) *Eff = 0.0;
+
+	*Eff /= 100.0; // user data in percentages
+
+	*Pac = *Eff * Pdc;
 
 	// clipping loss
 	if ( *Pac > Paco ) *Pac = Paco;
 
 	*Plr = Pdc / Pdco;
-	*Eff = *Pac / Pdc;
-	if ( *Eff < 0.0 ) *Eff = 0.0;
 
 	return true;
 }
