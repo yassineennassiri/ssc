@@ -237,7 +237,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "inv_ds_vdco",                                "DC input voltage for the rated ac-power rating",          "Vdc",     "",                     "pvsamv1",       "inverter_model=1",                    "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "inv_ds_vdcmax",                              "Maximum dc input operating voltage",                      "Vdc",     "",                     "pvsamv1",       "inverter_model=1",                    "",                              "" },
 
-	{ SSC_INPUT,        SSC_NUMBER,      "inv_ds_paco",                                "AC maximum power rating",                                 "Wac",     "",                     "pvsamv1",       "inverter_model=2",                    "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "inv_pd_paco",                                "AC maximum power rating",                                 "Wac",     "",                     "pvsamv1",       "inverter_model=2",                    "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "inv_pd_pdco",                                "DC input power at which ac-power rating is achieved",     "Wdc",     "",                     "pvsamv1",       "inverter_model=2",                    "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,      "inv_pd_partload",                                 "Partload curve partload values",                  "%",     "",                     "pvsamv1",       "inverter_model=2",                    "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,      "inv_pd_efficiency",                                 "Partload curve efficiency values",       "%",     "",                     "pvsamv1",       "inverter_model=2",                    "",                              "" },
@@ -346,6 +346,9 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ac_gross",                             "Gross ac output",                                        "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ac_net",                               "Net ac output",                                          "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 		
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_eff",                               "Inverter efficiency",                                          "%",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+
+
 	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_inc_total",                           "Total incident radiation",                               "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_inc_beam",                            "Beam incident radiation",                                "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
 	
@@ -1076,6 +1079,7 @@ public:
 		ssc_number_t *p_dcpwr = allocate( "hourly_dc_net", 8760 );
 		ssc_number_t *p_acgross = allocate( "hourly_ac_gross", 8760 );
 		ssc_number_t *p_acpwr = allocate( "hourly_ac_net", 8760 );
+		ssc_number_t *p_inveff = allocate( "hourly_inv_eff", 8760 );
 
 
 
@@ -1380,6 +1384,7 @@ public:
 
 			p_acgross[istep] = (ssc_number_t) ( acpwr_gross * 0.001 );
 			p_acpwr[istep] = (ssc_number_t) ( acpwr_gross*ac_derate * 0.001 );
+			p_inveff[istep] = (ssc_number_t) ( aceff );
 
 			istep++;
 
@@ -1602,7 +1607,8 @@ public:
 				break;
 			case 1: // datasheet
 				ratedACOutput = as_double("inv_ds_paco");
-				ratedDCOutput = as_double("inv_ds_pdco");
+				ratedDCOutput = as_double("inv_ds_eff")/100.0;
+				if (ratedDCOutput != 0) ratedDCOutput = ratedACOutput/ratedDCOutput;
 				break;
 			case 2: // partload curve
 				ratedACOutput = as_double("inv_pd_paco");

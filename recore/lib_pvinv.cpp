@@ -61,8 +61,8 @@ bool partload_inverter_t::acpower(
 
 	// x between Partload[ndx] and Partload[ndx-1]
 	if ( x > Partload[ndx] )
-		*Eff = Efficiency[ndx] + ((Efficiency[ndx+1] / Efficiency[ndx]) / 
-									(Partload[ndx+1] / Partload[ndx] )) * x;
+		*Eff = Efficiency[ndx] + ((Efficiency[ndx+1] - Efficiency[ndx]) / 
+									(Partload[ndx+1] - Partload[ndx] )) * (x - Partload[ndx]);
 	else
 		*Eff = Efficiency[ndx];
 
