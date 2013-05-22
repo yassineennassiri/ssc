@@ -27,7 +27,6 @@ bool partload_inverter_t::acpower(
 //	if ( Pdc < 0 ) Pdc = 0;
 //	if ( Pdc > Pdco ) Pdc = Pdco;
 
-
 	// linear interpolation based on Pdc/Pdco and *Partload and *Efficiency arrays
 	double x = 100.0 * Pdc / Pdco; // percentages in partload ratio
 
@@ -42,9 +41,7 @@ bool partload_inverter_t::acpower(
 	while ( (nu-nl) > 1 )
 	{
 		ndx = (nu + nl) >> 1; // divide by 2
-//		ndx = (nu + nl) / 2; // divide by 2
 		if ( x >= Partload[ndx] == ascnd )
-//		if (( x >= Partload[ndx] ) && ascnd )
 			nl = ndx;
 		else 
 			nu = ndx;
@@ -61,13 +58,6 @@ bool partload_inverter_t::acpower(
 		ndx = n-2;
 	if ( ndx < 0 ) 
 		ndx =0;
-
-
-	// testing 
-//	*Eff = ndx/100.0;
-//	*Pac = x*1000.0;
-
-
 
 	// x between Partload[ndx] and Partload[ndx-1]
 	if ( x > Partload[ndx] )
