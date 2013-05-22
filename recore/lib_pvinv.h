@@ -15,7 +15,6 @@ public:
 	double Pdco;    /* DC power level at which Paco is achieved (Wdc) */
 	std::vector<double> Partload; /* Array of partload values (Pdc/Paco) for linear interpolation */
 	std::vector<double> Efficiency; /* Array of efficiencies corresponding to partload values */
-	int n; /* Number of points in the partload curve provided by user */
 
 	bool acpower(	/* inputs */
 		double Pdc,     /* Input power to inverter (Wdc) */
