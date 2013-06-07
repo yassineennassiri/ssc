@@ -27,7 +27,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_STRING,      "weather_file",                                "Weather file in TMY2, TMY3, EPW, or SMW.",                "",       "",                              "pvsamv1",              "*",                        "LOCAL_FILE",                    "" },
 	
 	{ SSC_INPUT,        SSC_NUMBER,      "use_wf_albedo",                               "Use albedo in weather file if provided",                  "0/1",    "",                              "pvsamv1",              "?=1",                      "BOOLEAN",                       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "albedo",                                      "User specified ground albedo",                            "0..1",   "",                              "pvsamv1",              "?=0.2",                    "MIN=0,MAX=100",                 "" },
+	{ SSC_INPUT,        SSC_ARRAY,       "albedo",                                      "User specified ground albedo",                            "0..1",   "",                              "pvsamv1",              "*",						  "LENGTH=12",					   "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "irrad_mode",                                  "Irradiance input translation mode",                       "",       "0=beam&diffuse,1=total&beam",   "pvsamv1",              "?=0",                      "INTEGER,MIN=0,MAX=1",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "sky_model",                                   "Diffuse sky model",                                       "",       "0=isotropic,1=hkdr,2=perez",    "pvsamv1",              "?=2",                      "INTEGER,MIN=0,MAX=2",           "" },
 
@@ -45,15 +45,14 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_track_mode",                        "Sub-array 1 Tracking mode",                               "",       "0=fixed,1=1axis,2=2axis,3=azi", "pvsamv1",              "*",                        "INTEGER,MIN=0,MAX=3",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_rotlim",                            "Sub-array 1 Tracker rotation limit",                      "deg",    "",                              "pvsamv1",              "?=45",                     "MIN=5,MAX=85",                  "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_enable_backtracking",               "Sub-array 1 Enable backtracking for 1 axis trackers",     "0/1",    "",                              "pvsamv1",              "?=0",                      "BOOLEAN",                       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_btwidth",                           "Sub-array 1 Width of backtracking row",                   "m",      "",                              "pvsamv1",              "subarray1_enable_backtracking=1", "POSITIVE",               "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_btspacing",                         "Sub-array 1 Spacing between edges of backtracking rows",  "m",      "",                              "pvsamv1",              "subarray1_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_width_1x",                          "Sub-array 1 Width of tracker row",                        "m",      "",                              "pvsamv1",              "subarray1_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_spacing_1x",                        "Sub-array 1 Spacing between edges of tracker rows",       "m",      "",                              "pvsamv1",              "subarray1_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_shade_mode_1x",                     "Sub-array 1 Tracker self-shading mode",                   "0/1",    "0=none,1=derate beam by area",  "pvsamv1",              "?=0",                      "INTEGER,MIN=0,MAX=1",           "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "subarray1_shading_hourly",                    "Sub-array 1 Hourly beam shading factors",                 "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray1_shading_mxh",                       "Sub-array 1 Month x Hour beam shading factors",           "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray1_shading_azal",                      "Sub-array 1 Azimuth x altitude beam shading factors",     "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_shading_diff",                      "Sub-array 1 Diffuse shading factor",                      "",       "",                              "pvsamv1",              "?",                        "",                              "" },
-
 	{ SSC_INPUT,        SSC_ARRAY,       "subarray1_soiling",                           "Sub-array 1 Monthly soiling derate",                      "0..1",   "",                              "pvsamv1",              "*",                        "LENGTH=12",                      "" },         
-
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_derate",                            "Sub-array 1 DC power derate",                             "0..1",   "",                              "pvsamv1",              "*",                        "MIN=0,MAX=1",                   "" },
 	
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_enable",                            "Sub-array 2 Enable",                                      "0/1",    "0=disabled,1=enabled",          "pvsamv1",              "?=0",                      "BOOLEAN",                       "" },
@@ -64,8 +63,9 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_track_mode",                        "Sub-array 2 Tracking mode",                               "",       "0=fixed,1=1axis,2=2axis,3=azi", "pvsamv1",              "subarray2_enable=1",       "INTEGER,MIN=0,MAX=3",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_rotlim",                            "Sub-array 2 Tracker rotation limit",                      "deg",    "",                              "pvsamv1",              "?=45",                     "MIN=5,MAX=85",                  "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_enable_backtracking",               "Sub-array 2 Enable backtracking for 1 axis trackers",     "0/1",    "",                              "pvsamv1",              "?=0",                      "BOOLEAN",                       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_btwidth",                           "Sub-array 2 Width of backtracking row",                   "m",      "",                              "pvsamv1",              "subarray2_enable_backtracking=1", "POSITIVE",               "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_btspacing",                         "Sub-array 2 Spacing between edges of backtracking rows",  "m",      "",                              "pvsamv1",              "subarray2_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_width_1x",                          "Sub-array 2 Width of tracker row",                        "m",      "",                              "pvsamv1",              "subarray2_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_spacing_1x",                        "Sub-array 2 Spacing between edges of tracker rows",       "m",      "",                              "pvsamv1",              "subarray2_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_shade_mode_1x",                     "Sub-array 2 Tracker self-shading mode",                   "0/1",    "0=none,1=derate beam by area",  "pvsamv1",              "?=0",                      "INTEGER,MIN=0,MAX=1",           "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "subarray2_shading_hourly",                    "Sub-array 2 Hourly beam shading factors",                 "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray2_shading_mxh",                       "Sub-array 2 Month x Hour beam shading factors",           "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray2_shading_azal",                      "Sub-array 2 Azimuth x altitude beam shading factors",     "",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -81,8 +81,9 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_track_mode",                        "Sub-array 3 Tracking mode",                               "",       "0=fixed,1=1axis,2=2axis,3=azi", "pvsamv1",              "subarray3_enable=1",       "INTEGER,MIN=0,MAX=3",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_rotlim",                            "Sub-array 3 Tracker rotation limit",                      "deg",    "",                              "pvsamv1",              "?=45",                     "MIN=5,MAX=85",                  "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_enable_backtracking",               "Sub-array 3 Enable backtracking for 1 axis trackers",     "0/1",    "",                              "pvsamv1",              "?=0",                      "BOOLEAN",                       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_btwidth",                           "Sub-array 3 Width of backtracking row",                   "m",      "",                              "pvsamv1",              "subarray3_enable_backtracking=1", "POSITIVE",               "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_btspacing",                         "Sub-array 3 Spacing between edges of backtracking rows",  "m",      "",                              "pvsamv1",              "subarray3_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_width_1x",                          "Sub-array 3 Width of tracker row",                        "m",      "",                              "pvsamv1",              "subarray3_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_spacing_1x",                        "Sub-array 3 Spacing between edges of tracker rows",       "m",      "",                              "pvsamv1",              "subarray3_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_shade_mode_1x",                     "Sub-array 3 Tracker self-shading mode",                   "0/1",    "0=none,1=derate beam by area",  "pvsamv1",              "?=0",                      "INTEGER,MIN=0,MAX=1",           "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "subarray3_shading_hourly",                    "Sub-array 3 Hourly beam shading factors",                 "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray3_shading_mxh",                       "Sub-array 3 Month x Hour beam shading factors",           "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray3_shading_azal",                      "Sub-array 3 Azimuth x altitude beam shading factors",     "",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -98,8 +99,9 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_track_mode",                        "Sub-array 4 Tracking mode",                               "",       "0=fixed,1=1axis,2=2axis,3=azi", "pvsamv1",              "subarray4_enable=1",       "INTEGER,MIN=0,MAX=3",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_rotlim",                            "Sub-array 4 Tracker rotation limit",                      "deg",    "",                              "pvsamv1",              "?=45",                     "MIN=5,MAX=85",                  "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_enable_backtracking",               "Sub-array 4 Enable backtracking for 1 axis trackers",     "0/1",    "",                              "pvsamv1",              "?=0",                      "BOOLEAN",                       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_btwidth",                           "Sub-array 4 Width of backtracking row",                   "m",      "",                              "pvsamv1",              "subarray4_enable_backtracking=1", "POSITIVE",               "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_btspacing",                         "Sub-array 4 Spacing between edges of backtracking rows",  "m",      "",                              "pvsamv1",              "subarray4_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_width_1x",                          "Sub-array 4 Width of tracker row",                        "m",      "",                              "pvsamv1",              "subarray4_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_spacing_1x",                        "Sub-array 4 Spacing between edges of tracker rows",       "m",      "",                              "pvsamv1",              "subarray4_enable_backtracking=1", "POSITIVE",               "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_shade_mode_1x",                     "Sub-array 4 Tracker self-shading mode",                   "0/1",    "0=none,1=derate beam by area",  "pvsamv1",              "?=0",                      "INTEGER,MIN=0,MAX=1",           "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "subarray4_shading_hourly",                    "Sub-array 4 Hourly beam shading factors",                 "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray4_shading_mxh",                       "Sub-array 4 Month x Hour beam shading factors",           "",       "",                              "pvsamv1",              "?",                        "",                              "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray4_shading_azal",                      "Sub-array 4 Azimuth x altitude beam shading factors",     "",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -278,16 +280,19 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_sol_azi",                              "Solar azimuth angle",                                               "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_sunup",                                "Sun up over horizon",                                               "0/1",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_airmass",                              "Absolute air mass",                                                 "",       "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	
-/* sub-array level outputs */
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_albedo",                               "Albedo",							                                 "",       "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+
+	/* sub-array level outputs */
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_aoi",                        "Subarray 1 Angle of incidence",                                     "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_surf_tilt",                  "Subarray 1 Surface tilt",                                           "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_surf_azi",                   "Subarray 1 Surface azimuth",                                        "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_axisrot",                    "Subarray 1 Axis rotation for 1 axis trackers",                      "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_idealrot",                   "Subarray 1 Ideal axis rotation for 1 axis trackers",                "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_inc_beam",                   "Subarray 1 Incident beam irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_inc_diff",                   "Subarray 1 Incident diffuse irradiance after shading and soiling",  "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_inc_total",                  "Subarray 1 Incident total irradiance after shading and soiling",    "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_poa_nom",                    "Subarray 1 Nominal POA irradiance before shading and soiling",      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_poa_shaded",                 "Subarray 1 POA irradiance after shading only",                      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_poa_eff_beam",               "Subarray 1 POA beam irradiance after shading and soiling",          "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_poa_eff_diff",               "Subarray 1 POA diffuse irradiance after shading and soiling",       "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_poa_eff",                    "Subarray 1 Effective POA irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_beam_shading_factor",        "Subarray 1 Beam irradiance shading factor",                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_modeff",                     "Subarray 1 Module efficiency",                                      "%",      "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray1_soiling_derate",             "Subarray 1 Soiling derate",                                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
@@ -300,9 +305,11 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_surf_azi",                   "Subarray 2 Surface azimuth",                                        "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_axisrot",                    "Subarray 2 Axis rotation for 1 axis trackers",                      "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_idealrot",                   "Subarray 2 Ideal axis rotation for 1 axis trackers",                "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_inc_beam",                   "Subarray 2 Incident beam irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_inc_diff",                   "Subarray 2 Incident diffuse irradiance after shading and soiling",  "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_inc_total",                  "Subarray 2 Incident total irradiance after shading and soiling",    "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_poa_nom",                    "Subarray 2 Nominal POA irradiance before shading and soiling",      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_poa_shaded",                 "Subarray 2 POA irradiance after shading only",                      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_poa_eff_beam",               "Subarray 2 POA beam irradiance after shading and soiling",          "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_poa_eff_diff",               "Subarray 2 POA diffuse irradiance after shading and soiling",       "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_poa_eff",                    "Subarray 2 Effective POA irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_beam_shading_factor",        "Subarray 2 Beam irradiance shading factor",                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_modeff",                     "Subarray 2 Module efficiency",                                      "%",      "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray2_soiling_derate",             "Subarray 2 Soiling derate",                                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
@@ -315,9 +322,11 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_surf_azi",                   "Subarray 3 Surface azimuth",                                        "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_axisrot",                    "Subarray 3 Axis rotation for 1 axis trackers",                      "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_idealrot",                   "Subarray 3 Ideal axis rotation for 1 axis trackers",                "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_inc_beam",                   "Subarray 3 Incident beam irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_inc_diff",                   "Subarray 3 Incident diffuse irradiance after shading and soiling",  "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_inc_total",                  "Subarray 3 Incident total irradiance after shading and soiling",    "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_poa_nom",                    "Subarray 3 Nominal POA irradiance before shading and soiling",      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_poa_shaded",                 "Subarray 3 POA irradiance after shading only",                      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_poa_eff_beam",               "Subarray 3 POA beam irradiance after shading and soiling",          "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_poa_eff_diff",               "Subarray 3 POA diffuse irradiance after shading and soiling",       "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_poa_eff",                    "Subarray 3 Effective POA irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_beam_shading_factor",        "Subarray 3 Beam irradiance shading factor",                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_modeff",                     "Subarray 3 Module efficiency",                                      "%",      "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray3_soiling_derate",             "Subarray 3 Soiling derate",                                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
@@ -330,9 +339,11 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_surf_azi",                   "Subarray 4 Surface azimuth",                                        "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_axisrot",                    "Subarray 4 Axis rotation for 1 axis trackers",                      "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_idealrot",                   "Subarray 4 Ideal axis rotation for 1 axis trackers",                "deg",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_inc_beam",                   "Subarray 4 Incident beam irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_inc_diff",                   "Subarray 4 Incident diffuse irradiance after shading and soiling",  "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_inc_total",                  "Subarray 4 Incident total irradiance after shading and soiling",    "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_poa_nom",                    "Subarray 4 Nominal POA irradiance before shading and soiling",      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_poa_shaded",                 "Subarray 4 POA irradiance after shading only",                      "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_poa_eff_beam",               "Subarray 4 POA beam irradiance after shading and soiling",          "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_poa_eff_diff",               "Subarray 4 POA diffuse irradiance after shading and soiling",       "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_poa_eff",                    "Subarray 4 Effective POA irradiance after shading and soiling",     "kW/m2",  "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_beam_shading_factor",        "Subarray 4 Beam irradiance shading factor",                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_modeff",                     "Subarray 4 Module efficiency",                                      "%",      "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_subarray4_soiling_derate",             "Subarray 4 Soiling derate",                                         "frac",   "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
@@ -342,6 +353,9 @@ static var_info _cm_vtab_pvsamv1[] = {
 
 
 /* aggregate array level outputs */
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_poa_nom",                              "Nominal plane of array radiation",                       "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_poa_shaded",                           "Plane of array radiation after shading only",            "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_poa_eff",                              "Effective POA radiation after shading and soiling",      "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ss_derate",                            "Self-shading derate",                                    "",       "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ss_diffuse_derate",                    "Self-shading diffuse derate",                            "",       "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ss_reflected_derate",                  "Self-shading reflected derate",                          "",       "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
@@ -352,20 +366,27 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ac_gross",                             "Gross ac output",                                        "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_ac_net",                               "Net ac output",                                          "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 		
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_eff",                               "Inverter efficiency",                                          "%",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_cliploss",                               "Inverter clipping loss",                                          "Wac",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_psoloss",                               "Inverter power consumption loss",                                          "Wdc",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_pntloss",                               "Inverter night time loss",                                          "Wac",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_eff",                              "Inverter efficiency",                                    "%",      "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_cliploss",                         "Inverter clipping loss",                                 "Wac",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_psoloss",                          "Inverter power consumption loss",                        "Wdc",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "hourly_inv_pntloss",                          "Inverter night time loss",                               "Wac",    "",                      "pvsamv1",       "*",                    "LENGTH=8760",                              "" },
 
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_inv_cliploss",                         "Inverter clipping loss",                                 "Wac",    "",                      "pvsamv1",       "*",                    "",                              "" },
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_inv_psoloss",                          "Inverter power consumption loss",                        "Wdc",    "",                      "pvsamv1",       "*",                    "",                              "" },
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_inv_pntloss",                          "Inverter night time loss",                               "Wac",    "",                      "pvsamv1",       "*",                    "",                              "" },
 
-	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_inc_total",                           "Total incident radiation",                               "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
-	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_inc_beam",                            "Beam incident radiation",                                "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_poa_eff",                             "Total effective POA radiation after shading and soiling",      "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
+	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_poa_eff_beam",                        "Total effective POA beam radiation after shading and soiling", "kWh/m2", "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
 	
 	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_dc_net",                              "Net dc output",                                          "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
 	{ SSC_OUTPUT,        SSC_ARRAY,      "monthly_ac_net",                              "Net ac output",                                          "kWh",    "",                      "pvsamv1",       "*",                    "LENGTH=12",                              "" },
 	
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_glob_horiz_rad",                       "Global horizontal irradiance",                           "kWh/m2", "",                      "pvsamv1",       "*",                    "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_input_radiation",                      "Input radiation",                                        "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_input_radiation_beam",                 "Beam input radiation",                                   "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_poa_nom",                              "Nominal POA radiation before shading and soiling",       "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_poa_shaded",                           "Total POA radiation after shading only",                 "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
+	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_poa_eff",                              "Total Effective POA radiation after shading and soiling","kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_dc_nominal",                           "Nominal dc energy",                                      "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_dc_gross",                             "Gross dc output",                                        "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
 	{ SSC_OUTPUT,        SSC_NUMBER,     "annual_dc_net",                               "Net dc output",                                          "kWh",    "",                      "pvsamv1",       "*",                    "",                              "" },
@@ -392,8 +413,10 @@ struct subarray
 		tilt = azimuth = 0;
 		track_mode = 0;
 		rotlim = 0;
-		en_backtrack = false;
-		btwidth = btspacing = -1;
+		en_backtrack_1x = false;
+		width_1x = spacing_1x = -1;
+		shade_mode_1x = 0; // 0=fully unshaded 1=geometric area derate on beam
+
 		derate = 1.0;
 		
 		for (size_t i=0;i<12;i++)
@@ -417,7 +440,7 @@ struct subarray
 		module.tcell = 0;
 
 		for (int i=0;i<12;i++)
-			monthly_inc_beam[i] = monthly_inc_total[i] = 0.0;
+			monthly_poa_eff_beam[i] = monthly_poa_eff[i] = 0.0;
 	}
 
 	bool enable;
@@ -427,11 +450,14 @@ struct subarray
 	double azimuth;
 	int track_mode;
 	double rotlim;
-	bool en_backtrack;
-	double btwidth;
-	double btspacing;
 	double soiling[12];
 	double derate;
+	
+	int shade_mode_1x;
+	double width_1x;
+	double spacing_1x;
+	
+	bool en_backtrack_1x;
 	
 	std::vector<double> shad_beam_factor; // hourly factors as well as mxh
 	bool en_azal; // enable az x al shading factors
@@ -457,8 +483,8 @@ struct subarray
 		double tcell;
 	} module;
 	
-	double monthly_inc_total[12];
-	double monthly_inc_beam[12];
+	double monthly_poa_eff[12];
+	double monthly_poa_eff_beam[12];
 };
 	
 class cm_pvsamv1 : public compute_module
@@ -475,7 +501,7 @@ public:
 	void exec( ) throw( general_error )
 	{
 		// open the weather file
-
+		// define variables consistent across subarrays
 		
 
 		weatherfile wf( as_string("weather_file") );
@@ -488,8 +514,10 @@ public:
 		int num_inverters = as_integer("inverter_count");
 		double ac_derate = as_double("ac_derate");
 
-		double alb_const = as_double("albedo");
-		bool use_wf_alb = (as_integer("use_wf_albedo") > 0);
+		size_t alb_len = 0;
+		ssc_number_t *alb_array = as_array("albedo", &alb_len); // monthly albedo array
+
+		bool use_wf_alb = (as_integer("use_wf_albedo") > 0); // weather file albedo
 
 		int radmode = as_integer("irrad_mode"); // 0=B&D, 1=G&B
 		int skymodel = as_integer("sky_model"); // 0=isotropic, 1=hdkr, 2=perez
@@ -499,7 +527,7 @@ public:
 		int num_subarrays = 1;
 
 
-
+		// loop over subarrays
 		for ( size_t nn=0;nn<4;nn++ )
 		{
 			sa[nn].enable = true;
@@ -539,14 +567,17 @@ public:
 			sa[nn].azimuth = as_double( prefix+"azimuth" );
 			sa[nn].rotlim = as_double( prefix+"rotlim" );
 			
-			sa[nn].en_backtrack = false;
-			sa[nn].btwidth = -1;
-			sa[nn].btspacing = -1;
-			if ( as_integer( prefix+"enable_backtracking") )
+			sa[nn].en_backtrack_1x = (as_integer( prefix+"enable_backtracking") > 0);
+			sa[nn].width_1x = -1;
+			sa[nn].spacing_1x = -1;
+			sa[nn].shade_mode_1x = as_integer( prefix+"shade_mode_1x" );
+			if ( sa[nn].en_backtrack_1x || sa[nn].shade_mode_1x > 0 )
 			{
-				sa[nn].en_backtrack = true;
-				sa[nn].btwidth = as_double( prefix+"btwidth" );
-				sa[nn].btspacing = as_double( prefix+"btspacing" );
+				sa[nn].width_1x = as_double( prefix+"width_1x" );
+				sa[nn].spacing_1x = as_double( prefix+"spacing_1x" );
+
+				if (sa[nn].width_1x < 0.01 || sa[nn].spacing_1x < 0.01)
+					throw exec_error("pvsamv1", "1 axis tracked array width and spacing must be both be greater than 0.01");
 			}
 
 			sa[nn].shad_skydiff_factor = 1;
@@ -898,7 +929,7 @@ public:
 			double gamma = as_double("6par_gpmp");
 			int nser = as_integer("6par_nser");
 		
-			module6par m(tech_id, Vmp, Imp, Voc, Isc, beta, alpha, gamma, nser);
+			module6par m(tech_id, Vmp, Imp, Voc, Isc, beta, alpha, gamma, nser, 298.15);
 			int err = m.solve_with_sanity_and_heuristics<double>( 300, 1e-7 );
 
 			if (err != 0)
@@ -1044,7 +1075,8 @@ public:
 		ssc_number_t *p_diff = allocate( "hourly_diff", 8760 );
 		ssc_number_t *p_wspd = allocate( "hourly_windspd", 8760 );
 		ssc_number_t *p_tdry = allocate( "hourly_ambtemp", 8760 );
-		
+		ssc_number_t *p_albedo = allocate( "hourly_albedo", 8760 );
+
 		ssc_number_t *p_solzen = allocate("hourly_sol_zen", 8760);
 		ssc_number_t *p_solalt = allocate("hourly_sol_alt", 8760);
 		ssc_number_t *p_solazi = allocate("hourly_sol_azi", 8760);
@@ -1055,10 +1087,12 @@ public:
 		ssc_number_t *p_surftilt[4];  
 		ssc_number_t *p_surfazi[4];   
 		ssc_number_t *p_rot[4];       
-		ssc_number_t *p_idealrot[4];  
-		ssc_number_t *p_incbeam[4];   
-		ssc_number_t *p_incdiff[4];   
-		ssc_number_t *p_inctotal[4];  
+		ssc_number_t *p_idealrot[4];
+		ssc_number_t *p_poanom[4];
+		ssc_number_t *p_poashaded[4];
+		ssc_number_t *p_poaeffbeam[4];   
+		ssc_number_t *p_poaeffdiff[4];   
+		ssc_number_t *p_poaeff[4];  
 		ssc_number_t *p_soiling[4];   
 		ssc_number_t *p_shad[4];      	
 		ssc_number_t *p_tcell[4];     
@@ -1074,9 +1108,11 @@ public:
 			p_surfazi[nn]    = allocate( prefix+"surf_azi", 8760);		
 			p_rot[nn]        = allocate( prefix+"axisrot", 8760 );
 			p_idealrot[nn]   = allocate( prefix+"idealrot", 8760);
-			p_incbeam[nn]    = allocate( prefix+"inc_beam", 8760 );
-			p_incdiff[nn]    = allocate( prefix+"inc_diff", 8760 );
-			p_inctotal[nn]   = allocate( prefix+"inc_total", 8760 );		
+			p_poanom[nn]     = allocate( prefix+"poa_nom", 8760);
+			p_poashaded[nn]  = allocate( prefix+"poa_shaded", 8760);
+			p_poaeffbeam[nn]    = allocate( prefix+"poa_eff_beam", 8760 );
+			p_poaeffdiff[nn]    = allocate( prefix+"poa_eff_diff", 8760 );
+			p_poaeff[nn]   = allocate( prefix+"poa_eff", 8760 );		
 			p_soiling[nn]    = allocate( prefix+"soiling_derate", 8760);
 			p_shad[nn]       = allocate( prefix+"beam_shading_factor", 8760 );
 			p_tcell[nn]      = allocate( prefix+"celltemp", 8760 );
@@ -1088,6 +1124,9 @@ public:
 		ssc_number_t *p_inv_dc_voltage = allocate( "hourly_inverter_dc_voltage", 8760 );
 		ssc_number_t *p_inrad = allocate( "hourly_input_radiation", 8760 );
 		ssc_number_t *p_inradbeam = allocate( "hourly_input_radiation_beam", 8760 );
+		ssc_number_t *p_poanomhr = allocate( "hourly_poa_nom", 8760 );
+		ssc_number_t *p_poashadedhr = allocate("hourly_poa_shaded", 8760 );
+		ssc_number_t *p_poaeffhr = allocate("hourly_poa_eff", 8760 );
 		ssc_number_t *p_dcgross = allocate( "hourly_dc_gross", 8760 );
 		ssc_number_t *p_dcpwr = allocate( "hourly_dc_net", 8760 );
 		ssc_number_t *p_acgross = allocate( "hourly_ac_gross", 8760 );
@@ -1118,7 +1157,21 @@ public:
 			double dcpwr_gross = 0.0, dcpwr_net = 0.0, dc_string_voltage = 0.0;
 			double inprad_total = 0.0;
 			double inprad_beam = 0.0;
-			
+			double poa_nom_hr = 0.0;
+			double poa_shaded_hr = 0.0;
+			double alb = 0.2;
+			double poa_eff_hr = 0.0;
+								
+			int month_idx = wf.month - 1;
+
+			if (use_wf_alb && wf.albedo >= 0 && wf.albedo <= 1)
+				alb = wf.albedo;
+			else if ( month_idx >= 0 && month_idx < 12 )
+				alb = alb_array[month_idx];
+			else
+				throw exec_error( "pvsamv1", 
+						util::format("Error retrieving albedo value: Invalid month in weather file or invalid albedo value in weather file"));
+	
 			// calculate incident irradiance on each subarray
 			for (int nn=0;nn<4;nn++)
 			{
@@ -1129,21 +1182,22 @@ public:
 				irrad irr;
 				irr.set_time( wf.year, wf.month, wf.day, wf.hour, wf.minute, wf.step / 3600.0 );
 				irr.set_location( wf.lat, wf.lon, wf.tz );
-		
-				double alb = alb_const;
-				if (use_wf_alb && wf.albedo >= 0 && wf.albedo <= 1)
-					alb = wf.albedo;
-				
+			
 				irr.set_sky_model( skymodel, alb );
 				if ( radmode == 0 ) irr.set_beam_diffuse( wf.dn, wf.df );
 				else if (radmode == 1) irr.set_global_beam( wf.gh, wf.dn );
+
+				double btwidth = sa[nn].width_1x;
+				double btspace = sa[nn].spacing_1x;
+				if ( sa[nn].en_backtrack_1x == false )
+					btwidth = btspace = -1;
 
 				irr.set_surface( sa[nn].track_mode,
 					sa[nn].tilt,
 					sa[nn].azimuth,
 					sa[nn].rotlim,
-					sa[nn].btwidth,
-					sa[nn].btspacing );
+					btwidth,
+					btspace );
 
 				int code = irr.calc();
 				if ( code != 0 )
@@ -1157,8 +1211,33 @@ public:
 				irr.get_sun( &solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0 );
 				irr.get_angles( &aoi, &stilt, &sazi, &rot, &btd );
 				irr.get_poa( &ibeam, &iskydiff, &ignddiff, 0, 0, 0);
+				
+				// record sub-array plane of array output before computing shading and soiling
+				p_poanom[nn][istep] = (ssc_number_t) ( (ibeam + iskydiff + ignddiff) * 0.001 );
+				
+				//record sub-array contribution to total plane of array for this hour
+				poa_nom_hr += p_poanom[nn][istep]* ref_area_m2 * 0.001 * modules_per_string * sa[nn].nstrings;
 
 				double beam_shad_factor = sa[nn].shad_beam_factor[istep]; // variable to accumulate total beam shading derate for this hour
+
+				if ( sa[nn].track_mode == 1
+					&& sa[nn].shade_mode_1x > 0 )
+				{	
+					arr1x_data arr1x;
+					arr1x.width = sa[nn].width_1x;
+					arr1x.length = 10*arr1x.width;
+					arr1x.row_spacing = sa[nn].spacing_1x;
+					arr1x.axis_azimuth = sa[nn].azimuth;
+					arr1x.axis_tilt = sa[nn].tilt;
+					arr1x.rotlim = sa[nn].rotlim;
+					arr1x.solazi = solazi;
+					arr1x.solzen = solzen;
+
+					double shad1xf = shade_fraction_1x( arr1x, rot );
+
+					ibeam *= (1-shad1xf);
+					beam_shad_factor *= (1-shad1xf);
+				}
 				
 				// apply hourly shading factors to beam (if none enabled, factors are 1.0)
 				ibeam *= sa[nn].shad_beam_factor[istep];	
@@ -1174,8 +1253,14 @@ public:
 				// apply sky diffuse shading factor (specified as constant, nominally 1.0 if disabled in UI)
 				iskydiff *= sa[nn].shad_skydiff_factor;
 
+				// record sub-array level output after shading, before soiling
+				p_poashaded[nn][istep] = (ssc_number_t) ( (ibeam + iskydiff + ignddiff) * 0.001 );
+
+				//record sub-array contribution to total shaded plane of array for this hour
+				poa_shaded_hr += p_poashaded[nn][istep]* ref_area_m2 * 0.001 * modules_per_string * sa[nn].nstrings;
+
 				// apply soiling derate to all components of irradiance
-				int month_idx = wf.month - 1;
+//				int month_idx = wf.month - 1;
 				double soiling_factor = 1.0;
 				if ( month_idx >= 0 && month_idx < 12 )
 				{
@@ -1187,9 +1272,9 @@ public:
 				}
 
 				// record sub-array level outputs				
-				p_incbeam[nn][istep] = (ssc_number_t) ( ibeam * 0.001 );
-				p_incdiff[nn][istep] = (ssc_number_t) ( (iskydiff+ignddiff) * 0.001 );
-				p_inctotal[nn][istep] = (ssc_number_t) ( (ibeam+iskydiff+ignddiff) * 0.001 );
+				p_poaeffbeam[nn][istep] = (ssc_number_t) ( ibeam * 0.001 );
+				p_poaeffdiff[nn][istep] = (ssc_number_t) ( (iskydiff+ignddiff) * 0.001 );
+				p_poaeff[nn][istep] = (ssc_number_t) ( (ibeam+iskydiff+ignddiff) * 0.001 );
 				p_shad[nn][istep] = (ssc_number_t) beam_shad_factor;
 				p_rot[nn][istep] = (ssc_number_t) rot;
 				p_idealrot[nn][istep] = (ssc_number_t) ( rot-btd );
@@ -1207,9 +1292,12 @@ public:
 				sa[nn].poa.stilt = stilt;
 				sa[nn].poa.sazi = sazi;
 
+				// accumulate hourly incident total
+				poa_eff_hr += p_poaeff[nn][istep]* ref_area_m2 * 0.001 * modules_per_string * sa[nn].nstrings;
+
 				// accumulate monthly incident total & beam
-				sa[nn].monthly_inc_total[ month_idx ] += ( (ibeam+iskydiff+ignddiff) * 0.001 );
-				sa[nn].monthly_inc_beam[ month_idx ] += ( ibeam * 0.001 );
+				sa[nn].monthly_poa_eff[ month_idx ] += ( (ibeam+iskydiff+ignddiff) * 0.001 );
+				sa[nn].monthly_poa_eff_beam[ month_idx ] += ( ibeam * 0.001 );
 								
 				// calculate total input radiaton to system (array-level output)
 				inprad_total += (sa[nn].poa.ibeam + sa[nn].poa.iskydiff + sa[nn].poa.ignddiff)
@@ -1223,9 +1311,9 @@ public:
 			// apply self-shading if enabled (subarray 1 only)
 			if ( self_shading_enabled )
 			{
-				double alb = alb_const;
-				if (use_wf_alb && wf.albedo >= 0 && wf.albedo <= 1)
-					alb = wf.albedo;
+//				double alb = alb;
+				//if (use_wf_alb && wf.albedo >= 0 && wf.albedo <= 1)
+					//alb = wf.albedo;
 
 				if ( sscalc.exec( solzen, solazi, wf.dn, wf.df, self_shading_fill_factor, alb ) )
 				{
@@ -1379,12 +1467,22 @@ public:
 			}
 			
 			// save array-level outputs		
-			p_glob[istep] = (ssc_number_t) wf.gh/1000;
-			p_beam[istep] = (ssc_number_t) wf.dn/1000;
-			p_diff[istep] = (ssc_number_t) wf.df/1000;
+			p_beam[istep] = (ssc_number_t) (wf.dn * 0.001);
+			// calculate global if beam & diffuse are selected as inputs
+			if (radmode == 0)
+				p_glob[istep] = (ssc_number_t) (0.001 * (wf.df + wf.dn * cos( solzen*3.1415926/180 )));
+			else
+				p_glob[istep] = (ssc_number_t)( wf.gh * 0.001);
+			// calculate diffuse if total & beam are selected as inputs
+			if (radmode == 1)
+				p_diff[istep] = (ssc_number_t) (0.001 * (wf.gh - wf.dn * cos( solzen*3.1415926/180 )));
+			else
+				p_diff[istep] = (ssc_number_t) (wf.df * 0.001);
+
 			p_wspd[istep] = (ssc_number_t) wf.wspd;
 			p_tdry[istep] = (ssc_number_t) wf.tdry;
-			
+			p_albedo[istep] = (ssc_number_t) alb;
+
 			p_solzen[istep] = (ssc_number_t) solzen;
 			p_solalt[istep] = (ssc_number_t) solalt;
 			p_solazi[istep] = (ssc_number_t) solazi;
@@ -1395,6 +1493,9 @@ public:
 						
 			p_inrad[istep] = (ssc_number_t) inprad_total;
 			p_inradbeam[istep] = (ssc_number_t) inprad_beam;
+			p_poanomhr[istep] = (ssc_number_t) poa_nom_hr;
+			p_poashadedhr[istep] = (ssc_number_t) poa_shaded_hr;
+			p_poaeffhr[istep] = (ssc_number_t) poa_eff_hr;
 
 			p_inv_dc_voltage[istep] = (ssc_number_t) dc_string_voltage;
 			p_dcgross[istep] = (ssc_number_t) ( dcpwr_gross * 0.001 );
@@ -1416,10 +1517,10 @@ public:
 		if (istep != 8760)
 			throw exec_error( "pvsamv1", "failed to simulate all 8760 hours, error in weather file?");
 	
-		// calculate monthly_inc_total, monthly_inc_beam
+		// calculate monthly_poa_eff, monthly_poa_eff_beam
 		// sum up monthly_inc for each subarray.  weight total it by relative area of each subarray to total pv system area.
-		ssc_number_t *p_monthly_inc_total = allocate( "monthly_inc_total", 12 );
-		ssc_number_t *p_monthly_inc_beam = allocate( "monthly_inc_beam", 12 );
+		ssc_number_t *p_monthly_poa_eff = allocate( "monthly_poa_eff", 12 );
+		ssc_number_t *p_monthly_poa_eff_beam = allocate( "monthly_poa_eff_beam", 12 );
 
 		for (int i=0;i<12;i++)
 		{
@@ -1430,25 +1531,35 @@ public:
 			{
 				if (sa[nn].enable && sa[nn].nstrings > 0)
 				{
-					total += sa[nn].monthly_inc_total[i] * sa[nn].nstrings;
-					beam += sa[nn].monthly_inc_beam[i] * sa[nn].nstrings;
+					total += sa[nn].monthly_poa_eff[i] * sa[nn].nstrings;
+					beam += sa[nn].monthly_poa_eff_beam[i] * sa[nn].nstrings;
 					num_strings += sa[nn].nstrings;
 				}
 			}
 
-			p_monthly_inc_total[i] = (ssc_number_t) ( total / num_strings );
-			p_monthly_inc_beam[i] = (ssc_number_t) ( beam / num_strings );
+			p_monthly_poa_eff[i] = (ssc_number_t) ( total / num_strings );
+			p_monthly_poa_eff_beam[i] = (ssc_number_t) ( beam / num_strings );
 		}
 
 		accumulate_monthly( "hourly_ac_net", "monthly_ac_net" );
 		accumulate_monthly( "hourly_dc_net", "monthly_dc_net" );
 
+		accumulate_annual( "hourly_glob_horiz_rad", "annual_glob_horiz_rad" );
 		accumulate_annual( "hourly_input_radiation", "annual_input_radiation" );
 		accumulate_annual( "hourly_input_radiation_beam", "annual_input_radiation_beam" );
+		accumulate_annual( "hourly_poa_nom", "annual_poa_nom" );
+		accumulate_annual( "hourly_poa_shaded", "annual_poa_shaded" );
+		accumulate_annual( "hourly_poa_eff", "annual_poa_eff" );
 		accumulate_annual( "hourly_dc_gross", "annual_dc_gross" );
 		accumulate_annual( "hourly_dc_net", "annual_dc_net" );
 		accumulate_annual( "hourly_ac_gross", "annual_ac_gross" );
 		accumulate_annual( "hourly_ac_net", "annual_ac_net" );
+
+		accumulate_annual( "hourly_inv_cliploss", "annual_inv_cliploss" );
+		accumulate_annual( "hourly_inv_psoloss", "annual_inv_psoloss" );
+		accumulate_annual( "hourly_inv_pntloss", "annual_inv_pntloss" );
+
+
 	
 		bool is_cpv = false;
 
