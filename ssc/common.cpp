@@ -417,3 +417,157 @@ bool shading_factor_calculator::en_skydiff_viewfactor()
 {
 	return m_en_skydiff_viewfactor;
 }
+
+
+
+weatherdata::weatherdata( var_data *data_table )
+{
+	m_index = 0;
+
+	if ( data_table->type != SSC_TABLE ) 
+		return;
+
+	m_hdr.lat = get_number( data_table, "lat" );
+	m_hdr.lon = get_number( data_table, "lon" );
+	m_hdr.tz = get_number( data_table, "tz" );
+	m_hdr.elev = get_number( data_table, "elev" );
+
+	int nrec = 0;
+	vec year = get_vector( data_table, "year", &nrec );
+	vec month = get_vector( data_table, "month", &nrec );
+	vec day = get_vector( data_table, "day", &nrec );
+	vec hour = get_vector( data_table, "hour", &nrec );
+	vec minute = get_vector( data_table, "minute", &nrec );
+	vec gh = get_vector( data_table, "gh", &nrec );
+	vec dn = get_vector( data_table, "dn", &nrec );
+	vec df = get_vector( data_table, "df", &nrec );
+	vec wspd = get_vector( data_table, "wspd", &nrec );
+	vec wdir = get_vector( data_table, "wdir", &nrec );
+	vec tdry = get_vector( data_table, "tdry", &nrec ); 
+	vec twet = get_vector( data_table, "twet", &nrec ); 
+	vec tdew = get_vector( data_table, "tdew", &nrec ); 
+	vec rhum = get_vector( data_table, "rhum", &nrec ); 
+	vec pres = get_vector( data_table, "pres", &nrec ); 
+	vec snow = get_vector( data_table, "snow", &nrec ); 
+	vec albedo = get_vector( data_table, "albedo", &nrec ); 
+	vec aod = get_vector( data_table, "aod", &nrec ); 
+	
+	m_hdr.nrecords = nrec;
+
+	int nmult = nrec / 8760;
+
+	// estimate time step
+	if ( nmult * 8760 == m_hdr.nrecords )
+	{
+		m_hdr.step = 3600 / nmult;
+		m_hdr.start = m_hdr.step / 2;
+	}
+	else if ( m_hdr.nrecords%8784==0 )
+	{ 
+		// Check if the weather file contains a leap day
+		// if so, correct the number of nrecords 
+		m_hdr.nrecords = m_hdr.nrecords/8784*8760;
+		nmult = m_hdr.nrecords/8760;
+		m_hdr.step = 3600 / nmult;
+		m_hdr.start = m_hdr.step / 2;
+	}
+	else
+	{
+		return;
+	}
+
+	if ( nrec > 0 && nmult >= 1 )
+	{
+		m_data.resize( nrec );
+		for( size_t i=0;i<nrec;i++ )
+		{
+			weather_record *r = new weather_record;
+
+			if ( i < year.len ) r->year = year.p[i];
+			if ( i < month.len ) r->month = month.p[i];
+			if ( i < day.len ) r->day = day.p[i];
+			if ( i < hour.len ) r->hour = hour.p[i];
+			if ( i < minute.len ) r->minute = minute.p[i];
+
+			if ( i < gh.len ) r->gh = gh.p[i];
+			if ( i < dn.len ) r->dn = dn.p[i];
+			if ( i < df.len ) r->df = df.p[i];
+
+			if ( i < wspd.len ) r->wspd = wspd.p[i];
+			if ( i < wdir.len ) r->wdir = wdir.p[i];
+
+			if ( i < tdry.len ) r->tdry = tdry.p[i];
+			if ( i < twet.len ) r->twet = twet.p[i];
+			if ( i < tdew.len ) r->tdew = tdew.p[i];
+
+			if ( i < rhum.len ) r->rhum = rhum.p[i];
+			if ( i < pres.len ) r->pres = pres.p[i];
+
+			if ( i < snow.len ) r->snow = snow.p[i];
+			if ( i < albedo.len ) r->albedo = albedo.p[i];
+			if ( i < aod.len ) r->aod = aod.p[i];
+
+			m_data[i] = std::auto_ptr<weather_record>(r);
+		}
+
+		m_hdr.nrecords = nrec;
+	}
+}
+
+weatherdata::~weatherdata()
+{
+	// nothing to do, auto_ptr will delete data
+}
+
+
+weatherdata::vec weatherdata::get_vector( var_data *v, const char *name, int *maxlen )
+{
+	vec x;
+	x.p = 0;
+	x.len = 0;
+	if ( var_data *value = v->table.lookup( name ) )
+	{
+		if ( value->type == SSC_ARRAY )
+		{
+			x.len = (int) value->num.length();
+			x.p = value->num.data();
+			if ( maxlen && x.len > *maxlen )
+				*maxlen = x.len;
+		}
+	}
+
+	return x;
+}
+
+ssc_number_t weatherdata::get_number( var_data *v, const char *name )
+{
+	if ( var_data *value = v->table.lookup( name ) )
+	{
+		if ( value->type == SSC_NUMBER )
+			return value->num;
+	}
+
+	return std::numeric_limits<ssc_number_t>::quiet_NaN();
+}
+
+bool weatherdata::header( weather_header *h )
+{
+	*h = m_hdr;
+	return true;
+}
+
+bool weatherdata::read( weather_record *r )
+{
+	if ( m_index >= 0 && m_index < m_data.size() )
+	{
+		*r = *m_data[m_index++];
+		return true;
+	}
+	else
+		return false;
+}
+
+void weatherdata::rewind()
+{
+	m_index = 0;
+}

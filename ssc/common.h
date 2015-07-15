@@ -4,6 +4,7 @@
 #include <vector>
 #include "core.h"
 
+#include "lib_weatherfile.h"
 
 extern var_info vtab_standard_financial[];
 extern var_info vtab_standard_loan[];
@@ -46,6 +47,31 @@ public:
 	double fbeam( size_t hour /* 0-8759 */, double solalt, double solazi );
 	double fdiff();
 	bool en_skydiff_viewfactor();
+};
+
+
+	
+class weatherdata : public weather_data_provider
+{
+	weather_header m_hdr;
+	std::vector< std::auto_ptr<weather_record> > m_data;
+	size_t m_index;
+
+	struct vec {
+		ssc_number_t *p;
+		int len;
+	};
+
+	vec get_vector( var_data *v, const char *name, int *maxlen = 0 );	
+	ssc_number_t get_number( var_data *v, const char *name );
+
+public:
+	weatherdata( var_data *data_table );
+	virtual ~weatherdata();
+
+	virtual bool header( weather_header *h );		
+	virtual bool read( weather_record *r ); // reads one more record
+	virtual void rewind();	
 };
 
 #endif
