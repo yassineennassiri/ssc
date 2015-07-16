@@ -331,20 +331,17 @@ bool Ambient::readWeatherFile(WeatherData &data, std::string &file_name, Ambient
 	//Open the file
 	weatherfile wfile;
 	if(! wfile.open(file_name)) return false;	//Error
-
-	weather_header hdr;
-	wfile.header( &hdr );
-
+	
 	//Read the header info
 	if(Amb != (Ambient*)NULL){
 		//If the ambient class reference is provided, set the local values in that class
 		double d2r = acos(-1.)/180.;
-		Amb->setPlantLocation(hdr.lat*d2r, hdr.lon*d2r, hdr.tz);
-		Amb->setElevation(hdr.elev);
+		Amb->setPlantLocation(wfile.lat()*d2r, wfile.lon()*d2r, wfile.tz());
+		Amb->setElevation(wfile.elev());
 	}
 
 	//Read in the weather data
-	int nrec = hdr.nrecords;
+	int nrec = (int)wfile.nrecords();
 	weather_record rec;
 	data.resizeAll(nrec);
 	for(int i=0; i<nrec; i++){

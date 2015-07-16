@@ -582,11 +582,8 @@ public:
 		double total_wair_eff_loss = 0;
 		double total_dry_eff_loss = 0;
 
-		weather_header hdr;
-		wFile.header( &hdr );
 		weather_record wf;
-
-		int istep = 0, nstep = hdr.nrecords;
+		int istep = 0, nstep = (int)wFile.nrecords();
 		while (wFile.read( &wf ) && istep < 8760)
 		{
 			// send progress update notification to any callback

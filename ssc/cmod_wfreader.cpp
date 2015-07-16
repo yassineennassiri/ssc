@@ -83,7 +83,7 @@ public:
 		weather_header hdr;
 		wfile.header( &hdr );
 
-		int records = hdr.nrecords;
+		int records = wfile.nrecords();
 		
 		for (int i = 3; i < 100; i++){
 
@@ -101,9 +101,9 @@ public:
 		assign( "source", var_data( std::string( hdr.source ) ) );
 		assign( "url", var_data( std::string( hdr.url ) ) );
 
-		assign( "start", var_data( (ssc_number_t)hdr.start ) );
-		assign( "step", var_data( (ssc_number_t)hdr.step ) );
-		assign( "nrecords", var_data( (ssc_number_t)hdr.nrecords ) );
+		assign( "start", var_data( (ssc_number_t)wfile.start_sec() ) );
+		assign( "step", var_data( (ssc_number_t)wfile.step_sec() ) );
+		assign( "nrecords", var_data( (ssc_number_t)wfile.nrecords() ) );
 
 		switch( wfile.type() )
 		{
@@ -141,7 +141,7 @@ public:
 		double gh_sum = 0.0, dn_sum = 0.0, df_sum = 0.0;
 		double temp_sum = 0.0, wind_sum = 0.0;
 
-		double ts_hour = hdr.step / 3600.0;
+		double ts_hour = wfile.step_sec() / 3600.0;
 
 		weather_record wf;
 
@@ -168,7 +168,7 @@ public:
 			p_rhum[i] = (ssc_number_t)wf.rhum;
 			p_pres[i] = (ssc_number_t)wf.pres;
 			p_snow[i] = (ssc_number_t)wf.snow;
-			p_albedo[i] = (ssc_number_t)wf.albedo;	
+			p_albedo[i] = (ssc_number_t)wf.alb;	
 
 			gh_sum += wf.gh * ts_hour;
 			dn_sum += wf.dn * ts_hour;

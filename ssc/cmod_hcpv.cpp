@@ -258,12 +258,9 @@ public:
 		if ( !wFile.ok() ) throw exec_error( "hcpv", wFile.message());
 		if( wFile.has_message() ) log( wFile.message(), SSC_WARNING);
 		
-		weather_header hdr;
 		weather_record wf;
 
-		wFile.header( &hdr );
-
-		if ( hdr.nrecords != 8760 ) throw exec_error("hcpv", "pv simulator only accepts hourly weather data");
+		if ( wFile.nrecords() != 8760 ) throw exec_error("hcpv", "pv simulator only accepts hourly weather data");
 
 		double concen = as_double("module_concentration");
 		int ncells = as_integer("module_ncells");
@@ -378,7 +375,7 @@ public:
 
 
 		double dTS = 1.0; // hourly timesteps
-		int istep = 0, nstep = hdr.nrecords;
+		int istep = 0, nstep = (int)wFile.nrecords();
 		while (wFile.read( &wf ) && istep < 8760)
 		{
 			// send progress update notification to any callback
@@ -387,7 +384,7 @@ public:
 
 			irrad irr;
 			irr.set_time(wf.year, wf.month, wf.day, wf.hour, wf.minute, dTS);
-			irr.set_location(hdr.lat, hdr.lon, hdr.tz);
+			irr.set_location(wFile.lat(), wFile.lon(), wFile.tz());
 			irr.set_sky_model(0, 0.2, false); // isotropic sky, 0.2 albedo (doesn't matter for CPV) and diffuse shading factor not enabled (set to 1.0 by default)
 			irr.set_beam_diffuse(wf.dn, wf.df);
 			irr.set_surface(2, 0, 0, 90, -1, -1); // 2 axis tracking, other parameters don't matter
@@ -422,7 +419,7 @@ public:
 			}
 
 
-			if (hdr.lat < 0) // southern hemisphere
+			if (wFile.lat() < 0) // southern hemisphere
 			{
 				if (sazi < azmin && sazi > azmax)
 				{
@@ -470,7 +467,7 @@ public:
 
 				// spectral correction for airmass
 				double air_mass = 1 / (cos(solzen*M_PI / 180) + 0.5057*pow(96.080 - solzen, -1.634));
-				air_mass *= exp(-0.0001184 * hdr.elev); // correction for elevation (m), as applied in Sandia PV model
+				air_mass *= exp(-0.0001184 * wFile.elev()); // correction for elevation (m), as applied in Sandia PV model
 				double air_mass_modifier = a0 + a1*air_mass + a2*pow(air_mass, 2) + a3*pow(air_mass, 3) + a4*pow(air_mass, 4);
 				poa *= air_mass_modifier;
 

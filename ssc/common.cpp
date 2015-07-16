@@ -422,10 +422,16 @@ bool shading_factor_calculator::en_skydiff_viewfactor()
 
 weatherdata::weatherdata( var_data *data_table )
 {
+	m_startSec = m_stepSec = m_nRecords = 0;
 	m_index = 0;
 
 	if ( data_table->type != SSC_TABLE ) 
+	{
+		m_error = "solar data must be an SSC table variable with fields: "
+			"(numbers): lat, lon, tz, elev, "
+			"(arrays): year, month, day, hour minute, gh, dn, df, wspd, wdir, tdry, twet, tdew, rhum, pres, snow, alb, aod";
 		return;
+	}
 
 	m_hdr.lat = get_number( data_table, "lat" );
 	m_hdr.lon = get_number( data_table, "lon" );
@@ -449,27 +455,27 @@ weatherdata::weatherdata( var_data *data_table )
 	vec rhum = get_vector( data_table, "rhum", &nrec ); 
 	vec pres = get_vector( data_table, "pres", &nrec ); 
 	vec snow = get_vector( data_table, "snow", &nrec ); 
-	vec albedo = get_vector( data_table, "albedo", &nrec ); 
+	vec alb = get_vector( data_table, "alb", &nrec ); 
 	vec aod = get_vector( data_table, "aod", &nrec ); 
 	
-	m_hdr.nrecords = nrec;
+	m_nRecords = (size_t)nrec;
 
 	int nmult = nrec / 8760;
 
 	// estimate time step
-	if ( nmult * 8760 == m_hdr.nrecords )
+	if ( nmult * 8760 == nrec )
 	{
-		m_hdr.step = 3600 / nmult;
-		m_hdr.start = m_hdr.step / 2;
+		m_stepSec = 3600 / nmult;
+		m_startSec = m_stepSec / 2;
 	}
-	else if ( m_hdr.nrecords%8784==0 )
+	else if ( m_nRecords%8784==0 )
 	{ 
 		// Check if the weather file contains a leap day
 		// if so, correct the number of nrecords 
-		m_hdr.nrecords = m_hdr.nrecords/8784*8760;
-		nmult = m_hdr.nrecords/8760;
-		m_hdr.step = 3600 / nmult;
-		m_hdr.start = m_hdr.step / 2;
+		m_nRecords = m_nRecords/8784*8760;
+		nmult = m_nRecords/8760;
+		m_stepSec = 3600 / nmult;
+		m_startSec = m_stepSec / 2;
 	}
 	else
 	{
@@ -483,11 +489,30 @@ weatherdata::weatherdata( var_data *data_table )
 		{
 			weather_record *r = new weather_record;
 
-			if ( i < year.len ) r->year = year.p[i];
+			if ( i < year.len ) r->year = year.p[i]; 
+			else r->year = 2000;
+
 			if ( i < month.len ) r->month = month.p[i];
+			else if ( m_stepSec == 3600 && m_nRecords == 8760 ) {
+				r->month = util::month_of(i);
+			}
+
 			if ( i < day.len ) r->day = day.p[i];
+			else if ( m_stepSec == 3600 && m_nRecords == 8760 ) {
+				int month = util::month_of( i );
+				r->day = util::day_of_month( month, i );
+			}
+
 			if ( i < hour.len ) r->hour = hour.p[i];
+			else if ( m_stepSec == 3600 && m_nRecords == 8760 ) {
+				int day = i / 24;
+				int start_of_day = day * 24;
+				r->hour = (float)(i - start_of_day);
+			}
+
 			if ( i < minute.len ) r->minute = minute.p[i];
+			else r->minute = (double)((m_stepSec / 2) / 60);
+
 
 			if ( i < gh.len ) r->gh = gh.p[i];
 			if ( i < dn.len ) r->dn = dn.p[i];
@@ -504,13 +529,11 @@ weatherdata::weatherdata( var_data *data_table )
 			if ( i < pres.len ) r->pres = pres.p[i];
 
 			if ( i < snow.len ) r->snow = snow.p[i];
-			if ( i < albedo.len ) r->albedo = albedo.p[i];
+			if ( i < alb.len ) r->alb = alb.p[i];
 			if ( i < aod.len ) r->aod = aod.p[i];
 
 			m_data[i] = r;
 		}
-
-		m_hdr.nrecords = nrec;
 	}
 }
 
@@ -520,6 +543,10 @@ weatherdata::~weatherdata()
 		delete m_data[i];
 }
 
+const char *weatherdata::error( size_t idx )
+{
+	return ( idx == 0 && m_error.size() > 0 ) ? m_error.c_str() : 0;
+}
 
 weatherdata::vec weatherdata::get_vector( var_data *v, const char *name, int *maxlen )
 {

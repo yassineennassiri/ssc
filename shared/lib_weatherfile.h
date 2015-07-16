@@ -58,23 +58,20 @@ struct weather_header {
 	double lat;
 	double lon;
 	double elev;
-	double start; // start time in seconds, 0 = jan 1st midnight
-	double step; // step time in seconds
-	int nrecords; // number of data records in file
 };
 
 struct weather_record {		
 	weather_record() { reset(); }
 	void reset();
-
+	
 	int year;
 	int month;
 	int day;
 	int hour;
 	double minute;
-	double gh;     // global (Wh/m2)
-	double dn;     // direct (Wh/m2)
-	double df;     // diffuse (Wh/m2)
+	double gh;     // global (W/m2)
+	double dn;     // direct (W/m2)
+	double df;     // diffuse (W/m2)
 	double wspd;   // wind speed (m/s)
 	double wdir;   // wind direction (deg: N = 0 or 360, E = 90, S = 180,W = 270 )
 	double tdry;   // dry bulb temp (C)
@@ -83,19 +80,49 @@ struct weather_record {
 	double rhum;   // relative humidity (%)
 	double pres;   // pressure (mbar)
 	double snow;   // snow depth (cm) 0-150
-	double albedo; // ground reflectance 0-1.  values outside this range mean it is not included
+	double alb; // ground reflectance 0-1.  values outside this range mean it is not included
 	double aod;    // aerosol optical depth
 };
 
 class weather_data_provider
 {
+	bool m_hdrInitialized;
+	weather_header m_hdr;
 public:
-	weather_data_provider() { }
+	
+	enum { YEAR, MONTH, DAY, HOUR, MINUTE,
+		GHI, DNI, DHI, 
+		TDRY, TWET, TDEW, 
+		WSPD, WDIR, 
+		RH, PRES, SNOW, ALB, AOD,
+	_MAXCOL_ };
+
+	weather_data_provider() : m_hdrInitialized( false ) { }
 	virtual ~weather_data_provider() { }
-		
+	
+	// pure virtuals
 	virtual bool header( weather_header *hdr ) = 0;		
+	virtual size_t start_sec() = 0; // start time in seconds, 0 = jan 1st midnight
+	virtual size_t step_sec() = 0; // step time in seconds
+	virtual size_t nrecords() = 0; // number of data records in file		
 	virtual bool read( weather_record *r ) = 0; // reads one more record
-	virtual void rewind() = 0;	
+	virtual void rewind() = 0;
+	virtual const char *error( size_t idx = 0 ) = 0;
+
+	
+	// some helper methods for ease of use of htis class
+	virtual weather_header &header()  {
+		if ( !m_hdrInitialized )
+			m_hdrInitialized = header( &m_hdr );
+			
+		return m_hdr;
+	}
+
+	double lat() { return header().lat; }
+	double lon() { return header().lon; }
+	double tz() { return header().tz; }
+	double elev() { return header().elev; }
+
 };
 
 class weatherfile : public weather_data_provider
@@ -109,12 +136,6 @@ private:
 	double m_time;
 	std::string m_message;
 
-	enum { YEAR, MONTH, DAY, HOUR, MINUTE,
-		GHI, DNI, DHI, 
-		TDRY, TWET, TDEW, 
-		WSPD, WDIR, 
-		RH, PRES, SNOW, ALB, AOD,
-	_MAXCOL_ };
 
 	struct column
 	{
@@ -122,6 +143,10 @@ private:
 		std::vector<float> data;
 	};
 	
+	size_t m_startSec;
+	size_t m_stepSec;
+	size_t m_nRecords;
+
 	column m_columns[_MAXCOL_];
 	size_t m_index;
 
@@ -153,6 +178,10 @@ public:
 	virtual bool header( weather_header *hdr );		
 	virtual bool read( weather_record *r ); // reads one more record
 	virtual void rewind();	
+	virtual size_t start_sec(); // start time in seconds, 0 = jan 1st midnight
+	virtual size_t step_sec(); // step time in seconds
+	virtual size_t nrecords(); // number of data records in file		
+	virtual const char *error( size_t idx = 0 );
 	
 };
 

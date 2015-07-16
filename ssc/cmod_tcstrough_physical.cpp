@@ -390,7 +390,7 @@ public:
 		wfile.header( &hdr );
 
 		size_t hours_year = 8760;
-		size_t nrec = hdr.nrecords;
+		size_t nrec = wfile.nrecords();
 		size_t step_per_hour = nrec / hours_year;
 		
 		if( step_per_hour < 1 || step_per_hour > 60 || step_per_hour * hours_year != nrec )

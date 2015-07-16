@@ -235,7 +235,7 @@ public:
 				throw exec_error("pvwattsv1", "could not read data line " + util::to_string(i+1) + " of 8760 in weather file");
 
 			irrad irr;
-			irr.set_time( wf.year, wf.month, wf.day, wf.hour, wf.minute, hdr.step / 3600.0 );
+			irr.set_time( wf.year, wf.month, wf.day, wf.hour, wf.minute, wfile.step_sec() / 3600.0 );
 			irr.set_location( hdr.lat, hdr.lon, hdr.tz );
 				
 			double alb = 0.2;
@@ -251,8 +251,8 @@ public:
 			}
 			else if ( wfile.type() == weatherfile::TMY3 )
 			{
-				if ( wf.albedo >= 0 && wf.albedo < 1 )
-					alb = wf.albedo;
+				if ( wf.alb >= 0 && wf.alb < 1 )
+					alb = wf.alb;
 			}
 
 			irr.set_sky_model(2, alb, shad.en_skydiff_viewfactor());

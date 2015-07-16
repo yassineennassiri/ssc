@@ -368,7 +368,7 @@ public:
 
 		weather_record wf;
 		
-		size_t nrec = hdr.nrecords;
+		size_t nrec = wdprov->nrecords();
 		size_t step_per_hour = nrec/8760;
 		if ( step_per_hour < 1 || step_per_hour > 60 || step_per_hour*8760 != nrec )
 			throw exec_error( "pvwattsv5", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nrec ) );
@@ -424,8 +424,8 @@ public:
 				p_tcell[idx] = (ssc_number_t)wf.tdry;
 				
 				double alb = 0.2; // do not increase albedo if snow exists in TMY2			
-				if ( std::isfinite( wf.albedo ) && wf.albedo >= 0 && wf.albedo < 1 )
-					alb = wf.albedo;
+				if ( std::isfinite( wf.alb ) && wf.alb >= 0 && wf.alb < 1 )
+					alb = wf.alb;
 				
 				int code = process_irradiance(wf.year, wf.month, wf.day, wf.hour, wf.minute, ts_hour,
 					hdr.lat, hdr.lon, hdr.tz, wf.dn, wf.df, alb, shad.en_skydiff_viewfactor());

@@ -755,7 +755,7 @@ public:
 
 		weather_record wf;		
 
-		size_t nrec = hdr.nrecords;
+		size_t nrec = wfile.nrecords();
 		size_t step_per_hour = nrec/8760;
 		if ( step_per_hour < 1 || step_per_hour > 60 || step_per_hour*8760 != nrec )
 			throw exec_error( "pvsamv1", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nrec ) );
@@ -1553,8 +1553,8 @@ public:
 
 					int month_idx = wf.month - 1;
 
-					if (use_wf_alb && wf.albedo >= 0 && wf.albedo <= 1)
-						alb = wf.albedo;
+					if (use_wf_alb && wf.alb >= 0 && wf.alb <= 1)
+						alb = wf.alb;
 					else if (month_idx >= 0 && month_idx < 12)
 						alb = alb_array[month_idx];
 					else

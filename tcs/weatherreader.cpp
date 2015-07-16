@@ -193,7 +193,7 @@ public:
 		value( O_RHUM, m_rec.rhum );
 		value( O_PRES, m_rec.pres );
 		value( O_SNOW, m_rec.snow );
-		value( O_ALBEDO, m_rec.albedo );
+		value( O_ALBEDO, m_rec.alb );
 
 		value( O_POA,  poa[0]+poa[1]+poa[2] );
 		value( O_SOLAZI, sunn[0]*180/M_PI );

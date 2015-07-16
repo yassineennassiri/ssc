@@ -55,7 +55,7 @@ public:
 
 		double zenith, hextra;
 		double sunn[9];
-		for( size_t i = 0; i<hdr.nrecords; i++ )
+		for( size_t i = 0; i<wfile.nrecords(); i++ )
 		{
 			if ( !wfile.read( &wf ) )
 			{

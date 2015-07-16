@@ -254,7 +254,7 @@ public:
 
 		weather_record wf;
 
-		size_t nrec = hdr.nrecords;
+		size_t nrec = wfile.nrecords();
 		size_t step_per_hour = nrec/8760;
 		if ( step_per_hour < 1 || step_per_hour > 60 || step_per_hour*8760 != nrec )
 			throw exec_error( "swh", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nrec ) );

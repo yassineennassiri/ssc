@@ -391,8 +391,7 @@ void weather_header::reset()
 {
 	location = city = state = country = source = description = url = "";
 	interpmet = hasunits = false;
-	tz = lat = lon = elev = start = step = std::numeric_limits<double>::quiet_NaN();
-	nrecords = 0;
+	tz = lat = lon = elev = std::numeric_limits<double>::quiet_NaN();
 }
 
 void weather_record::reset()
@@ -400,7 +399,7 @@ void weather_record::reset()
 	year = month = day = hour = 0;
 	minute = std::numeric_limits<double>::quiet_NaN();
 	gh = dn = df = wspd = wdir = std::numeric_limits<double>::quiet_NaN();
-	tdry = twet = tdew = rhum = pres = snow = albedo = aod = std::numeric_limits<double>::quiet_NaN();
+	tdry = twet = tdew = rhum = pres = snow = alb = aod = std::numeric_limits<double>::quiet_NaN();
 }
 
 
@@ -427,6 +426,8 @@ weatherfile::~weatherfile()
 
 void weatherfile::reset()
 {
+	m_startSec = m_stepSec = m_nRecords = 0;
+
 	m_message.clear();
 	m_ok = false;
 	m_type = INVALID;
@@ -536,9 +537,9 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		m_hdr.city = pc;
 		m_hdr.state = ps;
 		m_hdr.elev = ielv;
-		m_hdr.start = 1800;
-		m_hdr.step = 3600;
-		m_hdr.nrecords = 8760;
+		m_startSec = 1800;
+		m_stepSec  = 3600;
+		m_nRecords = 8760;
 	}
 	else if (m_type == TMY3)
 	{
@@ -560,10 +561,10 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		m_hdr.lat = atof(cols[4]);
 		m_hdr.lon = atof(cols[5]);
 		m_hdr.elev = atof(cols[6]);
-
-		m_hdr.start = 1800;
-		m_hdr.step = 3600;
-		m_hdr.nrecords = 8760;
+		
+		m_startSec = 1800;
+		m_stepSec  = 3600;
+		m_nRecords = 8760;
 
 		fgets(buf, NBUF, fp); /* skip over labels line */
 	}
@@ -602,10 +603,10 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		fgets(buf, NBUF, fp); /* COMMENTS 1 */
 		fgets(buf, NBUF, fp); /* COMMENTS 2 */
 		fgets(buf, NBUF, fp); /* DATA PERIODS */
-
-		m_hdr.start = 1800;
-		m_hdr.step = 3600;
-		m_hdr.nrecords = 8760;
+		
+		m_startSec = 1800;
+		m_stepSec  = 3600;
+		m_nRecords = 8760;
 
 	}
 	else if (m_type == SMW)
@@ -629,7 +630,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		m_hdr.lat = atof(cols[4]);
 		m_hdr.lon = atof(cols[5]);
 		m_hdr.elev = atof(cols[6]);
-		m_hdr.step = atof(cols[7]);
+		m_stepSec = atof(cols[7]); // time step in seconds
 		m_startYear = atoi(cols[8]);
 		char *p = cols[9];
 		
@@ -651,16 +652,16 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		if (!header_only)
 		{
 			m_time = start_hour * 3600 + start_min * 60 + start_sec;
-			m_hdr.start = m_time;
+			m_startSec = m_time;
 
-			m_hdr.nrecords = 0;
+			m_nRecords = 0;
 			while (fgets(buf, NBUF, fp) != 0)
-				m_hdr.nrecords++;
+				m_nRecords++;
 
 			::rewind(fp);
 			fgets(buf, NBUF, fp);
 			
-			if ( m_hdr.nrecords%8784==0 )
+			if ( m_nRecords%8784==0 )
 			{
 				// Check if the weather file contains a leap day
 				// if so, exit out with an error 
@@ -756,16 +757,16 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		// if we actually plan to read in the whole file
 		if (!header_only)
 		{
-			m_hdr.start = 1800;
-			m_hdr.step = 3600;
-			m_hdr.nrecords = 8760;
+			m_startSec = 1800;
+			m_stepSec = 3600;
+			m_nRecords = 8760;
 
 			fgets(buf, NBUF, fp); // col names
 			if (m_hdr.hasunits) fgets(buf, NBUF, fp); // col units
 
-			m_hdr.nrecords = 0; // figure out how many records there are
+			m_nRecords = 0; // figure out how many records there are
 			while (fgets(buf, NBUF, fp) != 0 && strlen(buf) > 0)
-				m_hdr.nrecords++;
+				m_nRecords++;
 
 			// reposition to where we were
 			::rewind(fp);
@@ -773,7 +774,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 			fgets(buf, NBUF, fp); // header values
 
 			// now determine timestep as best as possible
-			int nmult = m_hdr.nrecords / 8760;
+			int nmult = m_nRecords / 8760;
 			// divide by zero error 2/20/19
 			if (nmult <= 0)
 			{
@@ -787,23 +788,23 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 
 			if (hdr_step_sec > 0)
 			{  // if explicitly specified in header?
-				m_hdr.step = hdr_step_sec;
-				m_hdr.start = m_hdr.step / 2;
+				m_stepSec = hdr_step_sec;
+				m_startSec = m_stepSec / 2;
 			}
-			else if (nmult * 8760 == m_hdr.nrecords)
+			else if (nmult * 8760 == m_nRecords)
 			{
 				// multiple of 8760 records: assume 1 year of data
-				m_hdr.step = 3600 / nmult;
-				m_hdr.start = m_hdr.step / 2;
+				m_stepSec = 3600 / nmult;
+				m_startSec = m_stepSec / 2;
 			}
-			else if ( m_hdr.nrecords%8784==0 )
+			else if ( m_nRecords%8784==0 )
 			{ 
 				// Check if the weather file contains a leap day
 				// if so, correct the number of nrecords 
-				m_hdr.nrecords = m_hdr.nrecords/8784*8760;
-				nmult = m_hdr.nrecords/8760;
-				m_hdr.step = 3600 / nmult;
-				m_hdr.start = m_hdr.step / 2;
+				m_nRecords = m_nRecords/8784*8760;
+				nmult = m_nRecords/8760;
+				m_stepSec = 3600 / nmult;
+				m_startSec = m_stepSec / 2;
 			}
 			else
 			{
@@ -832,7 +833,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 	for (size_t i = 0; i<_MAXCOL_; i++)
 	{
 		m_columns[i].index = -1;
-		m_columns[i].data.resize(m_hdr.nrecords, std::numeric_limits<float>::quiet_NaN());
+		m_columns[i].data.resize(m_nRecords, std::numeric_limits<float>::quiet_NaN());
 	}
 
 	if (m_type == WFCSV)
@@ -902,7 +903,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 	int tmy3_hour_shift = 1;
 	int n_leap_data_removed = 0;
 	
-	for (int i = 0; i<m_hdr.nrecords; i++)
+	for (int i = 0; i<m_nRecords; i++)
 	{
 		if (m_type == TMY2)
 		{
@@ -1158,7 +1159,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 			m_columns[HOUR].data[i] = (float)(((int)(T / 3600.0)) % 24);  // hour goes 0-23, not 1-24;
 			m_columns[MINUTE].data[i] = (float)fmod(T / 60.0, 60.0);      // minute goes 0-59
 
-			m_time += m_hdr.step; // increment by step
+			m_time += m_stepSec; // increment by step
 
 			m_columns[GHI].data[i] = (float)atof(cols[7]);
 			m_columns[DNI].data[i] = (float)atof(cols[8]);
@@ -1239,7 +1240,7 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 			&& m_columns[PRES].index >= 0
 			&& m_columns[RH].index >= 0)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 				m_columns[TWET].data[i] = (float)calc_twet(m_columns[TDRY].data[i], m_columns[RH].data[i], m_columns[PRES].data[i]);
 		}
 
@@ -1247,27 +1248,27 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 			&& m_columns[TDRY].index >= 0
 			&& m_columns[RH].index >= 0)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 				m_columns[TDEW].data[i] = (float)wiki_dew_calc(m_columns[TDRY].data[i], m_columns[RH].data[i]);
 		}
 
 		if (m_columns[YEAR].index < 0)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 				m_columns[YEAR].data[i] = (float)m_startYear;
 		}
 
 		if (m_columns[MONTH].index < 0
-			&& m_hdr.step == 3600 && m_hdr.nrecords == 8760)
+			&& m_stepSec == 3600 && m_nRecords == 8760)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 				m_columns[MONTH].data[i] = (float)util::month_of(i);
 		}
 
 		if (m_columns[DAY].index < 0
-			&& m_hdr.step == 3600 && m_hdr.nrecords == 8760)
+			&& m_stepSec == 3600 && m_nRecords == 8760)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 			{
 				int month = util::month_of(i);
 				m_columns[DAY].data[i] = (float)util::day_of_month(month, i);
@@ -1275,9 +1276,9 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		}
 
 		if (m_columns[HOUR].index < 0
-			&& m_hdr.step == 3600 && m_hdr.nrecords == 8760)
+			&& m_stepSec == 3600 && m_nRecords == 8760)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 			{
 				int day = i / 24;
 				int start_of_day = day * 24;
@@ -1287,8 +1288,8 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 
 		if (m_columns[MINUTE].index < 0)
 		{
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
-				m_columns[MINUTE].data[i] = (float)((m_hdr.step / 2) / 60);
+			for (size_t i = 0; i<m_nRecords; i++)
+				m_columns[MINUTE].data[i] = (float)((m_stepSec / 2) / 60);
 		}
 	}
 
@@ -1305,9 +1306,9 @@ bool weatherfile::open(const std::string &file, bool header_only, bool interp)
 		while (met_indexes[j] >= 0)
 		{
 			int idx = met_indexes[j]; // find column if it has been read in from the data file
-			for (size_t i = 0; i<m_hdr.nrecords; i++)
+			for (size_t i = 0; i<m_nRecords; i++)
 			{
-				if (i == 0 && m_hdr.nrecords > 1)
+				if (i == 0 && m_nRecords > 1)
 				{
 					// first time step: set to the backwards interpolation values of the first two time steps
 					m_columns[idx].data[0] = m_columns[idx].data[1]
@@ -1341,7 +1342,7 @@ bool weatherfile::header( weather_header *h )
 
 bool weatherfile::read( weather_record *r )
 {
-	if ( r && m_index >= 0 && m_index < m_hdr.nrecords)
+	if ( r && m_index >= 0 && m_index < m_nRecords)
 	{
 		r->year = (int)m_columns[YEAR].data[m_index];
 		r->month = (int)m_columns[MONTH].data[m_index];
@@ -1359,7 +1360,7 @@ bool weatherfile::read( weather_record *r )
 		r->rhum = m_columns[RH].data[m_index];
 		r->pres = m_columns[PRES].data[m_index];
 		r->snow = m_columns[SNOW].data[m_index];
-		r->albedo = m_columns[ALB].data[m_index];
+		r->alb = m_columns[ALB].data[m_index];
 		r->aod = m_columns[AOD].data[m_index];
 
 		m_index++;
@@ -1367,6 +1368,26 @@ bool weatherfile::read( weather_record *r )
 	}
 	else
 		return false;
+}
+
+size_t weatherfile::start_sec() // start time in seconds, 0 = jan 1st midnight
+{
+	return m_startSec;
+}
+
+size_t weatherfile::step_sec() // step time in seconds
+{
+	return m_stepSec;
+}
+
+size_t weatherfile::nrecords() // number of data records in file	
+{
+	return m_nRecords;
+}
+
+const char *weatherfile::error( size_t idx )
+{
+	return ( idx == 0 && m_message.size() > 0 ) ? m_message.c_str() : 0;
 }
 
 bool weatherfile::convert_to_wfcsv( const std::string &input, const std::string &output )
@@ -1406,7 +1427,7 @@ bool weatherfile::convert_to_wfcsv( const std::string &input, const std::string 
 			if (!wf.read( &rec )) return false;
 			fprintf(fp, "%d,%d,%d,%d,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg\n",
 				rec.year, rec.month, rec.day, rec.hour,
-				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.albedo );
+				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.alb );
 		}
 	}
 	else if ( wf.type() == weatherfile::EPW )
@@ -1420,7 +1441,7 @@ bool weatherfile::convert_to_wfcsv( const std::string &input, const std::string 
 			if (!wf.read( &rec )) return false;
 			fprintf(fp, "%d,%d,%d,%d,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg\n",
 				rec.year, rec.month, rec.day, rec.hour,
-				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.albedo );
+				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.alb );
 		}
 	}
 	else if ( wf.type() == weatherfile::SMW )
@@ -1434,7 +1455,7 @@ bool weatherfile::convert_to_wfcsv( const std::string &input, const std::string 
 			if (!wf.read( &rec )) return false;
 			fprintf(fp, "%d,%d,%d,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg,%lg\n",
 				rec.month, rec.day, rec.hour,
-				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.tdew, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.snow, rec.albedo );
+				rec.gh, rec.dn, rec.df, rec.tdry, rec.twet, rec.tdew, rec.rhum, rec.pres, rec.wspd, rec.wdir, rec.snow, rec.alb );
 		}
 	}
 	else
