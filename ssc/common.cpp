@@ -507,7 +507,7 @@ weatherdata::weatherdata( var_data *data_table )
 			if ( i < albedo.len ) r->albedo = albedo.p[i];
 			if ( i < aod.len ) r->aod = aod.p[i];
 
-			m_data[i] = std::auto_ptr<weather_record>(r);
+			m_data[i] = r;
 		}
 
 		m_hdr.nrecords = nrec;
@@ -516,7 +516,8 @@ weatherdata::weatherdata( var_data *data_table )
 
 weatherdata::~weatherdata()
 {
-	// nothing to do, auto_ptr will delete data
+	for( size_t i=0;i<m_data.size();i++ )
+		delete m_data[i];
 }
 
 

@@ -1,6 +1,7 @@
 #ifndef __common_h
 #define __common_h
 
+#include <memory>
 #include <vector>
 #include "core.h"
 
@@ -54,7 +55,7 @@ public:
 class weatherdata : public weather_data_provider
 {
 	weather_header m_hdr;
-	std::vector< std::auto_ptr<weather_record> > m_data;
+	std::vector< weather_record* > m_data;
 	size_t m_index;
 
 	struct vec {
