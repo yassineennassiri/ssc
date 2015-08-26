@@ -23,7 +23,10 @@ OBJECTS = \
 	lib_util.o \
 	lib_weatherfile.o \
 	lib_windfile.o \
-	lib_windwatts.o
+	lib_windwatts.o \
+	lib_pv_shade_loss_db.o \
+	lib_miniz.o
+
 
 
 TARGET=shared.a

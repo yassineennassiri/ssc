@@ -74,6 +74,7 @@ OBJECTS = \
 	cmod_user_htf_comparison.o \
 	cmod_sco2_design_cycle.o \
 	cmod_tcsmslf.o \
+	cmod_test_pv_shade_lib.o \
 	tckernel.o 
 
 $(TARGET) : $(OBJECTS)
