@@ -198,6 +198,7 @@ bool DB8::decompress_file_to_uint8()
 	// Open input file.
 	pInfile = fopen("DB8_uint8_bin.mgz", "rb");
 //	pInfile = fopen("DB8_vmpp_impp_uint8_bin.mgz", "rb");
+	// TODO throw exception
 	if (!pInfile)
 	{
 		printf("Failed opening input file!\n");
