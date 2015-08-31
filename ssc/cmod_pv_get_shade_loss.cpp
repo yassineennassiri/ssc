@@ -22,10 +22,16 @@ static var_info _cm_vtab_pv_get_shade_loss[] = {
 	{ SSC_INPUT, SSC_NUMBER, "diffuse_irrad", "Diffuse irradiance", "", "", "PV Shade Loss DB", "*", "", "" },
 	{ SSC_INPUT, SSC_NUMBER, "pv_cell_temp", "PV cell temperature", "", "", "PV Shade Loss DB", "*", "", "" },
 	{ SSC_INPUT, SSC_NUMBER, "mods_per_string", "Modules per string", "", "", "PV Shade Loss DB", "*", "INTEGER,MIN=1", "" },
-	{ SSC_INPUT, SSC_ARRAY, "0", "Shading fractions for each string", "", "", "PV Shade Loss DB", "*", "", "" },
+	{ SSC_INPUT, SSC_ARRAY, "str_shade_fracs", "Shading fractions for each string", "", "", "PV Shade Loss DB", "*", "", "" },
 	{ SSC_INPUT, SSC_NUMBER, "str_vmp_stc", "Unshaded Vmp of the string at STC", "", "", "PV Shade Loss DB", "*", "", "" },
 	{ SSC_INPUT, SSC_NUMBER, "v_mppt_low", "Lower bound of inverter MPPT range", "", "", "PV Shade Loss DB", "*", "", "" },
 	{ SSC_INPUT, SSC_NUMBER, "v_mppt_high", "Upper bound of inverter MPPT range", "", "", "PV Shade Loss DB", "*", "", "" },
+
+	// testing indices from lookup
+	{ SSC_OUTPUT, SSC_NUMBER, "N", "N", "", "", "PV Shade Loss DB", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER, "d", "d", "", "", "PV Shade Loss DB", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER, "t", "t", "", "", "PV Shade Loss DB", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER, "S", "S", "", "", "PV Shade Loss DB", "*", "", "" },
 
 
 	/* can extend to full 8760 shading for each string*/
@@ -48,21 +54,10 @@ public:
 
 
 
-
-		int N = as_integer("number_strings");
-		int d = as_integer("diffuse_frac");
-		int t = as_integer("max_str_shade");
-		int S = as_integer("str_shade_frac_index");
-
-		
-		DB8 db8;
-		db8.init();
-		std::vector<double>test_vmpp = db8.get_vector(N, d, t, S, DB8::VMPP);
-		std::vector<double>test_impp = db8.get_vector(N, d, t, S, DB8::IMPP);
-		std::vector<double>test_vs = db8.get_vector(N, d, t, S, DB8::VS);
-		std::vector<double>test_is = db8.get_vector(N, d, t, S, DB8::IS);
-
-
+		int N = 0;
+		int d = 0;
+		int t = 0;
+		int S = 0;
 
 
 // start here
@@ -84,7 +79,8 @@ public:
 				dbl_str_shade[i] /= 10.0;
 			std::vector<int> str_shade;
 			for (size_t i = 0; i < num_strings; i++)
-				str_shade.push_back((int)dbl_str_shade[i]);
+				str_shade.push_back((int)round(dbl_str_shade[i]));
+//			str_shade.push_back((int)dbl_str_shade[i]);
 			int s_max = -1; // = str_shade[0]
 			int s_sum = 0; // = str_shade[0] that is if first element zero then sum shoudl be zero
 			for (size_t i = 0; i < num_strings; i++)
@@ -97,108 +93,144 @@ public:
 			{
 				int diffuse_frac = (int)round(diffuse / global * 10.0);
 				if (diffuse_frac < 1) diffuse_frac = 1;
-			}
-		}
-		assign("shade_loss",shade_loss);
+				int counter = 1;
+				bool found = false;
+				if (num_strings > 1)
+				{
+					counter = 0;
+					for (int i2 = 0; i2 <= s_max; i2++)
+					{
+						if (num_strings == 2)
+						{
+							counter++;
+							std::vector<int> cur_case{ s_max, i2 };
+							if (str_shade == cur_case)
+								found = true;
+						}
+						else
+						{
+							for (int i3 = 0; i3 <= i2; i3++)
+							{
+								if (num_strings == 3)
+								{
+									counter++;
+									std::vector<int> cur_case{ s_max, i2, i3 };
+									if (str_shade == cur_case)
+										found = true;
+								}
+								else
+								{
+									for (int i4 = 0; i4 <= i3; i4++)
+									{
+										if (num_strings == 4)
+										{
+											counter++;
+											std::vector<int> cur_case{ s_max, i2, i3, i4 };
+											if (str_shade == cur_case)
+												found = true;
+										}
+										else
+										{
+											for (int i5 = 0; i5 <= i4; i5++)
+											{
+												if (num_strings == 5)
+												{
+													counter++;
+													std::vector<int> cur_case{ s_max, i2, i3, i4, i5 };
+													if (str_shade == cur_case)
+														found = true;
+												}
+												else
+												{
+													for (int i6 = 0; i6 <= i5; i6++)
+													{
+														if (num_strings == 6)
+														{
+															counter++;
+															std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6 };
+															if (str_shade == cur_case)
+																found = true;
+														}
+														else
+														{
+															for (int i7 = 0; i7 <= i6; i7++)
+															{
+																if (num_strings == 7)
+																{
+																	counter++;
+																	std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6, i7 };
+																	if (str_shade == cur_case)
+																		found = true;
+																}
+																else
+																{
+																	for (int i8 = 0; i8 <= i7; i8++)
+																	{
+																		if (num_strings == 8)
+																		{
+																			counter++;
+																			std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6, i7, i8 };
+																			if (str_shade == cur_case)
+																				found = true;
+																		}
+																		else
+																		{
+																			// error message or throw error
+																			counter = 0;
+																		}
+																	} // for i7
+																	if (found) break;
 
+																}
+															} // for i7
+															if (found) break;
+														}
+													} // for i6
+													if (found) break;
+												}
+											} // for i5
+											if (found) break;
+										}
+									} // for i4
+									if (found) break;
+								}
+							} // for i3
+							if (found) break;
+						}
+						if (found) break;
+					} // for i2
+				} // (num_strings > 1)
+
+
+				N = num_strings;
+				d = diffuse_frac;
+				t = s_max;
+				S = counter;
+
+				DB8 db8;
+				db8.init();
+				std::vector<double>test_vmpp = db8.get_vector(N, d, t, S, DB8::VMPP);
+				std::vector<double>test_impp = db8.get_vector(N, d, t, S, DB8::IMPP);
+				std::vector<double>test_vs = db8.get_vector(N, d, t, S, DB8::VS);
+				std::vector<double>test_is = db8.get_vector(N, d, t, S, DB8::IS);
+
+			} //(sum >0)
+		} //  ((num_strings > 0) && (global > 0))
+
+		// testing indices returned
+		assign("N", (ssc_number_t)N);
+		assign("d", (ssc_number_t)d);
+		assign("t", (ssc_number_t)t);
+		assign("S", (ssc_number_t)S);
+
+
+		assign("shade_loss", shade_loss);
 
 		/*
 
-		%Index the DB and get the voltages and currents
-			%This is different from just GetShadeLoss
+		
 
-		counter = 1;
-		found = 0;
-		if NumStrings>1
-			counter = 0;
-		for i = 0:Smax
-			NSTR = 2;
-
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for j = 0:i
-			NSTR = 3;
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i j];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for k = 0:j
-			NSTR = 4;
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i j k];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for l = 0:k
-			NSTR = 5;
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i j k l];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for m = 0:l
-			NSTR = 6;
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i j k l m];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for n = 0:m
-			NSTR = 7;
-		if NSTR == NumStrings
-			counter = counter + 1;
-		currcase = [Smax i j k l m n];
-		if currcase == StrShade
-			found = 1;
-		end
-		else
-		for o = 0:n
-			NSTR = 8;
-		counter = counter + 1;
-		currcase = [Smax i j k l m n o];
-		if currcase == StrShade
-			found = 1;
-		end
-			if found == 1 break; end
-				end
-				end
-				if found == 1 break; end
-					end
-					end
-					if found == 1 break; end
-						end
-						end
-						if found == 1 break; end
-							end
-							end
-							if found == 1 break; end
-								end
-								end
-								if found == 1 break; end
-									end
-									end
-									if found == 1 break; end
-										end
-										end
-
-
-										global MyStruct
-
-										MyStruct = DB{ NumStrings }.d{ DiffuseFrac }.t{ Smax }.shade(counter, :, : );
+		MyStruct = DB{ NumStrings }.d{ DiffuseFrac }.t{ Smax }.shade(counter, :, : );
 		Vmps = squeeze(double(MyStruct(1, 1, :)) / 1000);
 		Imps = squeeze(double(MyStruct(1, 2, :)) / 1000);
 		Vs = squeeze(double(MyStruct(1, 3, :)) / 1000);
