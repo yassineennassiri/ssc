@@ -11,6 +11,7 @@ GetShadeLoss(G,D,Tc,ModsPerString,StrShade,VMaxSTCStrUnshaded,VStrMPPT,ShadeDB )
 */
 #include <functional>   // std::greater
 #include <algorithm>    // std::sort
+#include <math.h> // logarithm function
 
 #include "core.h"
 #include "lib_util.h"
@@ -53,7 +54,7 @@ public:
 	{
 
 
-
+		// testing index outputs
 		int N = 0;
 		int d = 0;
 		int t = 0;
@@ -66,7 +67,7 @@ public:
 		double global = as_double("global_poa_irrad");
 
 
-		ssc_number_t shade_loss = 0;
+		double shade_loss = 1;
 		std::vector<double> dbl_str_shade = as_doublevec("str_shade_fracs");
 		size_t num_strings = dbl_str_shade.size();
 
@@ -209,10 +210,84 @@ public:
 
 				DB8 db8;
 				db8.init();
-				std::vector<double>test_vmpp = db8.get_vector(N, d, t, S, DB8::VMPP);
-				std::vector<double>test_impp = db8.get_vector(N, d, t, S, DB8::IMPP);
-				std::vector<double>test_vs = db8.get_vector(N, d, t, S, DB8::VS);
-				std::vector<double>test_is = db8.get_vector(N, d, t, S, DB8::IS);
+				std::vector<double>vmpp = db8.get_vector(N, d, t, S, DB8::VMPP);
+				std::vector<double>impp = db8.get_vector(N, d, t, S, DB8::IMPP);
+				std::vector<double>vs = db8.get_vector(N, d, t, S, DB8::VS);
+				std::vector<double>is = db8.get_vector(N, d, t, S, DB8::IS);
+				std::vector<double> pmp_fracs;
+				std::vector<double> p_fracs;
+				double p_max_frac = 0;
+				int p_max_ind = 0;
+				for (size_t i = 0; i < vmpp.size() && i < impp.size(); i++)
+				{
+					double pmp = vmpp[i] * impp[i];
+					pmp_fracs.push_back(pmp);
+					if (pmp > p_max_frac)
+					{
+						p_max_frac = pmp;
+						p_max_ind = (int)i;
+					}
+				}
+				for (size_t i = 0; i < vs.size() && i < is.size(); i++)
+					p_fracs.push_back(vs[i] * is[i]);
+				/*
+				%Try scaling the voltages using the Sandia model.Taking numbers from
+				%their database for the Yingli YL230.It's a similar module (mc-si,60 cell, etc)to the
+				%Trina 250 PA05 which the database was build from.But user may need more
+				%input into this!!!
+				*/
+				double n = 1.263;
+				int mods_per_string = as_integer("mods_per_string");
+				double BetaVmp = -0.137*mods_per_string; //mult by ModsPerString because it's in V
+				double Ns = 60 * mods_per_string; //X modules, each with 60 cells
+				double C2 = -0.05871;
+				double C3 = 8.35334;
+				double k = 1.38066E-23; //J / K, Boltzmann's constant
+				double q = 1.60218E-19;  // Coulomb, elementary charge
+				double Tc = as_double("pv_cell_temp");
+				double deltaTc = n*k*(Tc + 273.15) / q; //Thermal voltage
+				double VMaxSTCStrUnshaded = as_double("str_vmp_stc");
+				double scale_g = global / 1000.0;
+				double TcVmpMax = vmpp[p_max_ind] * VMaxSTCStrUnshaded + C2*Ns*deltaTc*::log(scale_g) + C3*Ns*pow((deltaTc*::log(scale_g)), 2) + BetaVmp*(Tc - 25);
+				double TcVmpScale = TcVmpMax / vmpp[p_max_ind] / VMaxSTCStrUnshaded;
+
+				std::vector<double> TcVmps;
+				std::vector<double> TcVs;
+
+				for (size_t i = 0; i < vmpp.size();i++)
+					TcVmps.push_back(vmpp[i] * VMaxSTCStrUnshaded + C2*Ns*deltaTc*::log(scale_g) + C3*Ns*pow((deltaTc*::log(scale_g)), 2) + BetaVmp*(Tc - 25));
+				for (size_t i = 0; i < vs.size(); i++)
+					TcVs.push_back(vs[i]*TcVmpScale*VMaxSTCStrUnshaded);
+				/*
+				%DO NOT USE - NOT PART OF SANDIA MODEL!!
+				%Scale voltage fractions by temperature(gamma is in % / deg C)
+				% TcVmps = Vmps*((1 + gammaPmp*(Tc - 25)))*VMaxSTCStrUnshaded;
+				%TcVs = Vs*((1 + gammaPmp*(Tc - 25)))*VMaxSTCStrUnshaded;
+
+				%Now want to choose the point with a V in range and highest power
+				%First, figure out which max power point gives lowest loss
+				*/
+				double Veemax = TcVmps[p_max_ind];
+				double v_mppt_low = as_double("v_mppt_low");
+				double v_mppt_high = as_double("v_mppt_high");
+				if ((Veemax >= v_mppt_low) && (Veemax <= v_mppt_high))
+				// The global max power point is in range!
+					shade_loss = 1 - p_max_frac;
+				else
+				{
+					//	The global max power point is NOT in range
+					// find max value wher temperatures in voltage range
+					double p_frac = 0;
+					for (size_t i = 0; i < TcVs.size() && i < p_fracs.size(); i++)
+					{
+						if ((TcVs[i] >= v_mppt_low) && (TcVs[i] <= v_mppt_high))
+						{
+							if (p_fracs[i] > p_frac)
+								p_frac = p_fracs[i];
+						}
+					}
+					shade_loss = 1 - p_frac;
+				}
 
 			} //(sum >0)
 		} //  ((num_strings > 0) && (global > 0))
@@ -224,47 +299,9 @@ public:
 		assign("S", (ssc_number_t)S);
 
 
-		assign("shade_loss", shade_loss);
+		assign("shade_loss", (ssc_number_t)shade_loss);
 
 		/*
-
-		
-
-		MyStruct = DB{ NumStrings }.d{ DiffuseFrac }.t{ Smax }.shade(counter, :, : );
-		Vmps = squeeze(double(MyStruct(1, 1, :)) / 1000);
-		Imps = squeeze(double(MyStruct(1, 2, :)) / 1000);
-		Vs = squeeze(double(MyStruct(1, 3, :)) / 1000);
-		Is = squeeze(double(MyStruct(1, 4, :)) / 1000);
-		%Look at the power fractions
-			PmpFracs = Vmps.*Imps;
-		PFracs = Vs.*Is;
-		[PmaxFrac, Pmaxind] = max(PmpFracs);
-		%Try scaling the voltages using the Sandia model.Taking numbers from
-			%their database for the Yingli YL230.It's a similar module (mc-si,60 cell, etc)to the 
-			%Trina 250 PA05 which the database was build from.But user may need more
-			%input into this!!!
-
-			n = 1.263;
-		BetaVmp = -0.137*ModsPerString; %mult by ModsPerString because it's in V
-			Ns = 60 * ModsPerString; %X modules, each with 60 cells
-			C2 = -0.05871;
-		C3 = 8.35334;
-		k = 1.38066E-23; %J / K, Boltzmann's constant
-			q = 1.60218E-19;  % Coulomb, elementary charge
-
-			deltaTc = n*k*(Tc + 273.15) / q; %Thermal voltage
-			TcVmpMax = Vmps(Pmaxind)*VMaxSTCStrUnshaded + C2*Ns*deltaTc*log(G / 1000) + C3*Ns*(deltaTc*log(G / 1000)) ^ 2 + BetaVmp*(Tc - 25);
-		TcVmpScale = TcVmpMax. / Vmps(Pmaxind) / VMaxSTCStrUnshaded;
-		TcVmps = Vmps*VMaxSTCStrUnshaded + C2*Ns*deltaTc*log(G / 1000) + C3*Ns*(deltaTc*log(G / 1000)) ^ 2 + BetaVmp*(Tc - 25);
-		TcVs = Vs*TcVmpScale*VMaxSTCStrUnshaded;
-
-		%DO NOT USE - NOT PART OF SANDIA MODEL!!
-			%Scale voltage fractions by temperature(gamma is in % / deg C)
-			% TcVmps = Vmps*((1 + gammaPmp*(Tc - 25)))*VMaxSTCStrUnshaded;
-		%TcVs = Vs*((1 + gammaPmp*(Tc - 25)))*VMaxSTCStrUnshaded;
-
-		%Now want to choose the point with a V in range and highest power
-			%First, figure out which max power point gives lowest loss
 
 			Veemax = TcVmps(Pmaxind);
 		if and(VStrMPPT(1) <= Veemax, VStrMPPT(2) >= Veemax)
