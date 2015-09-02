@@ -291,7 +291,10 @@ public:
 
 			} //(sum >0)
 		} //  ((num_strings > 0) && (global > 0))
-
+		else
+		{
+			log(util::format("no DB loaded global irradiance = %lg and num strings = %d", global, num_strings), SSC_WARNING);
+		}
 		// testing indices returned
 		assign("N", (ssc_number_t)N);
 		assign("d", (ssc_number_t)d);
