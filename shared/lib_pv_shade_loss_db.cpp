@@ -43,25 +43,26 @@ short DB8::get_is(size_t i)
 		return -1; 
 };
 
-int DB8::get_index(const size_t &N, const size_t &d, const  size_t &t, const size_t &S, const  db_type &DB_TYPE)
+bool DB8::get_index(const size_t &N, const size_t &d, const  size_t &t, const size_t &S, const  db_type &DB_TYPE, size_t* ret_ndx)
 {
-	size_t ret_ndx=-1;
+	bool ret_val = false;
+	//size_t ret_ndx=-1;
 	size_t length=0, offset=0;
 	size_t length_t =10, length_d=10;
 	size_t iN = 0, id = 0, it = 0;
 
 	// ret_ndx==0 is an error condition.
 	// check N
-	if ((N < 1) || (N>8)) return ret_ndx;
+	if ((N < 1) || (N>8)) return ret_val;
 	// check d
-	if ((d < 1) || (d>10)) return ret_ndx;
+	if ((d < 1) || (d>10)) return ret_val;
 	// check t
-	if ((t < 1) || (t>10)) return ret_ndx;
+	if ((t < 1) || (t>10)) return ret_val;
 
 	// check S value for validity
 	// find number of s vectors
 	size_t size_s = n_choose_k(t + N - 1, t);
-	if ((S < 1) || (S>size_s)) return ret_ndx;
+	if ((S < 1) || (S>size_s)) return ret_val;
 
 
 
@@ -84,8 +85,8 @@ int DB8::get_index(const size_t &N, const size_t &d, const  size_t &t, const siz
 			offset = p_vmpp_uint8_size / 2 + p_impp_uint8_size / 2 + p_vs_uint8_size / 2; // short offset
 			break;
 	}
-	if (length == 0) return ret_ndx;
-	ret_ndx = 0; // independent vectors for vmpp,impp,vs and is so offset=0
+	if (length == 0) return ret_val;
+	*ret_ndx = 0; // independent vectors for vmpp,impp,vs and is so offset=0
 
 	size_t t_ub = 11; // upper bound of t index for iteration
 	size_t d_ub = 10; // upper bound of d index for iteration
@@ -103,12 +104,13 @@ int DB8::get_index(const size_t &N, const size_t &d, const  size_t &t, const siz
 				// find number of s vectors
 				size_s = n_choose_k(it + iN - 1, it);
 				// multiply by length of each S vector
-				ret_ndx += size_s*length;
+				*ret_ndx += size_s*length;
 			}
 		} while (id < d_ub);
 	} while (iN < N);
-	ret_ndx += (S - 1)*length;
-	return ret_ndx;
+	*ret_ndx += (S - 1)*length;
+	ret_val = true;
+	return ret_val;
 }
 
 size_t DB8::n_choose_k(size_t n, size_t k)
@@ -145,17 +147,20 @@ std::vector<double> DB8::get_vector(const size_t &N, const size_t &d, const size
 		break;
 	}
 	if (length == 0) return ret_vec;
-	size_t ndx = get_index(N, d, t, S, DB_TYPE);
-	for (size_t i = 0; i < length; i++)
-	{ // could replace with single get!
-		if (DB_TYPE == VMPP)
-			ret_vec.push_back((double)get_vmpp(ndx + i) / 1000.0);
-		else if (DB_TYPE == IMPP)
-			ret_vec.push_back((double)get_impp(ndx + i) / 1000.0);
-		else if (DB_TYPE == VS)
-			ret_vec.push_back((double)get_vs(ndx + i) / 1000.0);
-		else if (DB_TYPE == IS)
-			ret_vec.push_back((double)get_is(ndx + i) / 1000.0);
+	size_t ndx;
+	if (get_index(N, d, t, S, DB_TYPE, &ndx))
+	{
+		for (size_t i = 0; i < length; i++)
+		{ // could replace with single get!
+			if (DB_TYPE == VMPP)
+				ret_vec.push_back((double)get_vmpp(ndx + i) / 1000.0);
+			else if (DB_TYPE == IMPP)
+				ret_vec.push_back((double)get_impp(ndx + i) / 1000.0);
+			else if (DB_TYPE == VS)
+				ret_vec.push_back((double)get_vs(ndx + i) / 1000.0);
+			else if (DB_TYPE == IS)
+				ret_vec.push_back((double)get_is(ndx + i) / 1000.0);
+		}
 	}
 	return ret_vec;
 }

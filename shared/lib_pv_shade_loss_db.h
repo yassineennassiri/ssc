@@ -27,7 +27,7 @@ public:
 	};
 	std::vector<double> get_vector(const size_t &N, const size_t &d, const size_t &t, const size_t &S, const db_type &DB_TYPE);
 	size_t n_choose_k(size_t n, size_t k);
-	int get_index(const size_t &N, const size_t &d, const size_t &t, const size_t &S, const db_type &DB_TYPE);
+	bool get_index(const size_t &N, const size_t &d, const size_t &t, const size_t &S, const db_type &DB_TYPE, size_t* ret_ndx);
 private:
 	unsigned char *p_vmpp;
 	unsigned char *p_impp;
