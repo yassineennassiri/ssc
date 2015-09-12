@@ -276,7 +276,7 @@ public:
 				else
 				{
 					//	The global max power point is NOT in range
-					// find max value wher temperatures in voltage range
+					// find max value where temperatures in voltage range
 					double p_frac = 0;
 					for (size_t i = 0; i < TcVs.size() && i < p_fracs.size(); i++)
 					{
