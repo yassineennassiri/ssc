@@ -290,6 +290,9 @@ public:
 				}
 
 			} //(sum >0)
+			else
+				shade_loss = 0;
+
 		} //  ((num_strings > 0) && (global > 0))
 		else
 		{

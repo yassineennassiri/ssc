@@ -107,8 +107,8 @@ public:
 			for (size_t irec = 0; irec < nrec; irec++)
 			{
 				shade_loss[irec] = 1;
-				if (global_poa_irrad[irec] > 0)
-				{
+//				if (global_poa_irrad[irec] > 0)
+//				{
 					// shading fractions for each string
 					std::vector<double> dbl_str_shade;
 					for (size_t ins = 0; ins < num_strings; ins++)
@@ -124,16 +124,17 @@ public:
 						str_shade.push_back((int)round(dbl_str_shade[i]));
 					//			str_shade.push_back((int)dbl_str_shade[i]);
 					int s_max = -1; // = str_shade[0]
-					int s_sum = 0; // = str_shade[0] that is if first element zero then sum shoudl be zero
+					int s_sum = 0; // = str_shade[0] that is if first element zero then sum should be zero
 					for (size_t i = 0; i < num_strings; i++)
 					{
 						if (str_shade[i] > s_max) s_max = str_shade[i];
 						s_sum += str_shade[i];
 					}
 					//Now get the indices for the DB
-					if (s_sum > 0)
+//					if (s_sum > 0)
+					if ((s_sum > 0) && (global_poa_irrad[irec] > 0))
 					{
-						int diffuse_frac = (int)round(diffuse_irrad[irec] / global_poa_irrad[irec] * 10.0);
+						int diffuse_frac = (int)round(diffuse_irrad[irec]*10.0 / global_poa_irrad[irec] );
 						if (diffuse_frac < 1) diffuse_frac = 1;
 						int counter = 1;
 						bool found = false;
@@ -326,7 +327,14 @@ public:
 						}
 
 					} //(sum >0)
-				} //(global > 0)
+					else // either shade frac sum = 0 or global = 0
+					{
+						if (s_sum <=0 ) // to match with Matlab results
+							shade_loss[irec] = 0;
+						else
+							shade_loss[irec] = 1;
+					}
+//				} //(global > 0)
 			}// for irec
 		} //  (num_strings > 0) 
 		else
