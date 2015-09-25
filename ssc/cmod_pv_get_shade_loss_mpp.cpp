@@ -15,7 +15,7 @@ GetShadeLoss(G,D,Tc,ModsPerString,StrShade,VMaxSTCStrUnshaded,VStrMPPT,ShadeDB )
 
 #include "core.h"
 #include "lib_util.h"
-#include "lib_pv_shade_loss_db.h"
+#include "lib_pv_shade_loss_mpp.h"
 
 static var_info _cm_vtab_pv_get_shade_loss_mpp[] = {
 /*   VARTYPE           DATATYPE         NAME                           LABEL                                UNITS     META                      GROUP                      REQUIRED_IF                 CONSTRAINTS                      UI_HINTS*/
@@ -76,7 +76,7 @@ public:
 
 		if (num_strings > 0)
 		{
-			DB8 db8;
+			DB8_mpp db8;
 			db8.init();
 
 			for (size_t irec = 0; irec < nrec; irec++)
@@ -225,8 +225,8 @@ public:
 						t[irec] = (ssc_number_t)s_max;
 						S[irec] = (ssc_number_t)counter;
 
-						std::vector<double>vmpp = db8.get_vector(num_strings, diffuse_frac, s_max, counter, DB8::VMPP);
-						std::vector<double>impp = db8.get_vector(num_strings, diffuse_frac, s_max, counter, DB8::IMPP);
+						std::vector<double>vmpp = db8.get_vector(num_strings, diffuse_frac, s_max, counter, DB8_mpp::VMPP);
+						std::vector<double>impp = db8.get_vector(num_strings, diffuse_frac, s_max, counter, DB8_mpp::IMPP);
 						double p_max_frac = 0;
 						int p_max_ind = 0;
 						for (size_t i = 0; i < vmpp.size() && i < impp.size(); i++)
