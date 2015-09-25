@@ -80,6 +80,7 @@ extern module_entry_info
 	cm_entry_battery,
 	cm_entry_test_pv_shade_loss_db,
 	cm_entry_pv_get_shade_loss,
+	cm_entry_pv_get_shade_loss_mpp,
 	cm_entry_pv_get_single_shade_loss,
 	cm_entry_lcoefcr;
 
@@ -143,6 +144,7 @@ static module_entry_info *module_table[] = {
 	&cm_entry_battery,
 	&cm_entry_test_pv_shade_loss_db,
 	&cm_entry_pv_get_shade_loss,
+	&cm_entry_pv_get_shade_loss_mpp,
 	&cm_entry_pv_get_single_shade_loss,
 	&cm_entry_lcoefcr,
 	0 };
