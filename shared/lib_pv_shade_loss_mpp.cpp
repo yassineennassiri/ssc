@@ -1,13 +1,11 @@
 #include "lib_pv_shade_loss_mpp.h"
-#include <stdio.h>
-//#include <wx/wx.h>
+#include <functional>   // std::greater
+#include <algorithm>    // std::sort
+#include <math.h> // logarithm function
 
-#include "lib_miniz.h"
-// include in only one file in project due to single fileness without header of miniz
-//#define MINIZ_HEADER_FILE_ONLY
-//#include "../../../Storage/Compression/miniz_v115_r4/tinfl.c"
+#include "lib_miniz.h" // decompression
 
-#include "DB8_vmpp_impp_uint8_bin.h"
+#include "DB8_vmpp_impp_uint8_bin.h" // char* of binary compressed file
 
 
 typedef unsigned char uint8;
@@ -158,50 +156,7 @@ DB8_mpp::~DB8_mpp()
 bool DB8_mpp::decompress_file_to_uint8()
 {
 	size_t status;
-//	FILE *pInfile;
-//	size_t infile_size;
-//	long file_loc;
-//	uint8 *pCmp_data, *pTmp_data;
 	uint8 *pTmp_data;
-
-	/*
-	// Open input file.
-	pInfile = fopen("DB8_mpp_uint8_bin.mgz", "rb");
-//	pInfile = fopen("DB8_mpp_vmpp_impp_uint8_bin.mgz", "rb");
-	// TODO throw exception
-	if (!pInfile)
-	{
-		printf("Failed opening input file!\n");
-		return EXIT_FAILURE;
-	}
-	// Determine input file's size.
-	fseek(pInfile, 0, SEEK_END);
-	file_loc = ftell(pInfile);
-	fseek(pInfile, 0, SEEK_SET);
-
-	if ((file_loc < 0) || (file_loc > INT_MAX))
-	{
-		// This is not a limitation of miniz or tinfl, but this example.
-		printf("File is too large to be processed by this example.\n");
-		return EXIT_FAILURE;
-	}
-
-	infile_size = (uint)file_loc;
-
-	pCmp_data = (uint8 *)malloc(infile_size);
-	if (!pCmp_data)
-	{
-		printf("Out of memory!\n");
-		free(pCmp_data);
-		return EXIT_FAILURE;
-	}
-	if (fread(pCmp_data, 1, infile_size, pInfile) != infile_size)
-	{
-		printf("Failed reading input file!\n");
-		free(pCmp_data);
-		return EXIT_FAILURE;
-	}
-	*/
 
 	size_t mem_size = p_vmpp_uint8_size + p_impp_uint8_size;
 
@@ -222,3 +177,167 @@ bool DB8_mpp::decompress_file_to_uint8()
 
 	return true;
 };
+
+double DB8_mpp::get_shade_loss(double &ghi, double &dhi, std::vector<double> &shade_frac)
+{
+	double shade_loss = 1;
+	// shading fractions for each string
+	size_t num_strings = shade_frac.size();
+	if (num_strings > 0)
+	{
+		//Sort in descending order of shading
+		std::sort(shade_frac.begin(), shade_frac.end(), std::greater<double>());
+		//Need to round them to 10s (note should be integer)
+		for (size_t i = 0; i < num_strings; i++)
+			shade_frac[i] /= 10.0;
+		std::vector<int> str_shade;
+		for (size_t i = 0; i < num_strings; i++)
+			str_shade.push_back((int)round(shade_frac[i]));
+		int s_max = -1; // = str_shade[0]
+		int s_sum = 0; // = str_shade[0] that is if first element zero then sum should be zero
+		for (size_t i = 0; i < num_strings; i++)
+		{
+			if (str_shade[i] > s_max) s_max = str_shade[i];
+			s_sum += str_shade[i];
+		}
+		//Now get the indices for the DB
+		if ((s_sum > 0) && (ghi > 0))
+		{
+			int diffuse_frac = (int)round(dhi * 10.0 / ghi);
+			if (diffuse_frac < 1) diffuse_frac = 1;
+			int counter = 1;
+			bool found = false;
+			if (num_strings > 1)
+			{
+				counter = 0;
+				for (int i2 = 0; i2 <= s_max; i2++)
+				{
+					if (num_strings == 2)
+					{
+						counter++;
+						std::vector<int> cur_case{ s_max, i2 };
+						if (str_shade == cur_case)
+							found = true;
+					}
+					else
+					{
+						for (int i3 = 0; i3 <= i2; i3++)
+						{
+							if (num_strings == 3)
+							{
+								counter++;
+								std::vector<int> cur_case{ s_max, i2, i3 };
+								if (str_shade == cur_case)
+									found = true;
+							}
+							else
+							{
+								for (int i4 = 0; i4 <= i3; i4++)
+								{
+									if (num_strings == 4)
+									{
+										counter++;
+										std::vector<int> cur_case{ s_max, i2, i3, i4 };
+										if (str_shade == cur_case)
+											found = true;
+									}
+									else
+									{
+										for (int i5 = 0; i5 <= i4; i5++)
+										{
+											if (num_strings == 5)
+											{
+												counter++;
+												std::vector<int> cur_case{ s_max, i2, i3, i4, i5 };
+												if (str_shade == cur_case)
+													found = true;
+											}
+											else
+											{
+												for (int i6 = 0; i6 <= i5; i6++)
+												{
+													if (num_strings == 6)
+													{
+														counter++;
+														std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6 };
+														if (str_shade == cur_case)
+															found = true;
+													}
+													else
+													{
+														for (int i7 = 0; i7 <= i6; i7++)
+														{
+															if (num_strings == 7)
+															{
+																counter++;
+																std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6, i7 };
+																if (str_shade == cur_case)
+																	found = true;
+															}
+															else
+															{
+																for (int i8 = 0; i8 <= i7; i8++)
+																{
+																	if (num_strings == 8)
+																	{
+																		counter++;
+																		std::vector<int> cur_case{ s_max, i2, i3, i4, i5, i6, i7, i8 };
+																		if (str_shade == cur_case)
+																			found = true;
+																	}
+																	else
+																	{
+																		// error message or throw error
+																		counter = 0;
+																	}
+																} // for i7
+																if (found) break;
+
+															}
+														} // for i7
+														if (found) break;
+													}
+												} // for i6
+												if (found) break;
+											}
+										} // for i5
+										if (found) break;
+									}
+								} // for i4
+								if (found) break;
+							}
+						} // for i3
+						if (found) break;
+					}
+					if (found) break;
+				} // for i2
+			} // (num_strings > 1)
+
+
+
+			std::vector<double>vmpp = get_vector(num_strings, diffuse_frac, s_max, counter, DB8_mpp::VMPP);
+			std::vector<double>impp = get_vector(num_strings, diffuse_frac, s_max, counter, DB8_mpp::IMPP);
+			double p_max_frac = 0;
+			int p_max_ind = 0;
+			for (size_t i = 0; i < vmpp.size() && i < impp.size(); i++)
+			{
+				double pmp = vmpp[i] * impp[i];
+				if (pmp > p_max_frac)
+				{
+					p_max_frac = pmp;
+				}
+			}
+			// The global max power point is in range!
+			shade_loss = (1.0 - p_max_frac);
+
+		} //(sum >0)
+		else // either shade frac sum = 0 or global = 0
+		{
+			if (s_sum <= 0) // to match with Matlab results
+				shade_loss = 0.0;
+			else
+				shade_loss = 1.0;
+		}
+	}
+	return shade_loss;
+}

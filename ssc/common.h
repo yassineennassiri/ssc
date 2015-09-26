@@ -33,7 +33,8 @@ public:
 class shading_factor_calculator
 {
 	std::vector<std::string> m_errors;
-	std::vector<double> m_beamFactors;
+//	std::vector<double> m_beamFactors;
+	util::matrix_t<double> m_beamFactors;
 	util::matrix_t<double> m_azaltvals;
 	bool m_enAzAlt;
 	double m_diffFactor;
@@ -44,7 +45,9 @@ public:
 	std::string get_error(size_t i=0);
 	
 	// beam and diffuse loss factors (0: full loss, 1: no loss )
-	double fbeam( size_t hour /* 0-8759 */, double solalt, double solazi );
+//	double fbeam(size_t hour /* 0-8759 */, double solalt, double solazi);
+	double fbeam(size_t timestep, double solalt, double solazi);
+	double fbeam_non_linear(size_t timestep, double ghi, double dhi);
 	double fdiff();
 };
 

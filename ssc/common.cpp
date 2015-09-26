@@ -313,6 +313,8 @@ bool shading_factor_calculator::setup( compute_module *cm, const std::string &pr
 {
 	bool ok = true;
 	m_diffFactor = 1.0;
+
+	/*
 	m_beamFactors.resize( 8760, 1.0 );
 
 	
@@ -334,7 +336,7 @@ bool shading_factor_calculator::setup( compute_module *cm, const std::string &pr
 			m_errors.push_back("hourly shading beam losses must have 8760 values");
 		}
 	}
-
+	*/
 
 	if ( cm->is_assigned( prefix+"shading:mxh" ) )
 	{
