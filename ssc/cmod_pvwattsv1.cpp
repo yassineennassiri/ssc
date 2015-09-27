@@ -265,6 +265,7 @@ public:
 			double solazi, solzen, solalt, aoi, stilt, sazi, rot, btd;
 			int sunup;		
 
+
 			p_gh[i] = (ssc_number_t)wf.gh;
 			p_dn[i] = (ssc_number_t)wf.dn;
 			p_df[i] = (ssc_number_t)wf.df;
@@ -281,7 +282,8 @@ public:
 				irr.get_sun( &solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0 );
 			
 			p_sunup[i] = (ssc_number_t)sunup;
-			p_shad_beam[i] = (ssc_number_t) shad.fbeam(i, solalt, solazi );
+			p_shad_beam[i] = (ssc_number_t) shad.fbeam(i, solalt, solazi ); // no change not sub hourly
+
 
 			if (sunup > 0)
 			{

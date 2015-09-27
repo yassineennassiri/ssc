@@ -74,6 +74,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,		SSC_NUMBER,		 "subarray1_shade_mode",				     	"Sub-array 1 shading mode (fixed tilt or 1x tracking)",	 "0/1",	    "0=selfshaded,1=none",			  "pvsamv1",			  "*",                        "INTEGER,MIN=0,MAX=1",		   "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray1_gcr",                               "Sub-array 1 Ground coverage ratio",                     "0..1",    "",                              "pvsamv1",              "?=0.3",                    "MIN=0,MAX=3",               "" },
 //	{ SSC_INPUT, SSC_ARRAY, "subarray1_shading:hourly", "Sub-array 1 Hourly beam shading losses", "%", "", "pvsamv1", "?", "", "" },
+	{ SSC_INPUT, SSC_NUMBER, "subarray1_shading:en_shading_db", "Sub-array 1 enable shading database lookup", "", "", "pvsamv1", "?=0", "BOOLEAN", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray1_shading:timestep", "Sub-array 1 timestep beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray1_shading:mxh", "Sub-array 1 Month x Hour beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray1_shading:azal",                      "Sub-array 1 Azimuth x altitude beam shading losses",    "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -130,6 +131,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,		SSC_NUMBER,		 "subarray2_shade_mode",				     	"Sub-array 2 shading mode (fixed tilt or 1x tracking)",	   "0/1",	 "0=selfshaded,1=none",			  "pvsamv1",			  "*",                        "INTEGER,MIN=0,MAX=1",		   "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray2_gcr",                               "Sub-array 2 Ground coverage ratio",                       "0..1",   "",                              "pvsamv1",              "?=0.3",                    "MIN=0,MAX=3",               "" },
 //	{ SSC_INPUT,        SSC_ARRAY,       "subarray2_shading:hourly",                    "Sub-array 2 Hourly beam shading losses",                 "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
+	{ SSC_INPUT, SSC_NUMBER, "subarray2_shading:en_shading_db", "Sub-array 2 enable shading database lookup", "", "", "pvsamv1", "?=0", "BOOLEAN", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray2_shading:timestep", "Sub-array 2 timestep beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray2_shading:mxh", "Sub-array 2 Month x Hour beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray2_shading:azal",                      "Sub-array 2 Azimuth x altitude beam shading losses",     "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -151,6 +153,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,		SSC_NUMBER,		 "subarray3_shade_mode",				     	"Sub-array 3 shading mode (fixed tilt or 1x tracking)",	   "0/1",	 "0=selfshaded,1=none",			  "pvsamv1",			  "*",                        "INTEGER,MIN=0,MAX=1",		   "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray3_gcr",                               "Sub-array 3 Ground coverage ratio",                       "0..1",   "",                              "pvsamv1",              "?=0.3",                    "MIN=0,MAX=3",               "" },
 //	{ SSC_INPUT,        SSC_ARRAY,       "subarray3_shading:hourly",                    "Sub-array 3 Hourly beam shading losses",                 "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
+	{ SSC_INPUT, SSC_NUMBER, "subarray3_shading:en_shading_db", "Sub-array 3 enable shading database lookup", "", "", "pvsamv1", "?=0", "BOOLEAN", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray3_shading:timestep", "Sub-array 3 timestep beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray3_shading:mxh", "Sub-array 3 Month x Hour beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray3_shading:azal",                      "Sub-array 3 Azimuth x altitude beam shading losses",     "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -172,6 +175,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,		SSC_NUMBER,		 "subarray4_shade_mode",				     	"Sub-array 4 shading mode (fixed tilt or 1x tracking)",	   "0/1",	 "0=selfshaded,1=none",			  "pvsamv1",			  "*",                        "INTEGER,MIN=0,MAX=1",		   "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_gcr",                               "Sub-array 4 Ground coverage ratio",                       "0..1",   "",                              "pvsamv1",              "?=0.3",                    "MIN=0,MAX=3",               "" },
 //	{ SSC_INPUT,        SSC_ARRAY,       "subarray4_shading:hourly",                    "Sub-array 4 Hourly beam shading losses",                 "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
+	{ SSC_INPUT, SSC_NUMBER, "subarray4_shading:en_shading_db", "Sub-array 4 enable shading database lookup", "", "", "pvsamv1", "?=0", "BOOLEAN", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray4_shading:timestep", "Sub-array 4 timestep beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT, SSC_MATRIX, "subarray4_shading:mxh", "Sub-array 4 Month x Hour beam shading losses", "%", "", "pvsamv1", "?", "", "" },
 	{ SSC_INPUT,        SSC_MATRIX,      "subarray4_shading:azal",                      "Sub-array 4 Azimuth x altitude beam shading losses",     "%",       "",                              "pvsamv1",              "?",                        "",                              "" },
@@ -1700,7 +1704,8 @@ public:
 //     global_poa_irrad, diffuse_irrad, (str shade fractions in shading calculator class)
 // also need timestep and timesteps per hour to handle different user entered timestep shading fraactions. 
 						// note: shading factors are still hourly inputs
-						double beam_shad_factor = sa[nn].shad.fbeam(hour, solalt, solazi);
+						// TODO: check global poa and diffuse poa inputs with Sara and Aron
+						double beam_shad_factor = sa[nn].shad.fbeam(hour, solalt, solazi,jj, step_per_hour, ibeam, iskydiff+ignddiff);
 
 						// apply hourly shading factors to beam (if none enabled, factors are 1.0)
 						ibeam *= beam_shad_factor;
