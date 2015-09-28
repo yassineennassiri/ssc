@@ -48,7 +48,7 @@ class shading_factor_calculator
 
 public:
 	shading_factor_calculator();
-	~shading_factor_calculator();
+//	~shading_factor_calculator();
 
 	bool setup( compute_module *cm, const std::string &prefix = "" );
 	std::string get_error(size_t i=0);

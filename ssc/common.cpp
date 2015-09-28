@@ -303,11 +303,11 @@ float adjustment_factors::operator()( size_t time )
 }
 
 
-shading_factor_calculator::~shading_factor_calculator()
-{
-	if (m_db8) // explicit freeing of memory
-		m_db8->~DB8_mpp();
-}
+//shading_factor_calculator::~shading_factor_calculator()
+//{
+//	if (m_db8) // explicit freeing of memory
+//		m_db8->~DB8_mpp();
+//}
 
 shading_factor_calculator::shading_factor_calculator()
 {
@@ -323,8 +323,8 @@ bool shading_factor_calculator::setup( compute_module *cm, const std::string &pr
 	m_steps_per_hour = 1;
 	m_db8 = NULL;
 
-	if (cm->is_assigned(prefix + "shading:en_shading_db"))
-		m_en_shading_db = cm->as_boolean(prefix + "shading:en_shading_db");
+	if (cm->is_assigned(prefix + "shading:shading_db_lookup"))
+		m_en_shading_db = cm->as_boolean(prefix + "shading:shading_db_lookup");
 	if (m_en_shading_db)
 	{
 		m_db8 = new DB8_mpp();
@@ -461,7 +461,7 @@ size_t shading_factor_calculator::get_row_index_for_input(size_t hour, size_t ho
 	return ndx;
 }
 
-double shading_factor_calculator::fbeam(size_t hour, double solalt, double solazi, size_t hour_step, size_t steps_per_hour, double ghi, double dhi)
+double shading_factor_calculator::fbeam(size_t hour, double solalt, double solazi, size_t hour_step, size_t steps_per_hour, double gpoa, double dpoa)
 {
 	double factor = 1.0;
 	size_t irow = get_row_index_for_input(hour,hour_step,steps_per_hour);
@@ -472,7 +472,7 @@ double shading_factor_calculator::fbeam(size_t hour, double solalt, double solaz
 			std::vector<double> shad_fracs;
 			for (size_t icol = 0; icol < m_beamFactors.ncols(); icol++)
 				shad_fracs.push_back(m_beamFactors.at(irow, icol));
-			factor = m_db8->get_shade_loss(ghi, dhi, shad_fracs);
+			factor = 1.0-m_db8->get_shade_loss(gpoa, dpoa, shad_fracs);
 		}
 		else
 			//	if (hour >= 0 && hour < m_beamFactors.size())

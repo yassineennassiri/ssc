@@ -183,6 +183,9 @@ double DB8_mpp::get_shade_loss(double &ghi, double &dhi, std::vector<double> &sh
 	double shade_loss = 1;
 	// shading fractions for each string
 	size_t num_strings = shade_frac.size();
+	// check for valid DB values
+	if (dhi > ghi)
+		dhi = ghi;
 	if (num_strings > 0)
 	{
 		//Sort in descending order of shading
