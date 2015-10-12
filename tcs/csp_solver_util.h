@@ -26,12 +26,16 @@ public:
 			m_type = -1;
 			msg[0] = NULL;
 		}
+
+        S_message_def(int type, std::string msgin)
+        {
+            m_type = type;
+            msg = msgin;
+        };
+
 	};
 
 	std::vector<S_message_def> m_message_list;	
-
-private:
-	S_message_def mS_placeholder;
 
 public:
 	C_csp_messages();
@@ -53,7 +57,9 @@ public:
 	// Useful in case exception goes uncatched
 	virtual const char* what();
 
+	C_csp_exception( const char *msg );
 	C_csp_exception(const std::string &error_message, const std::string &code_location);
+	virtual ~C_csp_exception() throw() { }
 
 };
 
