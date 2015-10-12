@@ -122,8 +122,6 @@ static var_info _cm_vtab_tcsiscc[] = {
     { SSC_INPUT,        SSC_NUMBER,      "rec_qf_delay",         "Energy-based rcvr startup delay (fraction of rated thermal power)", "",             "",            "receiver",       "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "m_dot_htf_max",        "Maximum receiver mass flow rate",                                   "kg/hr",        "",            "receiver",       "*",                       "",                      "" },
     { SSC_INPUT,        SSC_NUMBER,      "A_sf",                 "Solar Field Area",                                                  "m^2",          "",            "receiver",       "*",                       "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_salt_hot_target",    "Desired HTF outlet temperature",                                    "C",            "",            "receiver",       "*",                       "",                      "" },
-    { SSC_INPUT,        SSC_NUMBER,      "T_salt_cold",          "Desired HTF inlet temperature",                                     "C",            "",            "receiver",       "*",                       "",                      "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "eta_pump",             "Receiver HTF pump efficiency",                                      "",             "",            "receiver",       "*",                       "",                      "" },
 
 	
@@ -134,19 +132,21 @@ static var_info _cm_vtab_tcsiscc[] = {
 	{ SSC_INPUT,  SSC_NUMBER,  "pinch_point_hotside",  "Hot side temperature HX temperature difference", "C",       "",    "powerblock",     "*",     "",                "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "pinch_point_coldside", "Cold side HX pinch point",                       "C",       "",    "powerblock",     "*",     "",                "" },
 	 
-	// // sam_iscc_parasitics
-	{ SSC_INPUT,        SSC_NUMBER,      "pb_pump_coef",      "Required pumping power for HTF through power block",                     "kJ/kg",         "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "Piping_loss",       "Thermal loss per meter of piping",                                       "Wt/m",          "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "Piping_length",     "Total length of exposed piping",                                         "m",             "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "Q_rec_des",         "Design point solar field thermal output",                                "MW",            "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "pb_fixed_par",      "Fixed parasitic load - runs at all times",                               "MWe/MWcap",     "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "bop_par",           "Balance of plant parasitic power fraction",                              "MWe/MWcap",     "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_f",         "Balance of plant parasitic power fraction - mult frac",                  "none",          "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_0",         "Balance of plant parasitic power fraction - const coeff",                "none",          "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_1",         "Balance of plant parasitic power fraction - linear coeff",               "none",          "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_2",         "Balance of plant parasitic power fraction - quadratic coeff",            "none",          "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "fossil_output",     "Fossil-only cycle output at design",                                     "MWe",           "",             "parasitics",     "*",                       "",                      "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "W_dot_solar_des",   "Solar contribution to cycle output at design"                            "MWe",           "",             "parasitics",     "*",                       "",                      "" },
+	// // sam_iscc_parasitics 
+	{ SSC_INPUT,        SSC_NUMBER,      "pb_pump_coef",        "Required pumping power for HTF through power block",              "kJ/kg",       "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "piping_loss",         "Thermal loss per meter of piping",                                "Wt/m",        "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "piping_length",       "Total length of exposed piping",                                  "m",           "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "piping_length_mult",  "Piping length multiplier",                                        "",            "",        "parasitics",     "*",                       "",                      "" },
+    { SSC_INPUT,        SSC_NUMBER,      "piping_length_const", "Piping constant length",                                          "m",           "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "Q_rec_des",           "Design point solar field thermal output",                         "MW",          "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "pb_fixed_par",        "Fixed parasitic load - runs at all times",                        "MWe/MWcap",   "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "bop_par",             "Balance of plant parasitic power fraction",                       "MWe/MWcap",   "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_f",           "Balance of plant parasitic power fraction - mult frac",           "none",        "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_0",           "Balance of plant parasitic power fraction - const coeff",         "none",        "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_1",           "Balance of plant parasitic power fraction - linear coeff",        "none",        "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "bop_par_2",           "Balance of plant parasitic power fraction - quadratic coeff",     "none",        "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "fossil_output",       "Fossil-only cycle output at design",                              "MWe",         "",        "parasitics",     "*",                       "",                      "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "W_dot_solar_des",     "Solar contribution to cycle output at design"                     "MWe",         "",        "parasitics",     "*",                       "",                      "" },
 
 	// OUTPUTS
 	// weather
@@ -202,7 +202,7 @@ static var_info _cm_vtab_tcsiscc[] = {
 	{ SSC_OUTPUT,       SSC_ARRAY,       "pparasi",           "Parasitic power heliostat drives",                                "MWe",           "",             "Outputs",        "*",                      "",           "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,       "P_plant_balance_tot","Parasitic power generation-dependent load",                      "MWe",           "",             "Outputs",        "*",                      "",           "" },
 	{ SSC_OUTPUT,       SSC_ARRAY,       "P_fixed",           "Parasitic power fixed load",                                      "MWe",           "",             "Outputs",        "*",                      "",           "" },
-	{ SSC_OUTPUT,       SSC_ARRAY,       "P_piping_tot",      "Parasitic power equiv. header pipe losses",                       "MWe",           "",             "Outputs",        "*",                      "",           "" },
+	//{ SSC_OUTPUT,       SSC_ARRAY,       "P_piping_tot",      "Parasitic power equiv. header pipe losses",                       "MWe",           "",             "Outputs",        "*",                      "",           "" },
 
 
 //	{ SSC_OUTPUT, SSC_ARRAY, "hourly_energy",       "Hourly Energy",      "kW", "", "Net_E_Calc", "*", "LENGTH=8760", "" },
@@ -313,7 +313,7 @@ public:
 			assign("THT", var_data((ssc_number_t)THT));
 			assign("h_tower", var_data((ssc_number_t)THT));
 			assign("A_sf", var_data((ssc_number_t)A_sf));
-			assign("Piping_length", var_data((ssc_number_t)piping_length));
+			assign("piping_length", var_data((ssc_number_t)piping_length));
 
 			//Update the total installed cost
 			double total_direct_cost = 0.;
@@ -478,9 +478,12 @@ public:
 			set_unit_value_ssc_double(type222_receiver, "A_sf", A_sf);
 			set_unit_value_ssc_double(type222_receiver, "n_flux_x");
 			set_unit_value_ssc_double(type222_receiver, "n_flux_y");
+			set_unit_value_ssc_double(type222_receiver, "piping_loss");
+			set_unit_value_ssc_double(type222_receiver, "piping_length_add", "piping_length_const");
+			set_unit_value_ssc_double(type222_receiver, "piping_length_mult", "piping_length_mult");
 
 			// Constant inputs (so ... should be parameters??)
-			set_unit_value_ssc_double(type222_receiver, "T_salt_hot_target"); //, 574.0 );
+			set_unit_value_ssc_double(type222_receiver, "T_salt_hot_target", as_double("T_htf_hot_des")); //, 574.0 );
 			set_unit_value_ssc_double(type222_receiver, "eta_pump"); //, 0.85 );
 			set_unit_value_ssc_double(type222_receiver, "night_recirc", 0.0); //, 0 );
 			set_unit_value_ssc_double(type222_receiver, "hel_stow_deploy"); //, 8 );
@@ -522,9 +525,14 @@ public:
 		bConnected = connect(type222_receiver, "T_salt_hot", iscc_pb, "T_rec_out");
 
 		// Set ISCC Parasitic Parameters
+			// 8.15.15 twn: For MSPT, we're calculating piping losses in physical receiver model, so zero out tower piping parasitics here
+			// ...... still need this in Type 228 for DSGPT
+		//set_unit_value_ssc_double(iscc_parasitics, "Piping_loss", 0.0);
+		//set_unit_value_ssc_double(iscc_parasitics, "piping_length_add", 0.0);
+		//set_unit_value_ssc_double(iscc_parasitics, "piping_length_mult", 0.0);
+		//set_unit_value_ssc_double(iscc_parasitics, "THT", THT);
+		
 		set_unit_value_ssc_double(iscc_parasitics, "W_htf_pc_pump", as_double("pb_pump_coef"));
-		set_unit_value_ssc_double(iscc_parasitics, "Piping_loss");
-		set_unit_value_ssc_double(iscc_parasitics, "Piping_length");
 		set_unit_value_ssc_double(iscc_parasitics, "Q_sf_des", as_double("Q_rec_des"));
 		set_unit_value_ssc_double(iscc_parasitics, "pb_fixed_par");
 		set_unit_value_ssc_double(iscc_parasitics, "bop_par");
