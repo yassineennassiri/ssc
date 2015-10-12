@@ -67,14 +67,14 @@ OBJECTS = tcskernel.o \
     csp_solver_weatherreader.o \
 	csp_solver_util.o \
 	csp_solver_two_tank_tes.o \
+	csp_solver_tou_block_schedules.o \
 	csp_solver_pt_heliostatfield.o \
 	csp_solver_pc_Rankine_indirect_224.o \
 	csp_solver_mspt_receiver_222.o \
 	csp_solver_mspt_collector_receiver.o \
-	user_defined_power_cycle.o \
 	csp_solver_core.o \
+	user_defined_power_cycle.o \
 	csp_dispatch.o
-#	csp_solver_tou_block_schedules.o \
 
 TARGET=tcs.a
 
