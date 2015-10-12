@@ -6,7 +6,7 @@
 
 SSCEXPORT int ssc_version()
 {
-	return 49;
+	return 50;
 }
 
 SSCEXPORT const char *ssc_build_info()
@@ -74,8 +74,8 @@ extern module_entry_info
 	cm_entry_layoutarea,
 	cm_entry_sco2_design_point,
 	cm_entry_sco2_design_cycle,
-	//cm_entry_ty_sandbox,
 	cm_entry_user_htf_comparison,
+	cm_entry_ui_tes_calcs,
 	cm_entry_iscc_design_point,
 	cm_entry_battery,
     cm_entry_lcoefcr;
@@ -134,8 +134,8 @@ static module_entry_info *module_table[] = {
 	&cm_entry_layoutarea,
 	&cm_entry_sco2_design_point,
 	&cm_entry_sco2_design_cycle,
-	//&cm_entry_ty_sandbox,
 	&cm_entry_user_htf_comparison,
+	&cm_entry_ui_tes_calcs,
 	&cm_entry_iscc_design_point,
 	&cm_entry_battery,
 	&cm_entry_lcoefcr,
