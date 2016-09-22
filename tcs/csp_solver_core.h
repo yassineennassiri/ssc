@@ -384,6 +384,7 @@ public:
 		double m_E_fp_total;			//[MW] Solar field freeze protection power
 		double m_W_dot_col_tracking;	//[MWe] Collector tracking power
 		double m_W_dot_htf_pump;		//[MWe] HTF pumping power
+		double m_q_rec_heattrace;		//[MW] receiver heat trace power
 
 		// 07/08/2016, GZ: add new variables for DSG LF 
 		double m_cycle_pl_control;
@@ -401,7 +402,7 @@ public:
 			m_q_thermal = m_q_startup = m_m_dot_salt_tot = m_T_salt_hot = m_W_dot_htf_pump =
 				m_W_dot_col_tracking = m_time_required_su = m_E_fp_total =
 				m_cycle_pl_control = m_T_field_out_C = m_m_dot_tot = m_standby_control = m_dP_sf_sh = m_W_dot_par_tot =
-				m_h_htf_hot = m_xb_htf_hot = m_P_htf_hot = 
+				m_h_htf_hot = m_xb_htf_hot = m_P_htf_hot = m_q_rec_heattrace =
 				std::numeric_limits<double>::quiet_NaN();
 		}
 	};
