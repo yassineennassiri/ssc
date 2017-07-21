@@ -17,9 +17,10 @@ public:
 	static const char *module_type_names[_maxTypeNames];
 
 	iec61853_module_t();
-	void set_fs267_from_matlab();
+	//void set_fs267_from_matlab();
 
 	// model parameters
+	/*
 	double alphaIsc;
 	double n;
 	double Il;
@@ -30,9 +31,16 @@ public:
 	double D1;
 	double D2;
 	double D3;
-	double Egref;
+	double Egref; */
 
-	// additional tempco
+	//model input data
+	util::matrix_t<double> data;
+
+	//calculated parameter space (all single diode model parameters for all input conditions are stored in this matrix)
+	util::matrix_t<double> parameters;
+
+	// additional temperature coefficients (estimated by the code to solve for the single diode parameters at a given operating condition)
+	double alphaIsc;
 	double betaVoc;
 	double gammaPmp;
 	
@@ -41,6 +49,7 @@ public:
 	
 	// physical data
 	int NcellSer;
+	int type;
 	double Area;
 	bool GlassAR;
 	double AMA[5];
@@ -54,9 +63,14 @@ public:
 	enum { IL, IO, RS, RSH, A, PARMAX };
 	static const char *par_names[PARMAX];
 	
+	//function to calculate the parameter space
 	bool calculate( util::matrix_t<double> &input, int nseries, int type, 
 		util::matrix_t<double> &par, bool verbose );
-	
+	//function to interpolate the parameter space to given operating conditions
+	double interpolate(double I, double T, int idx);
+
+
+	//comment these out??????????????????????????????????????????????????????????????????
 	bool solve( double Voc, double Isc, double Vmp, double Imp, double a,
 			double *p_Il, double *p_Io, double *p_Rs, double *p_Rsh );
 	bool tcoeff( util::matrix_t<double> &input, size_t icol, double irr, 

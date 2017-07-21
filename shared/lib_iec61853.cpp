@@ -9,20 +9,26 @@
 
 #include "lsqfit.h"
 #include "lib_iec61853.h"
+#include "../solarpilot/Toolbox.h"
+#include "../tcs/interpolation_routines.h"
 
 const char *iec61853_module_t::module_type_names[_maxTypeNames] = { "monoSi", "multiSi", "CdTe", "CIS", "CIGS", "Amorphous" };
 const char *iec61853_module_t::col_names[COL_MAX] = { "Irr (W/m2)", "Temp (C)", "Pmp (W)", "Vmp (V)", "Voc (V)", "Isc (A)" };
 const char *iec61853_module_t::par_names[PARMAX] = { "IL", "IO", "RS", "RSH", "A" };
 
+enum { IRR, TC, PMP, VMP, VOC, ISC, DATACOLS };
+enum { IL, IO, RS, RSH, A, PARCOLS };
+
 iec61853_module_t::iec61853_module_t()
 {
 	_imsg = 0;
-	alphaIsc = n = Il = Io = C1 = C2 = C3
-			= D1 = D2 = D3 = Egref = std::numeric_limits<double>::quiet_NaN();
+	//alphaIsc = n = Il = Io = C1 = C2 = C3 = D1 = D2 = D3 = Egref = std::numeric_limits<double>::quiet_NaN();
 		
-	betaVoc = gammaPmp = Area = std::numeric_limits<double>::quiet_NaN();
+	alphaIsc = betaVoc = gammaPmp = Area = std::numeric_limits<double>::quiet_NaN();
 	
 	Vmp0 = Imp0 = Voc0 = Isc0 = std::numeric_limits<double>::quiet_NaN();
+
+	data = std::numeric_limits<double>::quiet_NaN();
 
 	NcellSer = 0;
 	GlassAR = false;
@@ -31,13 +37,14 @@ iec61853_module_t::iec61853_module_t()
 
 }
 
+/*
 void iec61853_module_t::set_fs267_from_matlab()
 {		
 	alphaIsc=0.000472; n=1.451; Il=1.18952; Io=2.08556e-09;
 	C1=1932.09; C2=474.895; C3=1.48756;
 	D1=11.6276; D2=-0.0770137; D3=0.237277;
 	Egref=0.73769;
-}
+}*/
 
 
 #define OUTLN(text) if (_imsg) _imsg->Outln(text)
@@ -399,6 +406,8 @@ double Rs_fit_eqn( double _x, double *par, void * )
 
 bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, int Type, 
 	util::matrix_t<double> &par, bool verbose )
+
+	//	how to deal with all the print statements in here?? what do we want to return to the UI????????????????
 {
 	if (input.ncols() != COL_MAX) {
 		PRINTF( "incorrect number of data columns in input.  %d required", COL_MAX );
@@ -598,7 +607,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 			PRINTF("%d\t%lg\t%lg\t%lg\t%lg", (int)i+1, par(i,IL), par(i,IO), par(i,RS), par(i,RSH) );
 	}
 
-
+	/*
 	// fit Io equation to data - assume only temperature dependence
 	// first, create list of all unique temperatures in input
 	std::vector<double> temps;
@@ -812,7 +821,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 	if( verbose ) PRINTF("best fit for D1: %lg, but using Rs_stc %lg", D1, Rs_stc );
 
 	D1 = Rs_stc;*/
-
+/*
 	if( verbose ) PRINTF("determined Rs equation parameters D1=%lg D2=%lg D3=%lg", D1, D2, D3 );
 
 	
@@ -826,9 +835,163 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 	C1 = C[0];
 	C2 = C[1];
 	C3 = C[2];
+	*/
 
 	return true;
 }
+
+
+double iec61853_module_t::interpolate(double I, double T, int idx)
+{
+	MatDoub tempirr;
+	std::vector<double> parvals;
+	std::vector<sp_point> pts, hull;
+
+	double maxz = -1e99;
+	double tmin = 1e99;
+	double tmax = -1e99;
+	double imin = 1e99;
+	double imax = -1e99;
+	double dist = 1e99;
+	int idist = -1;
+	for (size_t i = 0; i<data.nrows(); i++)
+	{
+		double z = parameters(i, idx);
+		if (!std::isfinite(z))
+			continue;
+
+		double temp = data(i, TC);//x value
+		double irr = data(i, IRR);//y value
+
+		if (temp < tmin) tmin = temp;
+		if (temp > tmax) tmax = temp;
+		if (irr < imin) imin = irr;
+		if (irr > imax) imax = irr;
+
+		double d = sqrt((irr - I)*(irr - I) + (temp - T)*(temp - T));
+		if (d < dist)
+		{
+			dist = d;
+			idist = i;
+		}
+
+		std::vector<double> it(2, 0.0);
+		it[0] = temp; it[1] = irr;
+		tempirr.push_back(it);
+
+		parvals.push_back(z);
+
+		if (z > maxz) maxz = z;
+
+		pts.push_back(sp_point(temp, irr, z));
+	}
+
+	Toolbox::convex_hull(pts, hull);
+	if (Toolbox::pointInPolygon(hull, sp_point(T, I, 0.0)))
+	{
+		// scale values based on max - helps GM interp routine
+		for (size_t i = 0; i<parvals.size(); i++)
+			parvals[i] /= maxz;
+
+		Powvargram vgram(tempirr, parvals, 1.75, 0.);
+		GaussMarkov gm(tempirr, parvals, vgram);
+
+		// test the fit against the data
+		double err_fit = 0.;
+		for (size_t i = 0; i<parvals.size(); i++)
+		{
+			double zref = parvals[i];
+			double zfit = gm.interp(tempirr[i]);
+			double dz = zref - zfit;
+			err_fit += dz*dz;
+		}
+		err_fit = sqrt(err_fit);
+		
+		//if (err_fit > 0.01)
+		//{
+		//	log(util::format("interpolation function for iec61853 parameter '%s' at I=%lg T=%lg is poor: %lg RMS",
+		//		parnames[idx], I, T, err_fit),SSC_WARNING);
+		//}
+
+		std::vector<double> q(2, 0.0);
+		q[0] = T;
+		q[1] = I;
+
+		// now interpolate and return the value
+		return gm.interp(q) * maxz;
+	}
+	else
+	{
+		// if we're pretty close, return the nearest known value
+		if (dist < 30.)
+		{
+
+			//if (!quiet)
+			//	log(util::format("query point (%lg, %lg) is outside convex hull of data but close... returning nearest value from data table at (%lg, %lg)=%lg",
+			//	T, I, data(idist, TC), data(idist, IRR), par(idist, idx)),SSC_WARNING);
+
+			return parameters(idist, idx);
+		}
+
+
+
+		// fall back to the 5 parameter model's auxiliary equations 
+		// to estimate the parameter values outside the convex hull
+
+		int idx_stc = -1;
+		for (size_t i = 0; i<data.nrows(); i++)
+			if (data(i, IRR) == 1000.0
+				&& data(i, TC) == 25.0)
+				idx_stc = (int)i;
+
+		//if (idx_stc < 0)
+		//	throw general_error("STC conditions required to be supplied in the temperature/irradiance data");
+
+
+
+		double value = parameters(idist, idx);;
+		if (idx == A)
+		{
+			double a_nearest = parameters(idist, A);
+			double T_nearest = data(idist, TC);
+			double a_est = a_nearest * T / T_nearest;
+			value = a_est;
+		}
+		else if (idx == IL)
+		{
+			double IL_nearest = parameters(idist, IL);
+			double I_nearest = data(idist, IRR);
+			double IL_est = IL_nearest * I / I_nearest;
+			value = IL_est;
+		}/*
+		 else if ( idx == IO )
+		 {
+		 #define Tc_ref 298.15
+		 #define Eg_ref 1.12
+		 #define KB 8.618e-5
+
+		 double IO_stc = par(idx_stc,IO);
+		 double TK = T+273.15;
+		 double EG = Eg_ref * (1-0.0002677*(TK-Tc_ref));
+		 double IO_oper =  IO_stc * pow(TK/Tc_ref, 3) * exp( 1/KB*(Eg_ref/Tc_ref - EG/TK) );
+		 value = IO_oper;
+		 }*/
+		else if (idx == RSH)
+		{
+			double RSH_nearest = parameters(idist, RSH);
+			double I_nearest = data(idist, IRR);
+			double RSH_est = RSH_nearest * I_nearest / I;
+			value = RSH_est;
+		}
+
+		//if (!quiet)
+		//	log(util::format("query point (%lg, %lg) is too far out of convex hull of data (dist=%lg)... estimating value from 5 parameter modele at (%lg, %lg)=%lg",
+		//	T, I, dist, data(idist, TC), data(idist, IRR), value), SSC_WARNING);
+
+		return value;
+	}
+}
+
 
 bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opvoltage, pvoutput_t &out )
 {
@@ -862,25 +1025,17 @@ bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opv
 		tpoa = poa = input.Ibeam + input.Idiff + input.Ignd;
 	}
 	
-	double Tc = input.Tdry + 273.15;
+	//calculate output power
 	if ( tpoa >= 1.0 )
 	{
-		Tc = TcellC + 273.15;
-		double q = 1.6e-19;
-		double k = 1.38e-23;
-		double aop = NcellSer*n*k*Tc/q;
-		double Ilop = tpoa/1000*(Il + alphaIsc*(Tc-298.15));
-		double Egop = (1-0.0002677*(Tc-298.15))*Egref;
-		double Ioop = Io*pow(Tc/298.15,3.0)*exp( 11600 * (Egref/298.15 - Egop/Tc));
-		double Rsop = D1 + D2*(Tc-298.15) + D3*( 1-tpoa/1000.0)*pow(1000.0/poa,2.0);
-		double Rshop = C1 + C2*( pow(1000.0/tpoa,C3)-1 );
-					
+		//get the interpolated single diode model parameters at the current temperature and irradiance operating conditions
+		double aop = interpolate(tpoa, TcellC, A);
+		double Ilop = interpolate(tpoa, TcellC, IL);
+		double Ioop = interpolate(tpoa, TcellC, IO);
+		double Rsop = interpolate(tpoa, TcellC, RS);
+		double Rshop = interpolate(tpoa, TcellC, RSH);
 
-		// at some very low irradiances, these parameters can blow up due to
-		// equations and keep the model from solving
-		//if ( Rsop > 1000 ) Rsop = 10000;
-		//if ( Rshop > 25000 ) Rshop = 25000;
-
+		//use the interpolated single diode model parameters in the single diode model to get module power
 		double V_oc = openvoltage_5par( Voc0, aop, Ilop, Ioop, Rshop );
 		double I_sc = Ilop/(1+Rsop/Rshop);
 		
@@ -895,19 +1050,20 @@ bool iec61853_module_t::operator() ( pvinput_t &input, double TcellC, double opv
 		{ // calculate power at specified operating voltage
 			V = opvoltage;
 			if (V >= V_oc) I = 0;
-			else I = current_5par( V, 0.9*Ilop, aop, Ilop, Ioop, Rsop, Rshop );
+			else I = current_5par( V, 0.9*Ilop, aop, Ilop, Ioop, Rsop, Rshop ); //where does this 0.9 come from??
 
 			if ( I < 0 ) { I=0; V=0; }
 			P = V*I;
 		}
-						
+		
+		//assign outputs
 		out.Power = P;
 		out.Voltage  = V;
 		out.Current = I;
 		out.Efficiency = P/(Area*poa);
 		out.Voc_oper = V_oc;
 		out.Isc_oper = I_sc;
-		out.CellTemp = Tc - 273.15;
+		out.CellTemp = TcellC;
 	}
 
 	return out.Power >= 0;

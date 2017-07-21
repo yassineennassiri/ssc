@@ -207,7 +207,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_nmody",                             "Sub-array 4 no. of modules along side for self-shading",  "",       "",                              "pvsamv1",              "subarray4_shade_mode>0", "INTEGER,POSITIVE",              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "subarray4_backtrack",                         "Sub-array 4 Backtracking enabled",                        "",       "0=no backtracking,1=backtrack", "pvsamv1",              "subarray4_track_mode=1",   "BOOLEAN",                       "" },
 
-	{ SSC_INPUT,        SSC_NUMBER,      "module_model",                                "Photovoltaic module model specifier",                     "",       "0=spe,1=cec,2=6par_user,3=snl,4=sd11-iec61853", "pvsamv1",              "*",                        "INTEGER,MIN=0,MAX=4",           "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "module_model",                                "Photovoltaic module model specifier",                     "",       "0=spe,1=cec,2=6par_user,3=snl,4=iec-iec61853", "pvsamv1",              "*",                        "INTEGER,MIN=0,MAX=4",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "module_aspect_ratio",                         "Module aspect ratio",                                     "",       "",                              "pvsamv1",              "?=1.7",                    "",                              "POSITIVE" },
 	{ SSC_INPUT,        SSC_NUMBER,      "spe_area",                                    "Module area",                                             "m2",     "",                              "pvsamv1",              "module_model=0",           "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "spe_rad0",                                    "Irradiance level 0",                                      "W/m2",   "",                              "pvsamv1",              "module_model=0",           "",                              "" },
@@ -318,33 +318,34 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "snl_vmpo",                                    "Max power point voltage",                                 "",       "",                      "pvsamv1",       "module_model=3",                    "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "snl_voco",                                    "Open circuit voltage",                                    "",       "",                      "pvsamv1",       "module_model=3",                    "",                              "" },
 
-	//{ SSC_INPUT,        SSC_NUMBER,      "sd11par_type",                                "Cell technology type",                                    "",       "monoSi=0,multiSi=1,CdTe=2,CIS=3,CIGS=4,Amorphous=5",                "pvsamv1",       "module_model=4",                           "INTEGER,MIN=0,MAX=5",       "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_nser",                                "Nseries",                                                 "",       "",                                                                  "pvsamv1",       "module_model=4",                           "INTEGER,POSITIVE",              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_area",                                "Module area",                                             "m2",     "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_AMa0",                                "Air mass modifier coeff 0",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_AMa1",                                "Air mass modifier coeff 1",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_AMa2",                                "Air mass modifier coeff 2",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_AMa3",                                "Air mass modifier coeff 3",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_AMa4",                                "Air mass modifier coeff 4",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_glass",                               "Cover glass type",                                        "",       "0=normal,1=AR glass",                                               "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_tnoct",                               "Nominal operating cell temperature",                      "C",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_standoff",                            "Standoff mode",                                           "",       "0=bipv,1=>3.5in,2=2.5-3.5in,3=1.5-2.5in,4=0.5-1.5in,6=<0.5in,5=ground/rack",  "pvsamv1",       "module_model=4",                 "INTEGER,MIN=0,MAX=6",           "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_mounting",                            "Array mounting height",                                   "",       "0=one story,1=two story",                                           "pvsamv1",       "module_model=4",                           "INTEGER,MIN=0,MAX=1",           "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Vmp0",                                "Vmp (STC)",                                               "V",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Imp0",                                "Imp (STC)",                                               "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Voc0",                                "Voc (STC)",                                               "V",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Isc0",                                "Isc (STC)",                                               "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_alphaIsc",                            "Open circuit voltage temperature coefficient",            "A/C",    "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_n",                                   "Diode nonideality factor",                                "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Il",                                  "Light current",                                           "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Io",                                  "Saturation current",                                      "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_Egref",                               "Bandgap voltage",                                         "eV",     "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_d1",                                  "Rs fit parameter 1",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_d2",                                  "Rs fit parameter 2",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_d3",                                  "Rs fit parameter 3",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_c1",                                  "Rsh fit parameter 1",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_c2",                                  "Rsh fit parameter 2",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "sd11par_c3",                                  "Rsh fit parameter 3",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_MATRIX,      "iec61853_data",                                "Table of IEC-61853 test data",                            "",       "[Irr,Tc,Pmp,Vmp,Voc,Isc]",                                          "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_nser",                                "Nseries",                                                 "",       "",                                                                  "pvsamv1",       "module_model=4",                           "INTEGER,POSITIVE",              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_type",                                "Cell technology type",                                    "0..5",   "monoSi,multiSi/polySi,cis,cigs,cdte,amorphous",                     "pvsamv1",       "module_model=4",                           "INTEGER,MIN=0,MAX=5",           "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_area",                                "Module area",                                             "m2",     "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_AMa0",                                "Air mass modifier coeff 0",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_AMa1",                                "Air mass modifier coeff 1",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_AMa2",                                "Air mass modifier coeff 2",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_AMa3",                                "Air mass modifier coeff 3",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_AMa4",                                "Air mass modifier coeff 4",                               "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_glass",                               "Cover glass type",                                        "",       "0=normal,1=AR glass",                                               "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_tnoct",                               "Nominal operating cell temperature",                      "C",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_standoff",                            "Standoff mode",                                           "",       "0=bipv,1=>3.5in,2=2.5-3.5in,3=1.5-2.5in,4=0.5-1.5in,6=<0.5in,5=ground/rack",  "pvsamv1",       "module_model=4",                 "INTEGER,MIN=0,MAX=6",           "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_mounting",                            "Array mounting height",                                   "",       "0=one story,1=two story",                                           "pvsamv1",       "module_model=4",                           "INTEGER,MIN=0,MAX=1",           "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Vmp0",                                "Vmp (STC)",                                               "V",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Imp0",                                "Imp (STC)",                                               "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Voc0",                                "Voc (STC)",                                               "V",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Isc0",                                "Isc (STC)",                                               "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_alphaIsc",                            "Open circuit voltage temperature coefficient",            "A/C",    "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_n",                                   "Diode nonideality factor",                                "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Il",                                  "Light current",                                           "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Io",                                  "Saturation current",                                      "A",      "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_Egref",                               "Bandgap voltage",                                         "eV",     "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_d1",                                  "Rs fit parameter 1",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_d2",                                  "Rs fit parameter 2",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_d3",                                  "Rs fit parameter 3",                                      "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_c1",                                  "Rsh fit parameter 1",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_c2",                                  "Rsh fit parameter 2",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
+	//{ SSC_INPUT,        SSC_NUMBER,      "iec61853_c3",                                  "Rsh fit parameter 3",                                     "",       "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
 	
 // inverter model
 	{ SSC_INPUT,        SSC_NUMBER,      "inverter_model",                              "Inverter model specifier",                                "",        "0=cec,1=datasheet,2=partload,3=coefficientgenerator",        "pvsamv1",               "*",                         "INTEGER,MIN=0,MAX=3",           "" },
@@ -1219,7 +1220,7 @@ public:
 		sandia_module_t snl;
 		sandia_celltemp_t snl_tc;
 
-		iec61853_module_t sd11; // 11 parameter single diode, uses noct_tc from above
+		iec61853_module_t iec; // iec-61853 module model, uses noct_tc from above
 
 		pvcelltemp_t *celltemp_model = 0;
 		pvmodule_t *module_model = 0;		
@@ -1231,7 +1232,7 @@ public:
 
 		double module_watts_stc = -1.0;
 
-		//"0=spe,1=cec,2=6par_user,3=snl,4=sd11-iec61853"
+		//"0=spe,1=cec,2=6par_user,3=snl,4=iec61853"
 		bool enable_mismatch_vmax_calc = as_boolean("enable_mismatch_vmax_calc");
 		if (enable_mismatch_vmax_calc 
 			&& mod_type != 1 && mod_type != 2 && mod_type != 4 )
@@ -1528,39 +1529,47 @@ public:
 		else if ( mod_type == 4 )
 		{
 			// IEC 61853 model
-			sd11.NcellSer = as_integer("sd11par_nser");
-			sd11.Area = as_double("sd11par_area");
-			sd11.AMA[0] = as_double("sd11par_AMa0");
-			sd11.AMA[1] = as_double("sd11par_AMa1");
-			sd11.AMA[2] = as_double("sd11par_AMa2");    
-			sd11.AMA[3] = as_double("sd11par_AMa3");    
-			sd11.AMA[4] = as_double("sd11par_AMa4");  
-			sd11.GlassAR = as_boolean("sd11par_glass");  
+			iec.data = as_matrix("iec61853_data");
+			iec.NcellSer = as_integer("iec61853_nser");
+			iec.type = as_integer("iec61853_type");
+			iec.Area = as_double("iec61853_area");
+			iec.AMA[0] = as_double("iec61853_AMa0");
+			iec.AMA[1] = as_double("iec61853_AMa1");
+			iec.AMA[2] = as_double("iec61853_AMa2");    
+			iec.AMA[3] = as_double("iec61853_AMa3");    
+			iec.AMA[4] = as_double("iec61853_AMa4");  
+			iec.GlassAR = as_boolean("iec61853_glass");  
 
-			setup_noct_model( "sd11par", noct_tc );
+			setup_noct_model( "iec61853", noct_tc );
 			
-			sd11.Vmp0 = as_double( "sd11par_Vmp0" ); 
-			sd11.Imp0 = as_double( "sd11par_Imp0" );
-			sd11.Voc0 = as_double( "sd11par_Voc0" );
-			sd11.Isc0 = as_double( "sd11par_Isc0" );
-			sd11.alphaIsc = as_double( "sd11par_alphaIsc" );
-			sd11.n = as_double("sd11par_n" );
-			sd11.Il = as_double("sd11par_Il");
-			sd11.Io = as_double("sd11par_Io");
-			sd11.Egref = as_double("sd11par_Egref");
-			sd11.D1 = as_double("sd11par_d1");
-			sd11.D2 = as_double("sd11par_d2");
-			sd11.D3 = as_double("sd11par_d3");
-			sd11.C1 = as_double("sd11par_c1");
-			sd11.C2 = as_double("sd11par_c2");
-			sd11.C3 = as_double("sd11par_c3");
+			iec.Vmp0 = as_double( "iec61853_Vmp0" ); 
+			iec.Imp0 = as_double( "iec61853_Imp0" );
+			iec.Voc0 = as_double( "iec61853_Voc0" );
+			iec.Isc0 = as_double( "iec61853_Isc0" );
+
+			//calculate the parameter space corresponding to the input irradiance/temperature matrix.
+			//this space only needs to be calculated once, not every timestep.
+			if (!iec.calculate(iec.data, iec.NcellSer, iec.type, iec.parameters, false)) //	modify this last parameter!!!!!!!!!!!!!!!!!!!!!!!!!!!!! this is for error messages.
+				throw exec_error("pvsamv1", "IEC-61853 module model failed to solve for parameters");
+
+			//iec.alphaIsc = as_double( "iec61853_alphaIsc" );
+			//iec.n = as_double("iec61853_n" );
+			//iec.Il = as_double("iec61853_Il");
+			//iec.Io = as_double("iec61853_Io");
+			//iec.Egref = as_double("iec61853_Egref");
+			//iec.D1 = as_double("iec61853_d1");
+			//iec.D2 = as_double("iec61853_d2");
+			//iec.D3 = as_double("iec61853_d3");
+			//iec.C1 = as_double("iec61853_c1");
+			//iec.C2 = as_double("iec61853_c2");
+			//iec.C3 = as_double("iec61853_c3");
 
 			celltemp_model = &noct_tc;
-			module_model = &sd11;
-			module_watts_stc = sd11.Vmp0 * sd11.Imp0;
-			ref_area_m2 = sd11.Area;			
-			self_shading_fill_factor = sd11.Vmp0 * sd11.Imp0 / sd11.Voc0 / sd11.Isc0;
-			ssVmp = sd11.Vmp0;
+			module_model = &iec;
+			module_watts_stc = iec.Vmp0 * iec.Imp0;
+			ref_area_m2 = iec.Area;			
+			self_shading_fill_factor = iec.Vmp0 * iec.Imp0 / iec.Voc0 / iec.Isc0;
+			ssVmp = iec.Vmp0;
 		}
 		else
 			throw exec_error("pvsamv1", "invalid pv module model type");
@@ -3466,9 +3475,9 @@ public:
 			break;
 		case 4: // IEC 61853
 			{
-				double area = as_double("sd11par_area");
-				double vmp = as_double("sd11par_Vmp0");
-				double imp = as_double("sd11par_Imp0");
+				double area = as_double("iec61853_area");
+				double vmp = as_double("iec61853_Vmp0");
+				double imp = as_double("iec61853_Imp0");
 				if (area == 0) area = 1;
 				eff = 100.0 * ((vmp*imp)/area)/1000.0;
 			}
