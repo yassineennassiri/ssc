@@ -318,7 +318,7 @@ static var_info _cm_vtab_pvsamv1[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "snl_vmpo",                                    "Max power point voltage",                                 "",       "",                      "pvsamv1",       "module_model=3",                    "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "snl_voco",                                    "Open circuit voltage",                                    "",       "",                      "pvsamv1",       "module_model=3",                    "",                              "" },
 
-	{ SSC_INPUT,        SSC_MATRIX,      "iec61853_data",                                "Table of IEC-61853 test data",                            "",       "[Irr,Tc,Pmp,Vmp,Voc,Isc]",                                          "pvsamv1",       "module_model=4",                           "",                              "" },
+	{ SSC_INPUT,        SSC_MATRIX,      "iec61853_test_data",                                "Table of IEC-61853 test data",                            "",       "[Irr,Tc,Pmp,Vmp,Voc,Isc]",                                          "pvsamv1",       "module_model=4",                           "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_nser",                                "Nseries",                                                 "",       "",                                                                  "pvsamv1",       "module_model=4",                           "INTEGER,POSITIVE",              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_type",                                "Cell technology type",                                    "0..5",   "monoSi,multiSi/polySi,cis,cigs,cdte,amorphous",                     "pvsamv1",       "module_model=4",                           "INTEGER,MIN=0,MAX=5",           "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "iec61853_area",                                "Module area",                                             "m2",     "",                                                                  "pvsamv1",       "module_model=4",                           "",                              "" },
@@ -1529,7 +1529,7 @@ public:
 		else if ( mod_type == 4 )
 		{
 			// IEC 61853 model
-			iec.data = as_matrix("iec61853_data");
+			iec.data = as_matrix("iec61853_test_data");
 			iec.NcellSer = as_integer("iec61853_nser");
 			iec.type = as_integer("iec61853_type");
 			iec.Area = as_double("iec61853_area");
