@@ -1600,6 +1600,12 @@ public:
 			//this space only needs to be calculated once, not every timestep.
 			if (!iec.calculate(iec.data, iec.NcellSer, iec.type, iec.parameters, false)) //	modify this last parameter!!!!!!!!!!!!!!!!!!!!!!!!!!!!! this is for error messages.
 				throw exec_error("pvsamv1", "IEC-61853 module model failed to solve for parameters");
+			//allocating a hidden output for debugging of the IEC-61853 model
+			ssc_number_t *iec_parameters = allocate("iec_parameters", iec.parameters.nrows(),iec.parameters.ncols());
+			size_t c = 0;
+			for (size_t i = 0; i<iec.parameters.nrows(); i++)
+				for (size_t j = 0; j<iec.parameters.ncols(); j++)
+					iec_parameters[c++] = iec.parameters(i, j);
 
 			//iec.alphaIsc = as_double( "iec61853_alphaIsc" );
 			//iec.n = as_double("iec61853_n" );
