@@ -967,78 +967,79 @@ double iec61853_module_t::interpolate(double I, double T, int idx)
 		q[1] = I;
 
 		// now interpolate and return the value
-		return gm.interp(q) * maxz;
+		double interpolated_value = gm.interp(q) * maxz;
+
+		// check that the GM method didn't fail and return a negative value
+		// this has been happening frequently for the Io parameter, likely because there is such a wide variety in magnitudes of the variable (different scaling methods do not seem to help)
+		// if the GM method did fail and return a negative value, we don't want to return that. We'll use the other case below.
+		if (interpolated_value >= 0)
+			return interpolated_value;
 	}
-	else
+
+	//the routine below only occurs if "interpolated_value" did NOT get returned above- either the desired point is outside the convex hull, or the interpolation returned a negative value
+	// if we're pretty close, return the nearest known value
+	if (dist < 30.)
 	{
-		// if we're pretty close, return the nearest known value
-		if (dist < 30.)
-		{
-
-			//if (!quiet)
-			//	log(util::format("query point (%lg, %lg) is outside convex hull of data but close... returning nearest value from data table at (%lg, %lg)=%lg",
-			//	T, I, data(idist, TC), data(idist, IRR), par(idist, idx)),SSC_WARNING);
-
-			return parameters(idist, idx);
-		}
-
-
-
-		// fall back to the 5 parameter model's auxiliary equations 
-		// to estimate the parameter values outside the convex hull
-
-		int idx_stc = -1;
-		for (size_t i = 0; i<data.nrows(); i++)
-			if (data(i, IRR) == 1000.0
-				&& data(i, TC) == 25.0)
-				idx_stc = (int)i;
-
-		//if (idx_stc < 0)
-		//	throw general_error("STC conditions required to be supplied in the temperature/irradiance data");
-
-
-
-		double value = parameters(idist, idx);;
-		if (idx == A)
-		{
-			double a_nearest = parameters(idist, A);
-			double T_nearest = data(idist, TC);
-			double a_est = a_nearest * T / T_nearest;
-			value = a_est;
-		}
-		else if (idx == IL)
-		{
-			double IL_nearest = parameters(idist, IL);
-			double I_nearest = data(idist, IRR);
-			double IL_est = IL_nearest * I / I_nearest;
-			value = IL_est;
-		}/*
-		 else if ( idx == IO )
-		 {
-		 #define Tc_ref 298.15
-		 #define Eg_ref 1.12
-		 #define KB 8.618e-5
-
-		 double IO_stc = par(idx_stc,IO);
-		 double TK = T+273.15;
-		 double EG = Eg_ref * (1-0.0002677*(TK-Tc_ref));
-		 double IO_oper =  IO_stc * pow(TK/Tc_ref, 3) * exp( 1/KB*(Eg_ref/Tc_ref - EG/TK) );
-		 value = IO_oper;
-		 }*/
-		else if (idx == RSH)
-		{
-			double RSH_nearest = parameters(idist, RSH);
-			double I_nearest = data(idist, IRR);
-			double RSH_est = RSH_nearest * I_nearest / I;
-			value = RSH_est;
-		}
 
 		//if (!quiet)
-		//	log(util::format("query point (%lg, %lg) is too far out of convex hull of data (dist=%lg)... estimating value from 5 parameter modele at (%lg, %lg)=%lg",
-		//	T, I, dist, data(idist, TC), data(idist, IRR), value), SSC_WARNING);
+		//	log(util::format("query point (%lg, %lg) is outside convex hull of data but close... returning nearest value from data table at (%lg, %lg)=%lg",
+		//	T, I, data(idist, TC), data(idist, IRR), par(idist, idx)),SSC_WARNING);
 
-		return value;
+		return parameters(idist, idx);
 	}
+
+	// fall back to the 5 parameter model's auxiliary equations 
+	// to estimate the parameter values outside the convex hull
+
+	int idx_stc = -1;
+	for (size_t i = 0; i<data.nrows(); i++)
+		if (data(i, IRR) == 1000.0
+			&& data(i, TC) == 25.0)
+			idx_stc = (int)i;
+
+	//if (idx_stc < 0)
+	//	throw general_error("STC conditions required to be supplied in the temperature/irradiance data");
+
+	double value = parameters(idist, idx);;
+	if (idx == A)
+	{
+		double a_nearest = parameters(idist, A);
+		double T_nearest = data(idist, TC);
+		double a_est = a_nearest * T / T_nearest;
+		value = a_est;
+	}
+	else if (idx == IL)
+	{
+		double IL_nearest = parameters(idist, IL);
+		double I_nearest = data(idist, IRR);
+		double IL_est = IL_nearest * I / I_nearest;
+		value = IL_est;
+	}/*
+		else if ( idx == IO )
+		{
+		#define Tc_ref 298.15
+		#define Eg_ref 1.12
+		#define KB 8.618e-5
+
+		double IO_stc = par(idx_stc,IO);
+		double TK = T+273.15;
+		double EG = Eg_ref * (1-0.0002677*(TK-Tc_ref));
+		double IO_oper =  IO_stc * pow(TK/Tc_ref, 3) * exp( 1/KB*(Eg_ref/Tc_ref - EG/TK) );
+		value = IO_oper;
+		}*/
+	else if (idx == RSH)
+	{
+		double RSH_nearest = parameters(idist, RSH);
+		double I_nearest = data(idist, IRR);
+		double RSH_est = RSH_nearest * I_nearest / I;
+		value = RSH_est;
+	}
+
+	//if (!quiet)
+	//	log(util::format("query point (%lg, %lg) is too far out of convex hull of data (dist=%lg)... estimating value from 5 parameter modele at (%lg, %lg)=%lg",
+	//	T, I, dist, data(idist, TC), data(idist, IRR), value), SSC_WARNING);
+
+	return value;
 }
 
 
