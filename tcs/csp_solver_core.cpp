@@ -5,6 +5,7 @@
 #include "csp_dispatch.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <sstream>
 

@@ -2,6 +2,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <algorithm>
+#include <cmath>
 #include "csp_dispatch.h"
 #include "csp_solver_core.h"
 #include "lp_lib.h" 

@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <limits>
 #include "lib_util.h"
 
 #pragma warning(disable: 4290)  // ignore warning: 'C++ exception specification ignored except to indicate a function is not __declspec(nothrow)'
