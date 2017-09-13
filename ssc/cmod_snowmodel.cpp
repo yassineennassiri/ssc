@@ -113,7 +113,7 @@ public:
 
 	void exec( ) throw( general_error )
 	{
-		int N = 0;
+		//int N = 0;
 		size_t num_steps;
 
 		// Define Input Arrays and variables
@@ -127,14 +127,14 @@ public:
 		ssc_number_t *sunup = as_array( "sunup", &num_steps );					// Sun up flag
 		int nmody = as_integer("subarray1_nmody");								// The number of modules in a row
 		int baseTilt = as_integer("subarray1_tilt");							// The tilt for static systems
-		int trackMode = as_integer("subarray1_track_mode");						// The systems tracking mode (0 -> static, 1 -> 1 axis tracking)
+		//int trackMode = as_integer("subarray1_track_mode");						// The systems tracking mode (0 -> static, 1 -> 1 axis tracking)
 
 		// Define output arrays and variables
 		ssc_number_t *hrEn_b4Snow = allocate( "hourly_energy_before_snow", num_steps);	// Hourly Energy with Snow Modeld
 
 		/* NOTE: All input arrays must have a length of 8760 */
 		pvsnowmodel snowModule;
-		if( !snowModule.setup(nmody, baseTilt) ){
+		if (!snowModule.setup(nmody, (float)baseTilt)){
 			if (snowModule.good) log(snowModule.msg, SSC_WARNING);
 			else{
 				log(snowModule.msg, SSC_ERROR);
@@ -145,7 +145,7 @@ public:
 		float loss; 
 
 		for (int i = 0; i < 8760; i++){
-			if (!snowModule.getLoss(poa[i], tilt[i], wSpd[i], tAmb[i], sDep[i], sunup[i], 1.0, &loss)){
+			if (!snowModule.getLoss(poa[i], tilt[i], wSpd[i], tAmb[i], sDep[i], (int)sunup[i], 1.0, &loss)){
 				if (snowModule.good) log(snowModule.msg, SSC_WARNING);
 				else{
 					log(snowModule.msg, SSC_ERROR);

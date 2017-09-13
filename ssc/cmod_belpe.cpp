@@ -173,7 +173,7 @@ public:
 	//averages an 8760 array ("hourly") into an array of 12 monthly averages ("monthly")
 	void monthly_averages( ssc_number_t *hourly, ssc_number_t *monthly )
 	{
-		int c = 0; //8760 counter
+//		int c = 0; //8760 counter
 		monthly_sums(hourly, monthly);
 		for (int i=0;i<12;i++) 
 			monthly[i] /= (util::nday[i]*24); //divide the monthly sum by the number of hours in the month for an hourly average		
@@ -189,7 +189,6 @@ public:
 		ssc_number_t en_belpe = as_boolean("en_belpe");
 		if (!en_belpe)
 		{
-			size_t count;
 			//these inputs are required if en_belpe = 0, so no additional checks are necessary here
 			if ( !is_assigned("load") )
 				throw general_error("variable 'load' is required but not assigned." );
@@ -509,9 +508,9 @@ public:
 		double A_Walls = sqrt(A_Floor / Stories) * 4 * (H_ceiling)*Stories - A_Wins;   //It's a cube
 		double Aenv = A_Walls + 2 * A_Floor; //This one includes floor
 		double V_bldg = A_Floor * H_ceiling * Stories; //Exclude the plenum from conditioned volume
-		double AIntWall = A_Floor / 2; //Interior partition walls - typical default
+//		double AIntWall = A_Floor / 2; //Interior partition walls - typical default
 		double AIntMass = 0.4*A_Floor; //Bldg AM default for internal mass
-		double AIntTot = A_Wins + Aenv + AIntWall + AIntMass;
+//		double AIntTot = A_Wins + Aenv + AIntWall + AIntMass;
 		double Cair = 0.075*0.245*V_bldg * 10; //BTU / degF  Note adjust factor of 10 --MJB
 
 		//INTERNAL LOADS	
@@ -997,7 +996,7 @@ public:
 			TSnew[i] = (Tsurf[i] + dT / Cenv*(SolEnvFrac*(Q_SolWin[i] / Aenv + QInt_Rad[i] / Aenv) + T_solairF[inext] / Renv + TAnew[i] / hsurf)) / bar;
 
 			//HVAC Loads completed
-			hvac_load[i] = fabs(QHV2[i]); //Wh
+			hvac_load[i] = (ssc_number_t)fabs(QHV2[i]); //Wh
 
 			//Total load for the hour
 			load[i] = hvac_load[i] + non_hvac_load[i]; //Wh
@@ -1100,9 +1099,9 @@ public:
 		for (int i = 0; i < 8760; i++)
 		{
 			if (monthly_hvac_load[month[i]] > 0)
-				load[i] = load[i] * (1 - NewScale[month[i]]) - x_hvac[month[i]] * hvac_load[i]; //new from Sara 11/21
+				load[i] = (ssc_number_t)(load[i] * (1 - NewScale[month[i]]) - x_hvac[month[i]] * hvac_load[i]); //new from Sara 11/21
 			else
-				load[i] = load[i] * (1 - monthly_scale[month[i]]);
+				load[i] = load[i] * (ssc_number_t)(1 - monthly_scale[month[i]]);
 
 			if (monthly_util[month[i]] == 0) //set all loads for the month to zero if the input month was zero
 				load[i] = 0;
@@ -1114,7 +1113,7 @@ public:
 				nneg++;
 			}
 
-			load[i] *= 0.001; // convert to kWh
+			load[i] *= (ssc_number_t)0.001; // convert to kWh
 		}
 		
 		if (nneg > 0)

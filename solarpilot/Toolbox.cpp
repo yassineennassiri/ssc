@@ -364,7 +364,7 @@ int DateTime::GetDayOfYear(){
 	return val;
 }
 
-int DateTime::GetDayOfYear(int year, int month, int mday){
+int DateTime::GetDayOfYear(int /*year*/, int month, int mday){
 	//Return the day of the year specified by the class day/month/year class members
 	//Day of the year runs from 1-365
 
@@ -1142,7 +1142,7 @@ void Toolbox::ellipse_bounding_box(double &A, double &B, double &phi, double sid
 	--> t = aan( B*cot(phi)/A )
 	
 	*/
-	double pi = PI;
+	//double pi = PI;
 
 	//X first
 	//double tx = atan( -B*tan(phi)/A );
@@ -1442,7 +1442,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
 
                 if( npt > 1 )  //any subsequent points are assumed to be 'l'
                 {
-                    for(size_t j=1; j<npt; j++)
+                    for(int j=1; j<npt; j++)
                     {
                         x0 += points.at(j).at(0);
                         y0 += points.at(j).at(1);
@@ -1460,7 +1460,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
 
                 if( npt > 1 )  //any subsequent points are assumed to be 'l'
                 {
-                    for(size_t j=1; j<npt; j++)
+                    for(int j=1; j<npt; j++)
                     {
                         x0 += points.at(j).at(0);
                         y0 += points.at(j).at(1);
@@ -1472,7 +1472,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'l':
 
                 //trace all points
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     x0 += points.at(j).at(0);
                     y0 += points.at(j).at(1);
@@ -1483,7 +1483,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'L':
 
                 //trace all points - absolute
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     x0 = points.at(j).at(0);
                     y0 = points.at(j).at(1);
@@ -1494,7 +1494,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'h':
 
                 //horizontal line relative
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     x0 += points.at(j).front();
                     polygon.push_back( sp_point(x0, -y0, 0.) );
@@ -1504,7 +1504,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'H':
                 
                 //horizontal line absolute
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     x0 = points.at(j).front();
                     polygon.push_back( sp_point(x0, -y0, 0.) );
@@ -1514,7 +1514,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'v':
 
                 //vertical line relative
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     y0 += points.at(j).front();
                     polygon.push_back( sp_point(x0, -y0, 0.) );
@@ -1524,7 +1524,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
             case 'V':
 
                 //vertical line absolute
-                for(size_t j=0; j<npt; j++)
+                for(int j=0; j<npt; j++)
                 {
                     y0 = points.at(j).front();
                     polygon.push_back( sp_point(x0, -y0, 0.) );
@@ -1544,7 +1544,7 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
 
                 int nbz = 5;    //number of internal bezier points
 
-                for(size_t j=0; j<npt; j+=2)  //jump through in pairs
+                for(int j=0; j<npt; j+=2)  //jump through in pairs
                 {
                     sp_point start(x0, y0, 0.);
 
@@ -1591,10 +1591,11 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
 
                 int nbz = 7;    //number of internal bezier points
 
-                for(size_t j=0; j<npt; j+=3)  //jump through in pairs
+                for(int j=0; j<npt; j+=3)  //jump through in pairs
                 {
-                    sp_point start = polygon.back();
-                    if( move == 'C' ) //if relative, set the relative adder to the start point location
+                    sp_point start(x0, y0, 0.);
+                    //sp_point start = polygon.back();
+                    if( move == 'c' ) //if relative, set the relative adder to the start point location
                     {
                         xcond = start.x;
                         ycond = start.y;
@@ -1609,16 +1610,17 @@ void Toolbox::poly_from_svg(std::string &svg, std::vector< sp_point > &polygon, 
                         double t = (k+1)/(double)(nbz+2);
                         sp_point result;
                         Toolbox::BezierC(start, control1, control2, end, t, result);
-
+                        result.y = -result.y;
                         polygon.push_back( result );
                     }
-
-                    //add the end point
-                    polygon.push_back( end );
 
                     //update cursor position
                     x0 = end.x;
                     y0 = end.y;
+
+                    //add the end point
+                    end.y = -end.y;
+                    polygon.push_back( end );
                 }
                 break;
             }
@@ -1690,7 +1692,7 @@ double Toolbox::ZRotationTransform(Vect &normal_vect){
 
 
 	*/
-	double Pi = PI;
+	//double Pi = PI;
 	double az = atan3(normal_vect.i,normal_vect.j);
 	double el = asin(normal_vect.k);
 
@@ -1776,8 +1778,8 @@ double Toolbox::intersect_ellipse_rect(double rect[4], double ellipse[2]){
 
 	//Unpack
 	double
-		a = rect[0] - rect[2]/2.,	//Lower left corner X location
-		b = rect[1] - rect[3]/2.,	//Lower left corner Y location
+		//a = rect[0] - rect[2]/2.,	//Lower left corner X location
+		//b = rect[1] - rect[3]/2.,	//Lower left corner Y location
 		c = rect[2],	//Rect width
 		d = rect[3];	//Rect height
 	double

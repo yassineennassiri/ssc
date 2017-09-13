@@ -568,7 +568,7 @@ public:
 
 	virtual int init()
 	{
-		double dt = time_step();
+		//double dt = time_step();
 						
 		// Declare instance of fluid class for FIELD fluid.
 		// Set fluid number and copy over fluid matrix if it makes sense.
@@ -809,7 +809,7 @@ public:
 		hx_err_flag = false;
 		*/
 
-		pb_tech_type = value(P_PB_TECH_TYPE);
+		pb_tech_type = (int)value(P_PB_TECH_TYPE);
 
 		if( pb_tech_type != 424 )
 		{
@@ -944,7 +944,7 @@ public:
 
 		double I_bn			= value(I_I_bn);				// [W/m2]
 		double m_dot_field	= value(I_m_dot_field)/3600.;	// [kg/s] convert from [kg/hr]
-		double m_dot_htf_ref= value(I_m_dot_htf_ref)/3600.;	// [kg/s] convert from [kg/hr]
+		//double m_dot_htf_ref= value(I_m_dot_htf_ref)/3600.;	// [kg/s] convert from [kg/hr]
 		double T_field_out	= value(I_T_field_out)+273.15;	// [K] convert from [C]
 		double T_pb_out		= value(I_T_pb_out)+273.15;		// [K] convert from [C]
 		double T_amb		= value(I_T_amb)+273.15;		// [K] convert from [C]
@@ -1063,7 +1063,7 @@ public:
 				{				
 					double dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8;
 					dummy1 = dummy2 = dummy3 = dummy4 = dummy5 = dummy6 = dummy7 = dummy8 = -999.9;
-					thermocline.Solve_TC( T_field_out - 273.15, 0.0, T_pb_out - 273.15, 0.0, T_amb - 273.15, 2.0, 0.0, 0.0, f_storage, step/3600.0,
+					thermocline.Solve_TC( T_field_out - 273.15, 0.0, T_pb_out - 273.15, 0.0, T_amb - 273.15, 2, 0.0, 0.0, f_storage, step/3600.0,
 						                     m_tank_disch_avail, Ts_hot, m_tank_charge_avail, Ts_cold, dummy1, dummy2, dummy3, dummy4, dummy5, dummy6, dummy7, dummy8 );
 					
 					m_tank_disch_avail /= 3600.0;		//[kg/s] Estimated discharge mass flow rate
@@ -1122,7 +1122,7 @@ public:
 				ms_charge_avail = 0.0;
                 rho_tank_hot_avg = 0.;
                 V_tank_hot_avg = 0.;
-                V_tank_hot_avail - 0.;
+                V_tank_hot_avail = 0.;
                 m_tank_disch_avail = 0.;
                 rho_tank_cold_avg = 0.;
                 V_tank_cold_avg = 0.;

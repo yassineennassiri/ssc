@@ -226,7 +226,7 @@ public:
 		double Pd_max,
 		double t_min,
 		int mode,
-		bool pv_dispatch,
+		int pv_dispatch,
 		util::matrix_t<float> dm_dynamic_sched,
 		util::matrix_t<float> dm_dynamic_sched_weekend,
 		bool * dm_charge,
@@ -304,7 +304,7 @@ public:
 		double Pd_max,
 		double t_min,
 		int mode,
-		bool pv_dispatch,
+		int pv_dispatch,
 		util::matrix_t<float> dm_dynamic_sched,
 		util::matrix_t<float> dm_dynamic_sched_weekend,
 		bool * dm_charge,
@@ -375,7 +375,7 @@ public:
 		double Pd_max,
 		double t_min,
 		int mode,   // 0/1/2
-		bool pv_dispatch,
+		int pv_dispatch,
 		util::matrix_t<float> dm_dynamic_sched,
 		util::matrix_t<float> dm_dynamic_sched_weekend,
 		bool * dm_charge,
@@ -439,12 +439,13 @@ public:
 	battery_metrics_t(battery_t * Battery, double dt_hour);
 	~battery_metrics_t(){};
 
-	void compute_metrics_ac(double P_tofrom_batt, double P_pv_to_batt, double P_grid_to_batt, double P_tofrom_grid);
+	void compute_metrics_ac(double P_tofrom_batt, double P_system_loss, double P_pv_to_batt, double P_grid_to_batt, double P_tofrom_grid);
 	void compute_metrics_dc(dispatch_t * dispatch);
 	void compute_annual_loss();
 
 	void accumulate_energy_charge(double P_tofrom_batt);
 	void accumulate_energy_discharge(double P_tofrom_batt);
+	void accumulate_energy_system_loss(double P_system_loss);
 	void accumulate_battery_charge_components(double P_tofrom_batt, double P_pv_to_batt, double P_grid_to_batt);
 	void accumulate_grid_annual(double P_tofrom_grid);
 	void new_year();
@@ -457,8 +458,10 @@ public:
 	double energy_discharge_annual();
 	double energy_grid_import_annual();
 	double energy_grid_export_annual();
+	double energy_system_loss_annual();
 	double energy_loss_annual();
-	double average_efficiency();
+	double average_battery_conversion_efficiency();
+	double average_battery_roundtrip_efficiency();
 	double pv_charge_percent();
 
 protected:
@@ -468,12 +471,21 @@ protected:
 	double _e_discharge_accumulated; // [Kwh]
 	double _e_charge_from_pv;		 // [Kwh]
 	double _e_charge_from_grid;		 // [Kwh]
+	double _e_loss_system;			 // [Kwh]
+
+	// This efficiency includes the battery internal efficiency and conversion efficiencies
 	double _average_efficiency;		 // [%]
+
+	// This efficiency includes auxilliary system losses
+	double _average_roundtrip_efficiency; // [%]
+
+	// This is the percentage of energy charge from the PV system
 	double _pv_charge_percent;		 // [%]
 
 	// annual metrics
 	double _e_charge_from_pv_annual;   // [Kwh]
 	double _e_charge_from_grid_annual; // [Kwh]
+	double _e_loss_system_annual;	   // [Kwh]
 	double _e_charge_annual;		   // [Kwh]
 	double _e_discharge_annual;		   // [Kwh]
 	double _e_grid_import_annual;	   // [Kwh]

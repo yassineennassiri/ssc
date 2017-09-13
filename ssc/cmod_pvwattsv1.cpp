@@ -235,7 +235,7 @@ public:
 		double gcr = 0.3;
 		if ( is_assigned("gcr") ) gcr = as_double("gcr");
 
-		double use_ar_glass = false;
+		bool use_ar_glass = false;
 		if ( is_assigned("ar_glass") ) use_ar_glass = as_boolean("ar_glass");
 
 		// check system size
@@ -311,7 +311,7 @@ public:
 				gcr );
 			
 			double ibeam, iskydiff, ignddiff;
-			double solazi, solzen, solalt, aoi, stilt, sazi, rot, btd;
+			double solazi=0, solzen=0, solalt=0, aoi, stilt, sazi, rot, btd;
 			int sunup;		
 
 			p_gh[i] = (ssc_number_t)wf.gh;

@@ -224,7 +224,7 @@ public:
 	{
 		// Weather reader
 		C_csp_weatherreader weather_reader;
-		weather_reader.m_filename = as_string("file_name");
+		weather_reader.m_weather_data_provider = std::make_shared<weatherfile>(as_string("file_name"));
 		weather_reader.m_trackmode = 0;
 		weather_reader.m_tilt = 0.0;
 		weather_reader.m_azimuth = 0.0;
@@ -239,10 +239,10 @@ public:
 
 		int steps_per_hour = 1;			//[-]
 
-		int n_wf_records = weather_reader.get_n_records();
+		int n_wf_records = (int)weather_reader.m_weather_data_provider->nrecords();
 		steps_per_hour = n_wf_records / 8760;	//[-]
 
-		int n_steps_fixed = steps_per_hour*8760.0;	//[-]
+		int n_steps_fixed = steps_per_hour*8760;	//[-]
 		sim_setup.m_report_step = 3600.0 / (double)steps_per_hour;	//[s]
 		//***************************************************************************
 		//***************************************************************************
@@ -356,14 +356,14 @@ public:
 		c_lf_dsg.m_Tau_envelope = as_matrix("Tau_envelope"); //[-] Envelope transmittance
 		
 		util::matrix_t<double> glazing_intact_double = as_matrix("GlazingIntactIn"); //[-] Is the glazing intact?
-		int n_gl_row = glazing_intact_double.nrows();
-		int n_gl_col = glazing_intact_double.ncols();
+		int n_gl_row = (int)glazing_intact_double.nrows();
+		int n_gl_col = (int)glazing_intact_double.ncols();
 		c_lf_dsg.m_GlazingIntactIn.resize(n_gl_row, n_gl_col);
 		for(int i = 0; i < n_gl_row; i++)
 		{
 			for(int j = 0; j < n_gl_col; j++)
 			{
-				c_lf_dsg.m_GlazingIntactIn(i,j) = (bool)glazing_intact_double(i,j);
+				c_lf_dsg.m_GlazingIntactIn(i,j) = (glazing_intact_double(i,j) > 0);
 			}
 		}
 		
@@ -451,7 +451,7 @@ public:
 		// ********************************
 		// ********************************
 		C_csp_two_tank_tes storage;
-		C_csp_two_tank_tes::S_params *tes = &storage.ms_params;		
+		//C_csp_two_tank_tes::S_params *tes = &storage.ms_params;		
 
 		// Instantiate Solver
 		C_csp_solver csp_solver(weather_reader, 
@@ -550,10 +550,10 @@ public:
 		ssc_number_t *p_W_dot_parasitic_tot = as_array("W_dot_parasitic_tot", &count);
 		for( int i = 0; i < n_steps_fixed; i++ )
 		{
-			size_t hour = ceil(p_time_final_hr[i]);
-			p_gen[i] = p_q_dot_heat_sink[i] * (ssc_number_t)haf(hour) * 1.E3;		//[kWt]
+			size_t hour = (size_t)ceil(p_time_final_hr[i]);
+			p_gen[i] = p_q_dot_heat_sink[i] * (ssc_number_t)(haf(hour) * 1.E3);		//[kWt]
 			p_W_dot_parasitic_tot[i] *= -1.0;			//[kWe] Label is total parasitics, so change to a positive value
-			p_W_dot_par_tot_haf[i] = p_W_dot_parasitic_tot[i] * (ssc_number_t)haf(hour) * 1.E3;		//[kWe]
+			p_W_dot_par_tot_haf[i] = (ssc_number_t)(p_W_dot_parasitic_tot[i] * haf(hour) * 1.E3);		//[kWe]
 		}
 
 
@@ -568,7 +568,8 @@ public:
 		// Calculate water use
 		double A_aper_tot = csp_solver.get_cr_aperture_area();	//[m2]
 		double V_water_mirrors = as_double("csp.lf.sf.water_per_wash") / 1000.0*A_aper_tot*as_double("csp.lf.sf.washes_per_year");
-		assign("annual_total_water_use", V_water_mirrors);		//[m3]
+		assign("annual_total_water_use", (ssc_number_t)V_water_mirrors);		//[m3]
+
 	}
 
 };

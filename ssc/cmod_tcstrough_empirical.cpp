@@ -549,7 +549,7 @@ public:
 
 		// Run simulation
 		size_t hours = 8760;
-		if (0 > simulate(3600, hours*3600, 3600) )
+		if (0 > simulate(3600.0, hours*3600.0, 3600.0) )
 			throw exec_error( "tcstrough_empirical", util::format("there was a problem simulating in tcstrough_empirical.") );
 
 		// get the outputs
@@ -596,7 +596,7 @@ public:
 		if (nameplate > 0) kWhperkW = annual_energy / nameplate;
 		assign("capacity_factor", var_data((ssc_number_t)(kWhperkW / 87.6)));
 		assign("kwh_per_kw", var_data((ssc_number_t)kWhperkW));
-		assign("system_heat_rate", 3.413); // samsim tcstrough_physical
+		assign("system_heat_rate", (ssc_number_t)3.413); // samsim tcstrough_physical
 		accumulate_annual("Qgas", "annual_fuel_usage", 1000.0); //  MWht to kWht
 
 	}

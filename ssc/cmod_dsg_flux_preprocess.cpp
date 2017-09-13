@@ -129,7 +129,7 @@ public:
 
 		// HP turbine actual outlet conditions
 		water_PH(P_HP_out, h_HP_out_des, &wp);
-		double T_rh_in_des = wp.temp;			//[K] Design reheat inlet temperature
+//		double T_rh_in_des = wp.temp;			//[K] Design reheat inlet temperature
 
 		// Reheater outlet (LP turbine inlet)
 		water_TP(T_rh_out_ref, P_HP_out, &wp);
@@ -204,10 +204,10 @@ public:
 		double max_flux = Q_rec_inc / A_min;			//[kW/m^2] Maximum flux for entire receiver
 
 		// Return outputs
-		assign("max_flux", max_flux);
-		assign("f_b", f_b);
-		assign("f_sh", f_sh);
-		assign("f_rh", f_rh);
+		assign("max_flux", (ssc_number_t)max_flux);
+		assign("f_b", (ssc_number_t)f_b);
+		assign("f_sh", (ssc_number_t)f_sh);
+		assign("f_rh", (ssc_number_t)f_rh);
 	}
 
 

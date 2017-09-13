@@ -135,7 +135,7 @@ public:
 		weather_header hdr;
 		wfile.header( &hdr );
 
-		int records = wfile.nrecords();
+		size_t records = wfile.nrecords();
 		
 		for (int i = 3; i < 100; i++){
 
@@ -199,7 +199,7 @@ public:
 
 		weather_record wf;
 
-		for (int i=0;i<records;i++)
+		for (int i=0;i<(int)records;i++)
 		{
 			if (!wfile.read( &wf ))
 				throw exec_error("wfreader", "could not read data line " + util::to_string(i+1) + " of 8760");
@@ -238,12 +238,12 @@ public:
 			snow_max = snow_max = std::numeric_limits<double>::quiet_NaN();
 
 
-		assign( "annual_global", var_data( 0.001 * gh_sum / 365 ));
-		assign( "annual_beam", var_data( 0.001 * dn_sum / 365 ));
-		assign( "annual_diffuse", var_data( 0.001 * df_sum / 365 ));
-		assign( "annual_tdry", var_data( temp_sum / records ));
-		assign("annual_wspd", var_data(wind_sum / records));
-		assign("annual_snow", var_data(snow_max));
+		assign("annual_global", var_data((ssc_number_t)(0.001 * gh_sum / 365)));
+		assign("annual_beam", var_data((ssc_number_t) (0.001 * dn_sum / 365)));
+		assign("annual_diffuse", var_data((ssc_number_t)(0.001 * df_sum / 365)));
+		assign("annual_tdry", var_data((ssc_number_t)(temp_sum / records)));
+		assign("annual_wspd", var_data((ssc_number_t)(wind_sum / records)));
+		assign("annual_snow", var_data((ssc_number_t)snow_max));
 	}
 };
 

@@ -359,6 +359,7 @@ public:
 	int m_fthrctrl;			//[-] Defocusing strategy
 	double m_ColTilt;		//[deg] Collector tilt angle (0 is horizontal, 90deg is vertical)
 	double m_ColAz;			//[deg] Collector azimuth angle
+	double m_wind_stow_speed;//[m/s] Wind speed at and above which the collectors will be stowed
 
 	int m_accept_mode;		//[-] Acceptance testing mode? (1=yes, 0=no)
 	bool m_accept_init;		//[-] In acceptance testing mode - require steady-state startup
@@ -407,7 +408,6 @@ public:
 	m_Tau_envelope, 		 //[-] Envelope transmittance
 	m_EPSILON_4, 			 //[-] Inner glass envelope emissivities
 	m_EPSILON_5,			 //[-] Outer glass envelope emissivities
-	m_GlazingIntact,         //[-] Glazing intact (broken glass) flag {1=true, else=false}
 	m_P_a, 					 //[torr] Annulus gas pressure				 
 	m_AnnulusGas, 			 //[-] Annulus gas type (1=air, 26=Ar, 27=H2)
 	m_AbsorberMaterial, 	 //[-] Absorber material type
@@ -418,6 +418,8 @@ public:
 
 	util::matrix_t<double> m_IAM_matrix;		//[-] IAM coefficients, matrix for 4 collectors
 	
+	util::matrix_t<bool> m_GlazingIntact;		//[-] Glazing intact (broken glass) flag {1=true, else=false}
+
 	// **************************************************************************
 	// **************************************************************************
 	// **************************************************************************
@@ -520,6 +522,8 @@ public:
 		const C_csp_solver_sim_info &sim_info);
 
 	void loop_optical_eta_off();
+
+	void loop_optical_wind_stow();
 
 	void update_last_temps();
 

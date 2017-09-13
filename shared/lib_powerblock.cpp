@@ -550,7 +550,7 @@ double CPowerBlock_Type224::f_Tsat_p(double P)
 
 //************************************************************************************************************
 //************************************************************************************************************
-double CPowerBlock_Type224::specheat(int fnum, double T, double P)
+double CPowerBlock_Type224::specheat(int fnum, double T, double )
 {
 	//use global_props
 	// This function accepts as inputs temperature [K] and pressure [Pa]
@@ -614,7 +614,7 @@ double CPowerBlock_Type224::specheat(int fnum, double T, double P)
 //************************************************************************************************************
 //************************************************************************************************************
 void CPowerBlock_Type224::RankineCycle(/*double time,*/double P_ref, double eta_ref, double T_htf_hot_ref, double T_htf_cold_ref, double T_db, double T_wb, 
-				  double P_amb, double dT_cw_ref, /*double HTF,*/ double c_p_w, double T_htf_hot, double m_dot_htf, int /*double*/ mode, 
+				  double P_amb, double dT_cw_ref, /*double HTF,*/ double , double T_htf_hot, double m_dot_htf, int /*double*/ mode, 
 				  double demand_var, double P_boil, /*double tech_type,*/ double T_amb_des, double T_approach, double F_wc, double F_wcmin, 
 				  double F_wcmax, double T_ITD_des, double P_cond_ratio, /*double CT,*/ double P_cond_min, /*double n_pl_inc,*/
 				  /*double& fcall, */ double& P_cycle, double& eta, double& T_htf_cold, double& m_dot_demand, double& m_dot_htf_ref, 
@@ -1201,14 +1201,14 @@ endif
 
 	//Use brute force interpolation.. it is faster in this case than bisection or hunting methods used in the user-specified HTF case
 	
-	int iLastIndex = m_db.ncols()-1;
+	size_t iLastIndex = m_db.ncols()-1;
 	for (size_t i=0; i < m_db.ncols(); i++)
 	{
 		// if we got to the last one, then set bounds and end loop
 		if(i == iLastIndex)
 		{
-			lbi = iLastIndex;
-			ubi = iLastIndex;
+			lbi = (int)iLastIndex;
+			ubi = (int)iLastIndex;
 			break;
 		}
 
@@ -1222,7 +1222,7 @@ endif
 				}
 				if(X >= m_db.at(XI,iLastIndex))
 				{
-					lbi=iLastIndex; ubi=iLastIndex; break;
+					lbi = (int)iLastIndex; ubi = (int)iLastIndex; break;
 				}
 			}
 			else
@@ -1233,7 +1233,7 @@ endif
 				}
 				if(X <= m_db.at(XI,iLastIndex))
 				{
-					lbi=iLastIndex; ubi=iLastIndex; break;
+					lbi = (int)iLastIndex; ubi = (int)iLastIndex; break;
 				}
 			}
 		}
@@ -1242,8 +1242,8 @@ endif
 		// so the reference [i+1], where i = iLastIndex, will never happen
 		if( ( (X >= m_db.at(XI,i)) && (X < m_db.at(XI,i+1)) ) || ( (X <= m_db.at(XI,i)) && (X > m_db.at(XI,i+1)) ) )
 		{
-			lbi = i;
-			ubi = i+1;
+			lbi = (int)i;
+			ubi = (int)i + 1;
 			break;
 		}
 	}
@@ -1412,7 +1412,7 @@ void CPowerBlock_Type224::evap_tower(double P_cond_min, int n_pl_inc, double Del
 //************************************************************************************************************
 //************************************************************************************************************
 void CPowerBlock_Type224::ACC(double P_cond_min, int n_pl_inc, double T_ITD_des, double P_cond_ratio, double P_cycle, double eta_ref, 
-		 double T_db, double P_amb, double q_reject, double& m_dot_air, double& W_dot_fan, double& P_cond, double& T_cond, 
+		 double T_db, double , double q_reject, double& m_dot_air, double& W_dot_fan, double& P_cond, double& T_cond, 
 		 double f_hrsys)
 {
 	//use cooling property functions
@@ -1599,7 +1599,7 @@ void CPowerBlock_Type224::HybridHR(/*double fcall,*/ double P_cond_min, int n_pl
 	// Only call the parameter equations at the beginning of the simulation. Once they're established, they don't need to be reset each time.
 	//if(fcall == 1.0)
 	//if(m_bFirstCall)
-	if(true)
+//	if(true)
 	{
 		// Values that can be estimated--------
 		//-dry

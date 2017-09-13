@@ -190,6 +190,8 @@ double N_sco2_rec::C_rec_des_props::haynes230_enum_creep_temps(int enum_T_F)
 		return 1700.0;
 	case T_1800F:
 		return 1800.0;
+	default:
+		return 0;
 	}
 }
 
@@ -261,6 +263,8 @@ double N_sco2_rec::C_rec_des_props::haynes230_enum_cycle_temps(int enum_T_C)
 		return 871.0;
 	case T_982C:
 		return 982.0;
+	default:
+		return 0;
 	}
 }
 
@@ -608,7 +612,7 @@ bool N_sco2_rec::C_calc_tube_min_th::calc_min_thick_general()
 	m_h_conv_ave.resize(m_n_tube_elements);	
 
 	// Calculate total absorbed flux
-	double A_surf_per_node = m_d_out*CSP::pi*m_L_node;			//[m^2] Total tube surface area
+	//double A_surf_per_node = m_d_out*CSP::pi*m_L_node;			//[m^2] Total tube surface area
 	double q_abs_total = 0.0;
 	for( int i = 0; i < m_n_tube_elements; i++ )
 	{

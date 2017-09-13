@@ -49,12 +49,11 @@
 
 #include <sstream>
 #include <fstream>
+#include <cstring>
 
 #include "core.h"
-#include "tcskernel.h"
 
 const var_info var_info_invalid = {	0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-tcstypeprovider sg_tcsTypeProvider;
 
 compute_module::compute_module( )
 	:  m_infomap(NULL), m_handler(NULL), m_vartab(NULL)
@@ -188,7 +187,7 @@ void compute_module::clear_log()
 	m_loglist.clear();
 }
 
-bool compute_module::extproc( const std::string &command, const std::string &workdir )
+bool compute_module::extproc( const std::string &, const std::string & )
 {
 /*
 	if (m_handler) return m_handler->on_exec( command, workdir);
@@ -298,7 +297,9 @@ util::matrix_t<ssc_number_t>& compute_module::allocate_matrix( const std::string
 var_data &compute_module::value( const std::string &name ) throw( general_error )
 {
 	var_data *v = lookup( name );
-	if (!v)	throw general_error("ssc variable does not exist: '" + name + "'");
+	if (!v){
+		throw general_error("ssc variable does not exist: '" + name + "'");
+	}
 	return (*v);
 }
 
@@ -536,7 +537,7 @@ bool compute_module::check_required( const std::string &name ) throw( general_er
 					else if (lhs == "abt") // check if variable in 'rhs' is assigned, boolean type, and value true
 					{
 						var_data *v;
-						if ( (v = lookup(rhs)) && v->type == SSC_NUMBER &&  ((int)v->num) != 0)
+						if ( ((v = lookup(rhs) ) != 0) && v->type == SSC_NUMBER &&  ((int)v->num) != 0)
 							return 1;
 						else
 							return 0;
@@ -544,7 +545,7 @@ bool compute_module::check_required( const std::string &name ) throw( general_er
 					else if (lhs == "abf") // check if variable in 'rhs' is assigned, boolean type, and value false
 					{
 						var_data *v;
-						if ( (v = lookup(rhs)) && v->type == SSC_NUMBER &&  ((int)v->num) == 0)
+						if ( ((v = lookup(rhs)) !=0) && v->type == SSC_NUMBER &&  ((int)v->num) == 0)
 							return 1;
 						else
 							return 0;
@@ -876,7 +877,7 @@ ssc_number_t *compute_module::accumulate_monthly(const std::string &ts_var, cons
 				for( size_t j=0;j<step_per_hour;j++ )
 					monthly[m] += ts[c++];
 
-		monthly[m] *= scale;
+		monthly[m] *= (ssc_number_t)scale;
 	}
 
 	return monthly;
@@ -905,7 +906,7 @@ ssc_number_t *compute_module::accumulate_monthly_for_year(const std::string &ts_
 				for (size_t j = 0; j<step_per_hour; j++)
 					monthly[m] += ts[c++];
 
-		monthly[m] *= scale;
+		monthly[m] *= (ssc_number_t)scale;
 	}
 
 	return monthly;

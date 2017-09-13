@@ -132,7 +132,7 @@ void C_block_schedule::check_arrays_for_tous(int n_arrays)
 	for( int k = 0; k < n_arrays; k++ )
 	{
 		
-		if( i_tou_max + 1 > mvv_tou_arrays[k].size() )
+		if( i_tou_max + 1 > (int)mvv_tou_arrays[k].size() )
 		{
 			m_error_msg = util::format("TOU schedule contains TOU period = %d, while the %s array contains %d elements", (int)i_temp_max, mv_labels[k].c_str(), mvv_tou_arrays[k].size());
 			throw(C_csp_exception(m_error_msg, "TOU block schedule initialization"));
@@ -252,13 +252,13 @@ void C_csp_tou_block_schedules::call(double time_s, C_csp_tou::S_csp_tou_outputs
 
 	size_t csp_op_tou = (size_t)ms_params.mc_csp_ops.m_hr_tou[i_hour];
 
-	tou_outputs.m_csp_op_tou = csp_op_tou;
+	tou_outputs.m_csp_op_tou = (int)csp_op_tou;
 	
 	tou_outputs.m_f_turbine = ms_params.mc_csp_ops.mvv_tou_arrays[C_block_schedule_csp_ops::TURB_FRAC][csp_op_tou-1];
 	
 	if (ms_params.mc_pricing.mv_is_diurnal)
 	{
-		size_t pricing_tou = (size_t)ms_params.mc_pricing.m_hr_tou[i_hour];
+		int pricing_tou = (int)ms_params.mc_pricing.m_hr_tou[i_hour];
 		tou_outputs.m_pricing_tou = pricing_tou;
 		tou_outputs.m_price_mult = ms_params.mc_pricing.mvv_tou_arrays[C_block_schedule_pricing::MULT_PRICE][pricing_tou - 1];
 	}
@@ -274,7 +274,7 @@ void C_csp_tou_block_schedules::call(double time_s, C_csp_tou::S_csp_tou_outputs
 		size_t nrecs_per_hour = nrecs / 8760;
 		int ndx = (int)((ceil(time_s / 3600.0 - 1.e-6) - 1) * nrecs_per_hour);
 
-		if (ndx > nrecs - 1 + (mc_dispatch_params.m_isleapyear ? 24 : 0) || ndx<0)
+		if (ndx > (int)nrecs - 1 + (mc_dispatch_params.m_isleapyear ? 24 : 0) || ndx<0)
 		{
 			m_error_msg = util::format("The index input to the TOU schedule must be from 1 to %d. The input timestep index was %d.", (int)nrecs, ndx + 1);
 			throw(C_csp_exception(m_error_msg, "TOU timestep call"));

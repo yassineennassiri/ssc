@@ -190,10 +190,11 @@ public:
 
             bool get_point(int index, double &x, double &eta)
             {
-                if( index > table.size()-1 || index < 0 ) return false;
+                if( index > (int)table.size()-1 || index < 0 ) return false;
 
                 x = table.at(index).x;
                 eta = table.at(index).eta;
+				return true;
             }
 
             double get_point_eff(int index)

@@ -288,7 +288,7 @@ public:
 	virtual int init()
 	{
 
-		double tstep = time_step();
+		//double tstep = time_step();
 
 		m_P_ref			= value( P_P_REF )*1.E3;				//[kW] Reference output electric power at design condition
 		m_eta_ref		= value( P_ETA_REF );					//[-] Reference conversion efficiency at design condition		
@@ -298,7 +298,7 @@ public:
 		m_T_amb_des		= value( P_T_AMB_DES );					//[C] Reference ambient temperature at design point
 		m_q_sby_frac	= value( P_Q_SBY_FRAC );				//[-] Fraction of thermal power required for standby mode
 		m_P_boil_des	= value( P_P_BOIL_DES );				//[bar] Boiler operating pressure at design
-		m_is_rh			= (bool) value( P_IS_RH );				//[-] Flag indicating whether reheat is used 0:no, 1:yes
+		m_is_rh			= (bool) (value( P_IS_RH ) != 0);				//[-] Flag indicating whether reheat is used 0:no, 1:yes
 		m_P_rh_ref		= value( P_P_RH_REF );					//[bar] Reheater operating pressure at design
 		m_T_rh_hot_ref	= value( P_T_RH_HOT_REF );				//[C] Reheater design outlet temperature
 		m_rh_frac_ref	= value( P_RH_FRAC_REF );				//[-] Reheater flow fraction at design
@@ -536,7 +536,7 @@ public:
 				double h_t_outs = wp.enth;	//[kJ/kg] Isentropic HP outlet enthlapy
 				h_t_out = h_hot_ref - (h_hot_ref - h_t_outs)*0.88;		//[kJ/kg] HP outlet enthalpy
 				water_PH( m_P_rh_ref*100.0, h_t_out, &wp );
-				double T_rh_in = wp.temp - 273.15;	//[C] Reheat inlet temperature
+				//double T_rh_in = wp.temp - 273.15;	//[C] Reheat inlet temperature
 				water_TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
 				h_rh_out = wp.enth;	//[kJ/kg] LP turbine inlet conditions
 				double s_rh_out = wp.entr;	//[kJ/kg-K]
@@ -583,7 +583,7 @@ public:
 				double h_t_in = h_hot_ref;
 				h_t_out = h_t_in - (h_t_in - h_t_outs)*0.88;		//[kJ/kg]
 				water_PH( m_P_rh_ref*100, h_t_out, &wp );		
-				double T_rh_in = wp.temp - 273.15;		//[C]
+				//double T_rh_in = wp.temp - 273.15;		//[C]
 				water_TP(m_T_rh_hot_ref + 273.15, m_P_rh_ref*100.0, &wp);
 				h_rh_out = wp.enth;
 			}
@@ -684,9 +684,9 @@ public:
 
 		XI--; YI--; // C++ arrays start index at 0 instead of 1, like Fortran arrays
 
-		int i_last_index = m_db.ncols() - 1;
+		int i_last_index = (int)m_db.ncols() - 1;
 		int lbi, ubi;
-		for( int i = 0; i < m_db.ncols(); i++ )
+		for( int i = 0; i < (int)m_db.ncols(); i++ )
 		{
 			// if we got to the last one, then set bounds and end loop
 			if(i == i_last_index)
@@ -1026,20 +1026,20 @@ public:
 	}
 
 
-	virtual int call(double time, double step, int ncall){
+	virtual int call(double /*time*/, double step, int ncall){
 		
-		int mode = value( I_MODE );					//[-] Cycle part load control... from plant controller
+		int mode = (int)value( I_MODE );					//[-] Cycle part load control... from plant controller
 		double T_hot = value( I_T_HOT );			//[C] Hot inlet temperature
 		double m_dot_st = value( I_M_DOT_ST );		//[kg/s] Mass flow rate to HP turbine
 		double T_wb = value( I_T_WB )+273.15;		//[K] Wet bulb temperature, convert from C
 		double demand_var = value( I_DEMAND_VAR );	//[?] Control signal indicating operational mode - only used when mode == 1
-		m_standby_control = value( I_STANDBY_CONTROL);	//[-] Control signal indicating standby mode
+		m_standby_control = (int)value( I_STANDBY_CONTROL);	//[-] Control signal indicating standby mode
 		double T_db = value( I_T_DB )+273.15;		//[K] Ambient dry bulb temperature, convert from C
 		//double P_amb = value( I_P_AMB )*101325.0;	//[Pa] Ambient pressure, convert from bar
 		double P_amb = value( I_P_AMB )*100.0;		//[Pa] Ambient pressure, convert from mbar
 		//int tou = value( I_TOU );					//[-] Current Time-Of-Use period
 		int tou = (int)value(I_TOU) - 1;			// control value between 1 & 9, have to change to 0-8 for array index
-		double rh = value( I_RH )/100.0;			//[-] Relative humidity of the ambient air, convert from %
+		//double rh = value( I_RH )/100.0;			//[-] Relative humidity of the ambient air, convert from %
 
 		double F_wc_tou = m_F_wc[tou];				//[-] Hybrid fraction at current Time-Of-Use period
 
@@ -1225,7 +1225,7 @@ public:
 		return 0;
 	}
 
-	virtual int converged(double time)
+	virtual int converged(double /*time*/)
 	{
 
 		m_standby_control_prev = m_standby_control;

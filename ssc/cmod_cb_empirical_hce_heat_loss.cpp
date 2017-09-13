@@ -86,43 +86,43 @@ public:
 	void exec() throw(general_error)
 	{
 		std::vector<double> PerfFac;
-		size_t n_PerfFac = -1;
+		size_t n_PerfFac = 0;
 		ssc_number_t *p_PerfFac = as_array("PerfFac", &n_PerfFac);
 		
 		std::vector<double> HCE_A0;
-		size_t n_HCE_A0 = -1;
+		size_t n_HCE_A0 = 0;
 		ssc_number_t *p_HCE_A0 = as_array("HCE_A0", &n_HCE_A0);
 
 		std::vector<double> HCE_A1;
-		size_t n_HCE_A1 = -1;
+		size_t n_HCE_A1 = 0;
 		ssc_number_t *p_HCE_A1 = as_array("HCE_A1", &n_HCE_A1);
 
 		std::vector<double> HCE_A2;
-		size_t n_HCE_A2 = -1;
+		size_t n_HCE_A2 = 0;
 		ssc_number_t *p_HCE_A2 = as_array("HCE_A2", &n_HCE_A2);
 
 		std::vector<double> HCE_A3;
-		size_t n_HCE_A3 = -1;
+		size_t n_HCE_A3 = 0;
 		ssc_number_t *p_HCE_A3 = as_array("HCE_A3", &n_HCE_A3);
 
 		std::vector<double> HCE_A4;
-		size_t n_HCE_A4 = -1;
+		size_t n_HCE_A4 = 0;
 		ssc_number_t *p_HCE_A4 = as_array("HCE_A4", &n_HCE_A4);
 
 		std::vector<double> HCE_A5;
-		size_t n_HCE_A5 = -1;
+		size_t n_HCE_A5 = 0;
 		ssc_number_t *p_HCE_A5 = as_array("HCE_A5", &n_HCE_A5);
 
 		std::vector<double> HCE_A6;
-		size_t n_HCE_A6 = -1;
+		size_t n_HCE_A6 = 0;
 		ssc_number_t *p_HCE_A6 = as_array("HCE_A6", &n_HCE_A6);
 
 		std::vector<double> HCEFrac;
-		size_t n_HCEFrac = -1;
+		size_t n_HCEFrac = 0;
 		ssc_number_t *p_HCEFrac = as_array("HCEFrac", &n_HCEFrac);
 
 		std::vector<double> RefMirrAper;
-		size_t n_RefMirrAper = -1;
+		size_t n_RefMirrAper = 0;
 		ssc_number_t *p_RefMirrAper = as_array("RefMirrAper", &n_RefMirrAper);
 
 		// Check that all arrays are the same length
@@ -144,7 +144,7 @@ public:
 		HCEFrac.resize(n_PerfFac);
 		RefMirrAper.resize(n_PerfFac);
 
-		for(int i = 0; i < n_HCE_A0; i++)
+		for(size_t i = 0; i < n_HCE_A0; i++)
 		{
 			PerfFac[i] = (double)p_PerfFac[i];
 			HCE_A0[i] = (double)p_HCE_A0[i];
@@ -171,7 +171,7 @@ public:
 		double Rec_HL = 0.0;		//[W/m]
 		double Rec_HL_m2 = 0.0;		//[W/m2]
 
-		for(int i = 0; i < n_HCE_A0; i++)
+		for(size_t i = 0; i < n_HCE_A0; i++)
 		{
 			if(SfTi >= SfTo)
 				SfTo = SfTi + 0.1;		//HP: Keeps HL curve fits from blowing up
@@ -190,13 +190,13 @@ public:
 
 		ssc_number_t *p_HL = allocate("HL", n_HCE_A0);
 
-		for(int i = 0; i < n_HCE_A0; i++)
+		for(size_t i = 0; i < n_HCE_A0; i++)
 		{
-			p_HL[i] = HL[i];
+			p_HL[i] = (ssc_number_t)HL[i];
 		}
 
-		assign("HL_weighted", Rec_HL);
-		assign("HL_weighted_m2", Rec_HL_m2);
+		assign("HL_weighted", (ssc_number_t)Rec_HL);
+		assign("HL_weighted_m2", (ssc_number_t)Rec_HL_m2);
 	}
 
 };

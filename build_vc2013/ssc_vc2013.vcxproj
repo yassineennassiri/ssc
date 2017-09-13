@@ -244,7 +244,7 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__32BIT__;__WIN__;WIN32;_DEBUG;_CONSOLE</PreprocessorDefinitions>
     </ClCompile>
@@ -257,7 +257,7 @@
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__32BIT__;__WIN__;WIN32;_DEBUG;_CONSOLE</PreprocessorDefinitions>
     </ClCompile>
@@ -291,8 +291,6 @@
     <PostBuildEvent>
       <Command>copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.dll $(SAMNTDIR)\deploy\$(Platform)
 copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.pdb $(SAMNTDIR)\deploy\$(Platform)\
-copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.dll $(SAMOSDIR)\deploy\$(Platform)
-copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.pdb $(SAMOSDIR)\deploy\$(Platform)\
 
 robocopy $(WEXDIR)\build_vc2013\libcurl_ssl_$(Platform)\bin $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ /E /XC /XN /XO /XX /NP /NS /NJS /NJH /NC  
 
@@ -304,7 +302,7 @@ exit 0
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
@@ -327,8 +325,6 @@ exit 0
     <PostBuildEvent>
       <Command>copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.dll $(SAMNTDIR)\deploy\$(Platform)
 copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.pdb $(SAMNTDIR)\deploy\$(Platform)\
-copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.dll $(SAMOSDIR)\deploy\$(Platform)
-copy $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ssc.pdb $(SAMOSDIR)\deploy\$(Platform)\
 
 robocopy $(WEXDIR)\build_vc2013\libcurl_ssl_$(Platform)\bin $(SSCDIR)\build_vc2013\$(Platform)\$(Configuration)\ /E /XC /XN /XO /XX /NP /NS /NJS /NJH /NC  
 
@@ -343,6 +339,7 @@ exit 0
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>__DLL__;__32BIT__;__WINDOWS__;_DEBUG;__VISUALC__;_CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS; _CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)\..\shared;$(SolutionDir)\..\tcs;$(SolutionDir)\..\solarpilot;$(SolutionDir)\..\ssc\shared;$(SolutionDir)\..\ssc\tcs;$(SolutionDir)\..\ssc\solarpilot;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\tcs\$(Platform)\$(Configuration);$(SolutionDir)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

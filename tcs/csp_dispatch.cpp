@@ -190,7 +190,7 @@ bool csp_dispatch_opt::check_setup(int nstep)
     //check parameters and inputs to make sure everything has been set up correctly
     bool ok = true;
 
-    if( price_signal.size() < nstep )   return false;
+    if( (int)price_signal.size() < nstep )   return false;
 
     if( !m_is_weather_setup ) return false;
     if( params.siminfo == 0 ) return false;
@@ -326,7 +326,7 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
         pars["ycsb0"] = (optinst->params.is_pb_standby0 ? 1 : 0) ;
         pars["q0"] =  optinst->params.q_pb0 ;
         pars["qrecmaxobs"] = 1.;
-        for(int i=0; i<optinst->outputs.q_sfavail_expected.size(); i++)
+        for(int i=0; i<(int)optinst->outputs.q_sfavail_expected.size(); i++)
             pars["qrecmaxobs"] = optinst->outputs.q_sfavail_expected.at(i) > pars["qrecmaxobs"] ? optinst->outputs.q_sfavail_expected.at(i) : pars["qrecmaxobs"];
 
         pars["Qrsb"] = optinst->params.q_rec_standby; // * dq_rsu;     //.02
@@ -346,7 +346,7 @@ static void calculate_parameters(csp_dispatch_opt *optinst, unordered_map<std::s
             double fhfi = 0.;
             double fhfi_2 = 0.;
             vector<double> fiv;
-            int m = optinst->params.eff_table_load.get_size();
+            int m = (int)optinst->params.eff_table_load.get_size();
             for(int i=0; i<m; i++)
             {
                 if( i==0 ) continue; // first data point is zero, so skip
@@ -562,7 +562,7 @@ bool csp_dispatch_opt::optimize()
 
             //calculate the mean price to appropriately weight the receiver production timing derate
             double pmean =0;
-            for(int t=0; t<price_signal.size(); t++)
+            for(int t=0; t<(int)price_signal.size(); t++)
                 pmean += price_signal.at(t);
             pmean /= (double)price_signal.size();
             //--
@@ -1464,10 +1464,10 @@ bool csp_dispatch_opt::optimize()
 
             int ncols = get_Ncolumns(lp);
 
-            char name[15];
+//            char name[15];
             REAL *vars = new REAL[ncols];
             get_variables(lp, vars);
-            int col;
+//            int col;
 
 
             for(int c=1; c<ncols; c++)
@@ -1605,7 +1605,7 @@ bool csp_dispatch_opt::optimize()
             break;
         case SUBOPTIMAL:
             type = C_csp_messages::NOTICE;
-            s << "Suboptimal solution identified.";
+			s << "Suboptimal solution identified.";
             break;
         case INFEASIBLE:
             type = C_csp_messages::WARNING;
@@ -1630,7 +1630,7 @@ bool csp_dispatch_opt::optimize()
             break;
         case OPTIMAL:
             type = C_csp_messages::NOTICE;
-            s << "Optimal solution identified.";
+			s << "Optimal solution identified.";
         default:
             break;
         }
@@ -1684,7 +1684,7 @@ std::string csp_dispatch_opt::write_ampl()
     //write out a data file
     if(solver_params.is_write_ampl_dat || solver_params.is_ampl_engine)
     {
-		int day = params.siminfo->ms_ts.m_time / 3600 / 24;
+		int day = (int)params.siminfo->ms_ts.m_time / 3600 / 24;
         //char outname[200];
         //sprintf(outname, "%sdata_%d.dat", solver_params.ampl_data_dir.c_str(), day);
 
@@ -1716,7 +1716,7 @@ std::string csp_dispatch_opt::write_ampl()
         
         std::sort( keys.begin(), keys.end(), strcompare );
 
-        for(int k=0; k<keys.size(); k++)
+        for(size_t k=0; k<keys.size(); k++)
             fout << "param " << keys.at(k) << " := " << pars[keys.at(k)] << ";\n";
 
         fout << "# --- indexed parameters ---\n";
@@ -1981,7 +1981,7 @@ bool optimization_vars::construct()
     for(int i=0; i<(int)var_objects.size(); i++)
         var_by_name[ var_objects.at(i).name ] = &var_objects.at(i);
 
-
+	return true;
 }
 
 REAL &optimization_vars::operator()(char *varname, int ind)    //Access for 1D var

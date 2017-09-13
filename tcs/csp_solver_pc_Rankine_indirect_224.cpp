@@ -99,8 +99,8 @@ void C_pc_Rankine_indirect_224::init(C_csp_power_cycle::S_solved_params &solved_
 	else if( ms_params.m_pc_fl == HTFProperties::User_defined )
 	{
 		// Check that 'm_field_fl_props' is allocated and correct dimensions
-		int n_rows = ms_params.m_pc_fl_props.nrows();
-		int n_cols = ms_params.m_pc_fl_props.ncols();
+		int n_rows = (int)ms_params.m_pc_fl_props.nrows();
+		int n_cols = (int)ms_params.m_pc_fl_props.ncols();
 		if( n_rows > 2 && n_cols == 7 )
 		{
 			if( !mc_pc_htfProps.SetUserDefinedFluid(ms_params.m_pc_fl_props) )
@@ -467,7 +467,7 @@ double C_pc_Rankine_indirect_224::get_efficiency_at_TPH(double T_degC, double P_
 	{
 		double P_cycle, T_htf_cold, m_dot_demand, m_dot_htf_ref, m_dot_makeup, W_cool_par, f_hrsys, P_cond;
 
-		water_state wprop;
+//		water_state wprop;
 
 		double Twet = calc_twet(T_degC, relhum_pct, P_atm*1.01325e6);
 
@@ -528,7 +528,7 @@ double C_pc_Rankine_indirect_224::get_efficiency_at_load(double load_frac, doubl
 		mdot *= load_frac;
 
 		//ambient calculations
-		water_state wprop;
+//		water_state wprop;
 		double Twet = calc_twet(ms_params.m_T_amb_des, 45, 1.01325e6);
 
 		//Call
@@ -1364,7 +1364,7 @@ double C_pc_Rankine_indirect_224::Interpolate(int YT, int XT, double X)
 
 	//Use brute force interpolation.. it is faster in this case than bisection or hunting methods used in the user-specified HTF case
 
-	int iLastIndex = m_db.ncols() - 1;
+	int iLastIndex = (int)m_db.ncols() - 1;
 	for( size_t i = 0; i < m_db.ncols(); i++ )
 	{
 		// if we got to the last one, then set bounds and end loop
@@ -1405,8 +1405,8 @@ double C_pc_Rankine_indirect_224::Interpolate(int YT, int XT, double X)
 		// so the reference [i+1], where i = iLastIndex, will never happen
 		if( ((X >= m_db.at(XI, i)) && (X < m_db.at(XI, i + 1))) || ((X <= m_db.at(XI, i)) && (X > m_db.at(XI, i + 1))) )
 		{
-			lbi = i;
-			ubi = i + 1;
+			lbi = (int)i;
+			ubi = (int)i + 1;
 			break;
 		}
 	}
