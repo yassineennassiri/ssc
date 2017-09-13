@@ -58,19 +58,19 @@ static var_info vtab_iec61853[] =
 	{ SSC_INPUT,        SSC_NUMBER,      "type",                   "Cell technology type",       "0..5",     "monoSi,multiSi/polySi,cis,cigs,cdte,amorphous", "IEC61853",    "*",           "",         "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "verbose",                "Output solver messages",     "0/1",      "",                                              "IEC61853",    "*",           "",         "" },
 																								 											                			   
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "alphaIsc",               "SC temp coefficient @ STC",  "A/C",      "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "betaVoc",                "OC temp coefficient @ STC",  "V/C",      "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "gammaPmp",               "MP temp coefficient @ STC",  "%/C",      "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "n",                      "Diode factor",               "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "Il",                     "Light current",              "A",        "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "Io",                     "Saturation current",         "A",        "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "C1",                     "Rsh fitting C1",             "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "C2",                     "Rsh fitting C2",             "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "C3",                     "Rsh fitting C3",             "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "D1",                     "Rs fitting D1",              "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "D2",                     "Rs fitting D2",              "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "D3",                     "Rs fitting D3",              "",         "",                                              "IEC61853",    "*",           "",         "" },
-	//{ SSC_OUTPUT,       SSC_NUMBER,      "Egref",                  "Bandgap voltage",            "eV",       "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "alphaIsc",               "SC temp coefficient @ STC",  "A/C",      "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "betaVoc",                "OC temp coefficient @ STC",  "V/C",      "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "gammaPmp",               "MP temp coefficient @ STC",  "%/C",      "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "n",                      "Diode factor",               "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "Il",                     "Light current",              "A",        "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "Io",                     "Saturation current",         "A",        "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "C1",                     "Rsh fitting C1",             "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "C2",                     "Rsh fitting C2",             "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "C3",                     "Rsh fitting C3",             "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "D1",                     "Rs fitting D1",              "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "D2",                     "Rs fitting D2",              "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "D3",                     "Rs fitting D3",              "",         "",                                              "IEC61853",    "*",           "",         "" },
+	{ SSC_OUTPUT,       SSC_NUMBER,      "Egref",                  "Bandgap voltage",            "eV",       "",                                              "IEC61853",    "*",           "",         "" },
 
 var_info_invalid };
 
@@ -119,7 +119,6 @@ public:
 		if (!solver.calculate( input, as_integer("nser"), as_integer("type"), par, as_boolean("verbose") ))
 			throw exec_error( "iec61853", "failed to solve for parameters");
 
-/*
 		assign("n", var_data((ssc_number_t)solver.n));
 		assign("alphaIsc", var_data((ssc_number_t)solver.alphaIsc));
 		assign("betaVoc", var_data((ssc_number_t)solver.betaVoc));
@@ -133,7 +132,6 @@ public:
 		assign( "D2", var_data((ssc_number_t)solver.D2) );
 		assign( "D3", var_data((ssc_number_t)solver.D3) );
 		assign( "Egref", var_data((ssc_number_t)solver.Egref) );
-*/
 
 		ssc_number_t *output = allocate( "output", par.nrows(), par.ncols() );
 		size_t c = 0;
