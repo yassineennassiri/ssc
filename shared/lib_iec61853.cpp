@@ -938,9 +938,9 @@ double iec61853_module_t::interpolate(double I, double T, int idx)
 	Toolbox::convex_hull(pts, hull);
 	if (Toolbox::pointInPolygon(hull, sp_point(T, I, 0.0)))
 	{
-		// scale values based on max - helps GM interp routine
+		// scale values using logarithm, because they can be several orders of magnitude different from one another - helps GM interp routine
 		for (size_t i = 0; i<parvals.size(); i++)
-			parvals[i] /= maxz;
+			parvals[i] = log(parvals[i]);
 
 		Powvargram vgram(tempirr, parvals, 1.75, 0.);
 		GaussMarkov gm(tempirr, parvals, vgram);
@@ -966,8 +966,8 @@ double iec61853_module_t::interpolate(double I, double T, int idx)
 		q[0] = T;
 		q[1] = I;
 
-		// now interpolate and return the value
-		double interpolated_value = gm.interp(q) * maxz;
+		// now interpolate and return the value, and undo the logarithmic scaling performed above
+		double interpolated_value = pow(10.0, gm.interp(q));
 
 		// check that the GM method didn't fail and return a negative value
 		// this has been happening frequently for the Io parameter, likely because there is such a wide variety in magnitudes of the variable (different scaling methods do not seem to help)
