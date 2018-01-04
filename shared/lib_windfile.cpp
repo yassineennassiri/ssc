@@ -46,7 +46,7 @@
 *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
-
+#include <stdexcept> 
 #include <stdio.h>
 #include <cmath>
 #include <stdlib.h>
@@ -76,6 +76,7 @@
 #define my_isnan(x) std::isnan( x )
 #endif
 
+/*
 static void trim(std::string &buf)
 {
 	if (buf.back() == '\n') // strip newline
@@ -83,6 +84,19 @@ static void trim(std::string &buf)
 	if (buf.back() == '\r') // strip carriage return
 	  	buf.pop_back();
 }
+*/
+
+static void trim(std::string &buf) 
+{ 
+  size_t len = buf.length(); 
+  if (len >  0) 
+  { 
+  if (buf.at(len -1) == '\n') // strip newline 
+      buf.erase(len -1); 
+  if (buf.at(len -1) == '\r') // strip carriage return 
+      buf.erase(len -1); 
+  } 
+} 
 
 static int locate2(std::string buf, std::vector<std::string> &vstring, char delim)
 {

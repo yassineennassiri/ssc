@@ -1,4 +1,4 @@
-#include "sscapi.h"
+#include "../ssc/sscapi.h"
 #include <stdio.h>
 
 int main()

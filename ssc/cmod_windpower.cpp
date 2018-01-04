@@ -353,7 +353,8 @@ void cm_windpower::exec() throw(general_error)
 		throw exec_error("windpower", util::format("invalid number of data records (%d): must be an integer multiple of 8760", (int)nstep));
 
 	// create wakeModel
-	std::shared_ptr<wakeModelBase> wakeModel(nullptr);
+//	std::shared_ptr<wakeModelBase> wakeModel(nullptr);
+	std::shared_ptr<wakeModelBase> wakeModel;
 	int wakeModelChoice = as_integer("wind_farm_wake_model");
 	if (wakeModelChoice == 0)
 		wakeModel = std::make_shared<simpleWakeModel>(simpleWakeModel(wpc.nTurbines, &wt));
