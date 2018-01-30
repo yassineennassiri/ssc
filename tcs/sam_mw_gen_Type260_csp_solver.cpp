@@ -348,17 +348,17 @@ private:
 	int pbmode;		//Power conversion mode
 
 	// Calculated design variables
-	double m_q_des;		//[MWt] Thermal power to cycle
-	double m_qttmin;	//[MWt] Min allowable thermal power to cycle
-	double m_qttmax;	//[MWt] Max allowable thermal power to cycle
-	double m_q_startup;	//[MWt-hr] Startup energy
+	double m_q_dot_pc_des;		//[MWt] Thermal power to cycle
+	double m_q_dot_pc_min;		//[MWt] Min allowable thermal power to cycle
+	double m_q_dot_pc_max;		//[MWt] Max allowable thermal power to cycle
+	double m_E_startup_des;		//[MWt-hr] Cycle startup energy
 	// Stored
 	double m_e_in_tes;		// Energy in storage calculated in current timestep
 	double m_q_startup_used;	//[MWt-hr]
 	double m_q_startup_remain;	//[MWt-hr]
 	
-	// ......
-	double dt, etesmax, ptsmax, pfsmax;
+	double E_tes_max;		//[MWt-hr] Maximum thermal energy allowed in TES
+	double ptsmax, pfsmax;
 	
 	//Declare variables that require storage from step to step
 	double etes0;
@@ -450,10 +450,10 @@ public:
 		
 
 		// Calculated design variables
-		m_q_des = std::numeric_limits<double>::quiet_NaN();	//[MWt] Thermal power to cycle
-		m_qttmin = std::numeric_limits<double>::quiet_NaN();	//[MWt] Min allowable thermal power to cycle
-		m_qttmax = std::numeric_limits<double>::quiet_NaN();	//[MWt] Max allowable thermal power to cycle
-		m_q_startup = std::numeric_limits<double>::quiet_NaN();	//[MWt-hr] Startup energy
+		m_q_dot_pc_des = std::numeric_limits<double>::quiet_NaN();	//[MWt] Thermal power to cycle
+		m_q_dot_pc_min = std::numeric_limits<double>::quiet_NaN();	//[MWt] Min allowable thermal power to cycle
+		m_q_dot_pc_max = std::numeric_limits<double>::quiet_NaN();	//[MWt] Max allowable thermal power to cycle
+		m_E_startup_des = std::numeric_limits<double>::quiet_NaN();	//[MWt-hr] Cycle startup energy
 
 		// Storage variable
 		m_e_in_tes = std::numeric_limits<double>::quiet_NaN();
@@ -477,20 +477,20 @@ public:
 
 		// *****************************************************************************
 		// Collector receiver class
-		mp_params->m_latitude = value(P_LATITUDE);		//Site latitude [deg]
-		mp_params->m_longitude = value(P_LONGITUDE);		//Site longitude [deg]
-		mp_params->m_theta_stow = value(P_THETA_STOW);	//Solar elevation angle at which the solar field stops operating [deg]
-		mp_params->m_theta_dep = value(P_THETA_DEP);		//Solar elevation angle at which the solar field begins operating [deg]
-		mp_params->m_interp_arr = (int)value(P_INTERP_ARR);	//Interpolate the array or find nearest neighbor? (1=interp,2=no) [none]
-		mp_params->m_rad_type = (int)value(P_RAD_TYPE);		//Solar resource radiation type (1=DNI,2=horiz.beam,3=tot.horiz) [none]
-		mp_params->m_solarm = value(P_SOLARM);			//Solar multiple [none]
-		mp_params->m_T_sfdes = value(P_T_SFDES);			//Solar field design point temperature (dry bulb) [C]
-		mp_params->m_irr_des = value(P_IRR_DES);			//Irradiation design point [W/m2]
-		mp_params->m_eta_opt_soil = value(P_ETA_OPT_SOIL);	//Soiling optical derate factor [none]
-		mp_params->m_eta_opt_gen = value(P_ETA_OPT_GEN);		//General/other optical derate [none]
-		mp_params->m_f_sfhl_ref = value(P_F_SFHL_REF);		//Reference solar field thermal loss fraction [MW/MWcap]
-		mp_params->m_qsf_des = value(P_QSF_DES);				//Solar field thermal production at design [MWt]
-		mp_params->m_is_table_unsorted = value(P_ISTABLEUNSORTED) == 1.;
+		mp_params->m_latitude = value(P_LATITUDE);		//[deg] Site latitude
+		mp_params->m_longitude = value(P_LONGITUDE);	//[deg] Site longitude
+		mp_params->m_theta_stow = value(P_THETA_STOW);	//[deg] Solar elevation angle at which the solar field stops operating
+		mp_params->m_theta_dep = value(P_THETA_DEP);	//[deg] Solar elevation angle at which the solar field begins operating
+		mp_params->m_interp_arr = (int)value(P_INTERP_ARR);	//[-] Interpolate the array or find nearest neighbor? (1=interp,2=no)
+		mp_params->m_rad_type = (int)value(P_RAD_TYPE);		//[-] Solar resource radiation type (1=DNI,2=horiz.beam,3=tot.horiz)
+		mp_params->m_solarm = value(P_SOLARM);			//[-] Solar multiple
+		mp_params->m_T_sfdes = value(P_T_SFDES);		//[C] Solar field design point temperature (dry bulb)
+		mp_params->m_irr_des = value(P_IRR_DES);		//[W/m2] Irradiation design point
+		mp_params->m_eta_opt_soil = value(P_ETA_OPT_SOIL);	//[-] Soiling optical derate factor
+		mp_params->m_eta_opt_gen = value(P_ETA_OPT_GEN);//[-] General/other optical derate
+		mp_params->m_f_sfhl_ref = value(P_F_SFHL_REF);	//[MW/MWcap] Reference solar field thermal loss fraction
+		mp_params->m_qsf_des = value(P_QSF_DES);		//[MWt] Solar field thermal production at design
+		mp_params->m_is_table_unsorted = value(P_ISTABLEUNSORTED) == 1.;	//[-]
 
 		// Vectors...
 		int n_sfhlQ_coefs = 0;
@@ -553,9 +553,7 @@ public:
 		// *****************************************************************************
 		// *****************************************************************************
 
-		dt = time_step()/3600.;
-
-		eta_lhv = value(P_ETA_LHV);		//Fossil backup lower heating value efficiency [none]
+		eta_lhv = value(P_ETA_LHV);		//[-] Fossil backup lower heating value efficiency
 
 		PC_T_corr = (int)value(P_PC_T_CORR);	//[-] Power conversion temperature correction mode (1=wetb, 2=dryb)
 		T_pcdes = value(P_T_PCDES)+273.15;		//[K] Power conversion reference temperature
@@ -588,8 +586,8 @@ public:
                 exergy_table_T.at(i,j) = TCS_MATRIX_INDEX( var(P_EXERGY_TABLE) , j, i);
 
 		// Update site parameters
-		mp_params->m_latitude = value(P_LATITUDE);
-		mp_params->m_longitude = value(P_LONGITUDE);
+		mp_params->m_latitude = value(P_LATITUDE);		//[deg]
+		mp_params->m_longitude = value(P_LONGITUDE);	//[deg]
 
 		int out_type = -1;
 		std::string out_msg = "";
@@ -626,34 +624,35 @@ public:
 
 		//	Initial calculations
 			//	Power block design power
-		m_q_des = mc_pc_des_solved.m_q_dot_des;	//[MWt]
+		m_q_dot_pc_des = mc_pc_des_solved.m_q_dot_des;	//[MWt]
 			//	Calculate min/max turbine operation rates
-		m_qttmin = m_q_des*mc_pc_des_solved.m_cutoff_frac;	//[MWt]
-		m_qttmax = m_q_des*mc_pc_des_solved.m_max_frac;		//[MWt]
-		m_q_startup = mc_pc_des_solved.m_q_startup;			//[MWt]
+		m_q_dot_pc_min = m_q_dot_pc_des*mc_pc_des_solved.m_cutoff_frac;		//[MWt]
+		m_q_dot_pc_max = m_q_dot_pc_des*mc_pc_des_solved.m_max_frac;		//[MWt]
+		m_E_startup_des = mc_pc_des_solved.m_q_startup;			//[MWt-hr]
 
 		f_teshl_ref *= .001;
 
 		//Maximum energy in storage
-		etesmax = hrs_tes*m_q_des;   //[MW-hr]
+		E_tes_max = hrs_tes* m_q_dot_pc_des;   //[MWt-hr]
 		
 		//Express the dispatch values in dimensional terms
-		for(int i=0; i<ntod; i++){
-			disws[i] *= etesmax;
-			diswos[i] *= etesmax;
-			qdisp[i] *= m_q_des;
-			fdisp[i] *= m_q_des;
+		for(int i=0; i<ntod; i++)
+		{
+			disws[i] *= E_tes_max;		//[MWt-hr]
+			diswos[i] *= E_tes_max;		//[MWt-hr]
+			qdisp[i] *= m_q_dot_pc_des;		//[MWt]
+			fdisp[i] *= m_q_dot_pc_des;		//[MWt]
 		}
 		
 		//Calculate max TES charging/discharging rates based on solar multiple
 			//5.5.2016, twn: adopt Physical Trough Convention: size TES HX to accept design point receiver output 
 		//ptsmax = m_q_des*max((mp_params->m_solarm - 1.), 1.0);
-		ptsmax = m_q_des * mp_params->m_solarm;		
+		ptsmax = m_q_dot_pc_des * mp_params->m_solarm;
 		pfsmax = ptsmax / f_disch*mc_pc_des_solved.m_max_frac;
 
 		//Set initial storage values
-		etes0 = f_etes_0*etesmax;		//[MW-hr] Initial value in thermal storage. This keeps track of energy in thermal storage, or e_in_tes
-		pbmode0 = 0;					//[-] initial value of power block operation mode pbmode
+		etes0 = f_etes_0* E_tes_max;		//[MW-hr] Initial value in thermal storage. This keeps track of energy in thermal storage, or e_in_tes
+		pbmode0 = 0;						//[-] initial value of power block operation mode pbmode
 		m_q_startup_remain = mc_pc_des_solved.m_q_startup;	//[MWt-hr]
 
 		return true;
@@ -685,6 +684,8 @@ public:
 		double shift = longitude - timezone*15.*d2r;
 	  //int touperiod = CSP::TOU_Reader(tod_sched, time, nval_tod_sched); 
 		int touperiod = (int)value(I_TOUPeriod) - 1; // control value between 1 & 9, have to change to 0-8 for array index
+
+		double step_hr = step / 3600.0;		//[hr]
 
 		// Weather file inputs
 		C_csp_weatherreader::S_outputs weather;
@@ -791,23 +792,24 @@ public:
 		if (hrs_tes <= 0.){ // No Storage
 			if ((pbmode0==0)||(pbmode0==1)){ // if plant is not already operating in last timestep
 				if (q_sf>0){
-					if( q_sf>(m_q_startup_used / dt) ){ //  Starts plant as exceeds startup energy needed
-						q_to_pb = q_sf - m_q_startup_used / dt;
-						q_startup = m_q_startup_used / dt;
+					if( q_sf>(m_q_startup_used / step_hr) ){ //  Starts plant as exceeds startup energy needed
+						q_to_pb = q_sf - m_q_startup_used / step_hr;
+						q_startup = m_q_startup_used / step_hr;
 						pbmode = 2;      //Power block mode.. 2=starting up
 						pbstartf = 1;    //Flag indicating whether the power block starts up in this time period
 						m_q_startup_used = 0.;     //mjw 5-31-13 Reset to zero to handle cases where Qsf-TurSue leads to Qttb < Qttmin
 					}
 					else{ //  Plant starting up but not enough energy to make it run - will probably finish in the next timestep
 						q_to_pb = 0.;
-						m_q_startup_used = m_q_startup_remain - q_sf*dt;
+						m_q_startup_used = m_q_startup_remain - q_sf*step_hr;
 						q_startup = q_sf;
 						pbmode = 1;
 						pbstartf = 0;
 					}
 				}
-				else{ // No solar field output so still need same amount of energy as before and nothing changes
-					m_q_startup_used = m_q_startup;	//[MWt-hr]
+				else
+				{ // No solar field output so still need same amount of energy as before and nothing changes
+					m_q_startup_used = m_E_startup_des;	//[MWt-hr]
 					pbmode = 0;
 					pbstartf = 0;
 				}
@@ -827,15 +829,17 @@ public:
 			}
 
 			// following happens no matter what state the powerblock was in previously      
-			if( q_to_pb < m_qttmin ){ // Energy to powerblock less than the minimum that the turbine can run at
+			if( q_to_pb < m_q_dot_pc_min)
+			{ // Energy to powerblock less than the minimum that the turbine can run at
 				q_dump_umin =  q_to_pb;         // The minimum energy (less than the minimum)
 				q_to_pb = 0;             // Energy to PB is now 0
 				pbmode = 0;           // PB turned off
 			}
 
-			if( q_to_pb > m_qttmax ){   // Energy to powerblock greater than what the PB can handle (max)
-				q_dump_teschg = q_to_pb - m_qttmax; // The energy dumped 
-				q_to_pb = m_qttmax;          // the energy to the PB is exactly the maximum
+			if( q_to_pb > m_q_dot_pc_max)
+			{   // Energy to powerblock greater than what the PB can handle (max)
+				q_dump_teschg = q_to_pb - m_q_dot_pc_max; // The energy dumped 
+				q_to_pb = m_q_dot_pc_max;          // the energy to the PB is exactly the maximum
 			}
 		}
 		else{    //With thermal storage    
@@ -846,7 +850,8 @@ public:
 			q_dump_teschg = 0.0;
 			q_from_tes = 0.0;
 
-			if (pbmode0 == 0){       
+			// 1.30.18 twn: add pbmode0 == 1 to 'plant is not already operating' logic
+			if (pbmode0 == 0 || pbmode0 == 1){       
 			//**********************************************************
 			//******        plant is not already operating         *****
 			//**********************************************************
@@ -867,7 +872,7 @@ public:
 					// Assumes Operator started plant during previous time period
 					// But TRNSYS cannot do this, so start-up energy is deducted during current timestep.     
 					pbmode = 1;
-					q_startup = m_q_startup / dt;
+					q_startup = m_E_startup_des / step_hr;		//[MWt-hr] / [s]
 
 					q_to_pb = qdisp[touperiod];       // set the energy to powerblock equal to the load for this TOU period
 
@@ -881,19 +886,19 @@ public:
 					}
 					else{ // q_sf less than the powerblock requirement
 						q_to_tes = 0.0;
-						q_from_tes = q_startup + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_des);
+						q_from_tes = q_startup + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
 						if (q_from_tes>pfsmax) q_from_tes = pfsmax;
-						q_to_pb = q_sf + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_des);
+						q_to_pb = q_sf + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
 					}
                 
-					m_e_in_tes = etes0 - q_startup + (q_sf - q_to_pb) * dt;   // thermal storage energy is initial + what was left 
+					m_e_in_tes = etes0 - q_startup + (q_sf - q_to_pb) * step_hr;   // thermal storage energy is initial + what was left 
 					pbmode = 2;   // powerblock is now running
 					pbstartf = 1; // the powerblock turns on during this timeperiod.
 				}
 				else{ //Store energy not enough stored to start plant
 					q_to_tes = q_sf; // everything goes to thermal storage
 					q_from_tes = 0;   // nothing from thermal storage
-					m_e_in_tes = etes0 + q_to_tes * dt;
+					m_e_in_tes = etes0 + q_to_tes * step_hr;
 					q_to_pb = 0;
 				}
 			}
@@ -902,7 +907,7 @@ public:
 			//******        plant is already operating             *****
 			//**********************************************************
 
-				if ((q_sf + max(0.0,etes0-dispatch.at(touperiod)) /dt) > qdisp[touperiod]){ // if there is sufficient energy to operate at dispatch target output
+				if ((q_sf + max(0.0,etes0-dispatch.at(touperiod)) / step_hr) > qdisp[touperiod]){ // if there is sufficient energy to operate at dispatch target output
 
 					q_to_pb = qdisp[touperiod]; 
 
@@ -916,39 +921,44 @@ public:
 					}
 					else{ // solar field outptu less than what powerblock needs
 						q_to_tes = 0.;
-						q_from_tes = (1. - q_sf / q_to_pb) * min(pfsmax, m_q_des);
-						if( q_from_tes>pfsmax ) q_from_tes = min(pfsmax, m_q_des);
+						q_from_tes = (1. - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
+						if( q_from_tes>pfsmax ) q_from_tes = min(pfsmax, m_q_dot_pc_des);
 						q_to_pb = q_from_tes + q_sf;
 					}
 
-					m_e_in_tes = etes0 + (q_sf - q_to_pb - q_dump_teschg) *dt;  // energy of thermal storage is the extra
+					m_e_in_tes = etes0 + (q_sf - q_to_pb - q_dump_teschg) * step_hr;  // energy of thermal storage is the extra
 
 					// Check to see if throwing away energy 
-					if( (m_e_in_tes>etesmax) && (q_to_pb<m_qttmax) ){ // qttmax (MWt) - power to turbine max
-						if( (m_e_in_tes - etesmax) / dt < (m_qttmax - q_to_pb) ){
-							q_to_pb = q_to_pb + (m_e_in_tes - etesmax) / dt;
-							m_e_in_tes = etesmax;
+					if( (m_e_in_tes > E_tes_max) && (q_to_pb < m_q_dot_pc_max) )
+					{ // qttmax (MWt) - power to turbine max
+						if( (m_e_in_tes - E_tes_max) / step_hr < (m_q_dot_pc_max - q_to_pb) )
+						{
+							q_to_pb = q_to_pb + (m_e_in_tes - E_tes_max) / step_hr;
+							m_e_in_tes = E_tes_max;
 						}
-						else{
-							m_e_in_tes = m_e_in_tes - (m_qttmax - q_to_pb) * dt;  // should this be etes0 instead of e_in_tes on RHS ??
-							q_to_pb = m_qttmax;
+						else
+						{
+							m_e_in_tes = m_e_in_tes - (m_q_dot_pc_max - q_to_pb) * step_hr;  // should this be etes0 instead of e_in_tes on RHS ??
+							q_to_pb = m_q_dot_pc_max;
 						}
 						q_to_tes = q_sf - q_to_pb;
 					}
 				}
-				else{  //Empties tes to dispatch level if above min load level
-
-					if( (q_sf + max(0., etes0 - dispatch.at(touperiod)) * dt) > m_qttmin ){
-						q_from_tes = max(0.,etes0-dispatch.at(touperiod)) * dt;
+				else
+				{  //Empties tes to dispatch level if above min load level
+					if( (q_sf + max(0., etes0 - dispatch.at(touperiod)) * step_hr) > m_q_dot_pc_min)
+					{
+						q_from_tes = max(0.,etes0-dispatch.at(touperiod)) * step_hr;
 						q_to_pb = q_sf + q_from_tes;
 						q_to_tes = 0.;
 						m_e_in_tes = etes0 - q_from_tes;
 					}
-					else{
+					else
+					{
 						q_to_pb = 0.;
 						q_from_tes = 0.;
 						q_to_tes = q_sf;
-						m_e_in_tes = etes0 + q_to_tes * dt;
+						m_e_in_tes = etes0 + q_to_tes * step_hr;
 					}
 				}
 			}
@@ -961,37 +971,39 @@ public:
 
 			//---Calculate TES thermal losses ---
 			// First do the charge-based losses. Use the average charge over the timestep
-			double f_EtesAve = max((m_e_in_tes + etes0) / 2. / etesmax, 0.0);
+			double f_EtesAve = max((m_e_in_tes + etes0) / 2. / E_tes_max, 0.0);
 			double f_teshlX = 0., f_teshlT = 0.;
 			for(int i=0; i<nval_teshlX_coefs; i++)
 				f_teshlX += teshlX_coefs[i]*pow(f_EtesAve, i);     //Charge adjustment factor
 			for(int i=0; i<nval_teshlT_coefs; i++)
 				f_teshlT += teshlT_coefs[i]*pow(mp_params->m_T_sfdes - tdb, i);
 			//thermal storage heat losses adjusted by charge level and ambient temp.
-			q_hl_tes = f_teshl_ref*etesmax*(f_teshlX + f_teshlT);
+			q_hl_tes = f_teshl_ref* E_tes_max*(f_teshlX + f_teshlT);
 
-			m_e_in_tes = max(m_e_in_tes - q_hl_tes*dt, 0.0); // Adjust the energy in thermal storage according to TES thermal losses
+			m_e_in_tes = max(m_e_in_tes - q_hl_tes* step_hr, 0.0); // Adjust the energy in thermal storage according to TES thermal losses
 
-			if( m_e_in_tes>etesmax ){ // trying to put in more than storage can handle
-				q_dump_tesfull = (m_e_in_tes - etesmax) / dt;  //this is the amount dumped when storage is completely full
-				m_e_in_tes = etesmax;
+			if( m_e_in_tes > E_tes_max )
+			{ // trying to put in more than storage can handle
+				q_dump_tesfull = (m_e_in_tes - E_tes_max) / step_hr;  //this is the amount dumped when storage is completely full
+				m_e_in_tes = E_tes_max;
 				q_to_tes = q_to_tes - q_dump_tesfull;
 			}
-			else{
+			else
+			{
 				q_dump_tesfull = 0.; // nothing is dumped if not overfilled
 			}
 
 			// Check min and max on turbine
-			if( q_to_pb<m_qttmin ){
+			if( q_to_pb < m_q_dot_pc_min)
+			{
 				q_dump_umin = q_to_pb;
 				q_to_pb = 0.;
 				pbmode = 0;
 			}
-			else{
+			else
+			{
 				q_dump_umin = 0;
 			}
-
-			pbmode0 = pbmode;
 		}
 
 		//------------------------------------------------------------------------------------------------------------
@@ -1050,7 +1062,7 @@ public:
         double exergy_adj = 1.;
         if( exergy_table_T.ncols() > 1 )
         {
-            exergy_adj = CSP::interp(&exergy_table_T.at(0,0), &exergy_table_T.at(1,0), m_e_in_tes/etesmax, 0, nrow_exergy_table-1, (exergy_table_T.at(0,1) > exergy_table_T.at(0,0)) );
+            exergy_adj = CSP::interp(&exergy_table_T.at(0,0), &exergy_table_T.at(1,0), m_e_in_tes/ E_tes_max, 0, nrow_exergy_table-1, (exergy_table_T.at(0,1) > exergy_table_T.at(0,0)) );
         }
         else
         {
@@ -1088,7 +1100,7 @@ public:
 		//------------------------------------------------------------------------------------------------------------
 		double w_par_fixed = f_Wpar_fixed * mc_pc_des_solved.m_W_dot_des;       //Fixed parasitic loss based on plant capacity
 		//Production-based parasitic loss
-		double qnorm = pc_out_solver.m_q_dot_htf / m_q_des;		//[-] Normalized thermal power to cycle
+		double qnorm = pc_out_solver.m_q_dot_htf / m_q_dot_pc_des;		//[-] Normalized thermal power to cycle
 		double wpar_prodq = 0., wpar_prodt = 0., wpar_prodd = 0.;
 		for(int i=0; i<nval_Wpar_prodQ_coefs; i++)
 			wpar_prodq += Wpar_prodQ_coefs[i]*pow(qnorm, i);	//Power block part-load correction factor
