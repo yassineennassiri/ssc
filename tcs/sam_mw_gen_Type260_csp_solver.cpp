@@ -357,8 +357,9 @@ private:
 	double m_q_startup_used;	//[MWt-hr]
 	double m_q_startup_remain;	//[MWt-hr]
 	
-	double E_tes_max;		//[MWt-hr] Maximum thermal energy allowed in TES
-	double ptsmax, pfsmax;
+	double E_tes_max;			//[MWt-hr] Maximum thermal energy allowed in TES
+	double m_q_dot_to_tes_max;	//[MWt] Max thermal power to TES (field design thermal power)
+	double m_q_dot_from_tes_max;	//[MWt] Max thermal power from TES
 	
 	//Declare variables that require storage from step to step
 	double etes0;
@@ -647,8 +648,8 @@ public:
 		//Calculate max TES charging/discharging rates based on solar multiple
 			//5.5.2016, twn: adopt Physical Trough Convention: size TES HX to accept design point receiver output 
 		//ptsmax = m_q_des*max((mp_params->m_solarm - 1.), 1.0);
-		ptsmax = m_q_dot_pc_des * mp_params->m_solarm;
-		pfsmax = ptsmax / f_disch*mc_pc_des_solved.m_max_frac;
+		m_q_dot_to_tes_max = m_q_dot_pc_des * mp_params->m_solarm;
+		m_q_dot_from_tes_max = m_q_dot_to_tes_max / f_disch*mc_pc_des_solved.m_max_frac;
 
 		//Set initial storage values
 		etes0 = f_etes_0* E_tes_max;		//[MW-hr] Initial value in thermal storage. This keeps track of energy in thermal storage, or e_in_tes
@@ -867,8 +868,8 @@ public:
 				// 3.) Solar field energy exceeds maximum TES charging rate
 				//------------------------------------------------------------
 				double EtesA = max(0.0, etes0 - dispatch.at(touperiod));
-				if ((q_sf + EtesA >= qdisp[touperiod]) || (q_sf > ptsmax)){
-
+				if ((q_sf + EtesA >= qdisp[touperiod]) || (q_sf > m_q_dot_to_tes_max))
+				{
 					// Assumes Operator started plant during previous time period
 					// But TRNSYS cannot do this, so start-up energy is deducted during current timestep.     
 					pbmode = 1;
@@ -876,19 +877,23 @@ public:
 
 					q_to_pb = qdisp[touperiod];       // set the energy to powerblock equal to the load for this TOU period
 
-					if (q_sf>q_to_pb){             // if solar field output is greater than what the necessary load ?
+					if (q_sf > q_to_pb)
+					{   // If solar field output is greater than what the necessary load ?
 						q_to_tes = q_sf - q_to_pb;           // the extra goes to thermal storage
 						q_from_tes = q_startup;               // Use the energy from thermal storage to startup the power cycle
-						if (q_to_tes>ptsmax){       // if q to thermal storage exceeds thermal storage max rate Added 9-10-02
-							q_dump_teschg = q_to_tes - ptsmax;   // then dump the excess for this period Added 9-10-02
-							q_to_tes = ptsmax;
+						if (q_to_tes > m_q_dot_to_tes_max)
+						{       // if q to thermal storage exceeds thermal storage max rate Added 9-10-02
+							q_dump_teschg = q_to_tes - m_q_dot_to_tes_max;   // then dump the excess for this period Added 9-10-02
+							q_to_tes = m_q_dot_to_tes_max;
 						}                     
 					}
-					else{ // q_sf less than the powerblock requirement
+					else
+					{ // q_sf less than the powerblock requirement
 						q_to_tes = 0.0;
-						q_from_tes = q_startup + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
-						if (q_from_tes>pfsmax) q_from_tes = pfsmax;
-						q_to_pb = q_sf + (1 - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
+						q_from_tes = q_startup + (1 - q_sf / q_to_pb) * min(m_q_dot_from_tes_max, m_q_dot_pc_des);
+						if (q_from_tes > m_q_dot_from_tes_max)
+							q_from_tes = m_q_dot_from_tes_max;
+						q_to_pb = q_sf + (1 - q_sf / q_to_pb) * min(m_q_dot_from_tes_max, m_q_dot_pc_des);
 					}
                 
 					m_e_in_tes = etes0 - q_startup + (q_sf - q_to_pb) * step_hr;   // thermal storage energy is initial + what was left 
@@ -911,18 +916,22 @@ public:
 
 					q_to_pb = qdisp[touperiod]; 
 
-					if (q_sf>q_to_pb){ 
+					if (q_sf>q_to_pb)
+					{ 
 						q_to_tes = q_sf - q_to_pb; //extra from what is needed put in thermal storage
 						q_from_tes = 0.;
-						if (q_to_tes>ptsmax){  //check if max power rate to storage exceeded
-							q_dump_teschg = q_to_tes - ptsmax; // if so, dump extra 
-							q_to_tes = ptsmax;
+						if (q_to_tes > m_q_dot_to_tes_max)
+						{  //check if max power rate to storage exceeded
+							q_dump_teschg = q_to_tes - m_q_dot_to_tes_max; // if so, dump extra 
+							q_to_tes = m_q_dot_to_tes_max;
 						}
 					}
-					else{ // solar field outptu less than what powerblock needs
+					else
+					{ // solar field output less than what powerblock needs
 						q_to_tes = 0.;
-						q_from_tes = (1. - q_sf / q_to_pb) * min(pfsmax, m_q_dot_pc_des);
-						if( q_from_tes>pfsmax ) q_from_tes = min(pfsmax, m_q_dot_pc_des);
+						q_from_tes = (1. - q_sf / q_to_pb) * min(m_q_dot_from_tes_max, m_q_dot_pc_des);
+						if( q_from_tes > m_q_dot_from_tes_max )
+							q_from_tes = min(m_q_dot_from_tes_max, m_q_dot_pc_des);
 						q_to_pb = q_from_tes + q_sf;
 					}
 
