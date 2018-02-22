@@ -54,8 +54,13 @@
     <ClCompile Include="..\tcs\sam_mw_trough_type250.cpp" />
     <ClCompile Include="..\tcs\sam_type250_input_generator.cpp" />
     <ClCompile Include="..\tcs\sco2_cycle_components.cpp" />
+<<<<<<< HEAD
     <ClCompile Include="..\tcs\sco2_partialcooling_cycle.cpp" />
     <ClCompile Include="..\tcs\sco2_pc_csp_int.cpp" />
+=======
+    <ClCompile Include="..\tcs\sco2_pc_csp_int.cpp" />
+    <ClCompile Include="..\tcs\sco2_power_cycle.cpp" />
+>>>>>>> 2017.9.5.r3
     <ClCompile Include="..\tcs\sco2_recompression_cycle.cpp" />
     <ClCompile Include="..\tcs\tou_translator_csp_solver.cpp" />
     <ClCompile Include="..\tcs\ud_power_cycle.cpp" />
@@ -126,8 +131,13 @@
     <ClInclude Include="..\tcs\heat_exchangers.h" />
     <ClInclude Include="..\tcs\numeric_solvers.h" />
     <ClInclude Include="..\tcs\sco2_cycle_components.h" />
+<<<<<<< HEAD
     <ClInclude Include="..\tcs\sco2_partialcooling_cycle.h" />
     <ClInclude Include="..\tcs\sco2_pc_csp_int.h" />
+=======
+    <ClInclude Include="..\tcs\sco2_pc_csp_int.h" />
+    <ClInclude Include="..\tcs\sco2_power_cycle.h" />
+>>>>>>> 2017.9.5.r3
     <ClInclude Include="..\tcs\sco2_recompression_cycle.h" />
     <ClInclude Include="..\tcs\ud_power_cycle.h" />
     <ClInclude Include="..\tcs\water_properties.h" />
