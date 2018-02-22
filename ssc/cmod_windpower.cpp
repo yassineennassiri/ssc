@@ -261,7 +261,7 @@ void cm_windpower::exec() throw(general_error)
 
 	// create winddata_provider
 	size_t nstep = 8760;
-	smart_ptr<winddata_provider>::ptr wdprov;
+	std::unique_ptr<winddata_provider>::unique_ptr wdprov;
 
 
 	// Run Weibull Statistical model (single outputs) if selected
@@ -282,7 +282,7 @@ void cm_windpower::exec() throw(general_error)
 		bool contains_leap_day = false;
 		if (std::fmod((double)nstep, 8784) == 0)
 		{
-			wdprov = std::auto_ptr<winddata_provider>(new winddata(lookup("wind_resource_data")));
+			wdprov = std::unique_ptr<winddata_provider>(new winddata(lookup("wind_resource_data")));
 			nstep = wdprov->nrecords(); // missing - causing issue from Galen 11/15/17
 		}
 		
@@ -325,8 +325,8 @@ void cm_windpower::exec() throw(general_error)
 	////ssc_number_t *pc_rpm = as_array( "pc_rpm", NULL );
 
 	// create winddata_provider
-	size_t nstep = 8760;
-	smart_ptr<winddata_provider>::ptr wdprov;
+	nstep = 8760;
+	//smart_ptr<winddata_provider>::ptr wdprov;
 	if (is_assigned("wind_resource_filename"))
 	{
 		// read the wind data file
