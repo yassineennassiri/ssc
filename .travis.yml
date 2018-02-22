@@ -59,9 +59,6 @@ branches:
   only:
   - master
   - develop
-<<<<<<< HEAD
-  - Host_Developer
   - weather_forecast
-=======
   - 2017.9.5.r3
->>>>>>> 2017.9.5.r3
+  - Peregrine
