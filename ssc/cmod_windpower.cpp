@@ -258,6 +258,12 @@ void cm_windpower::exec() throw(general_error)
 	bool lowTempCutoff = as_boolean("en_low_temp_cutoff");
 	bool icingCutoff = as_boolean("en_icing_cutoff");
 	
+
+	// create winddata_provider
+	size_t nstep = 8760;
+	smart_ptr<winddata_provider>::ptr wdprov;
+
+
 	// Run Weibull Statistical model (single outputs) if selected
 	if (as_integer("wind_resource_model_choice") == 1){	
 		ssc_number_t *turbine_output = allocate("turbine_output_by_windspeed_bin", wt.powerCurveArrayLength);
