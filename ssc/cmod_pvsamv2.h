@@ -58,8 +58,14 @@
 
 #include "core.h"
 #include "common.h"
+
+#include "lib_pv_simulation_manager.h"
+#include "lib_pv_io.h"
 #include "cmod_battery.h"
 #include "lib_power_electronics.h"
+
+/* Old libraries, might use some still
+
 #include "lib_weatherfile.h"
 #include "lib_irradproc.h"
 #include "lib_cec6par.h"
@@ -76,6 +82,7 @@
 #include "lib_iec61853.h"
 #include "lib_util.h"
 #include "lib_pv_shade_loss_mpp.h"
+*/
 
 /**
 * Detailed photovoltaic model in SAM, version 2

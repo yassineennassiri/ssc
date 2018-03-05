@@ -17,9 +17,7 @@ class PVSimulationManager
 {
 public: 
 
-	PVSimulationManager(std::shared_ptr<PVIOManager> pvIOManager,
-						std::shared_ptr<PVLossManager> pvLossManager);
-
+	PVSimulationManager(std::shared_ptr<PVIOManager> IOManager, std::shared_ptr <PVLossManager> LossManager);
 	PVSimulationManager(const PVSimulationManager&);
 	PVSimulationManager& operator=(const PVSimulationManager&);
 
@@ -29,23 +27,20 @@ private:
 
 	const bool RunSingleStep();
 
-
-	// Shared ownership of these pointers
+	// Shared ownership
 	std::shared_ptr<PVIOManager> m_PVIOManager;
 	std::shared_ptr<PVLossManager> m_PVLossManager;
 
 	// SimulationManager uniquely manages ownership
-	std::unique_ptr<PVSystemController> m_PVSystemController;
+	//std::unique_ptr<PVSystemController> m_PVSystemController;
 };
 
 class PVLossManager
 {
 public:
 	
-	PVLossManager(std::shared_ptr<PVIOManager> pvIOManager);
-
-	PVLossManager(const PVLossManager&);
-	PVLossManager& operator=(const PVLossManager&);
+	PVLossManager(std::shared_ptr<PVIOManager> pvIOManager) :
+		m_pvIOManager(pvIOManager){}
 
 	bool Run();
 

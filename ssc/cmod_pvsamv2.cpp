@@ -779,8 +779,15 @@ cm_pvsamv2::cm_pvsamv2()
 }
 
 void cm_pvsamv2::exec( ) throw (compute_module::general_error)
-{		
+{	
+	std::shared_ptr<PVIOManager> IOManager = std::make_shared<PVIOManager>(*this);
+	std::shared_ptr<PVLossManager> LossManager = std::make_shared<PVLossManager>(IOManager);
+	std::unique_ptr<PVSimulationManager> SimulationManager(new PVSimulationManager(IOManager, LossManager));
 	
+	bool error = SimulationManager->Simulate();
+
+	// Construct loss diagram, etc.
+
 }
 	
-DEFINE_MODULE_ENTRY( pvsamv2, "Photovoltaic performance model, SAM component models V.1", 1 )
+DEFINE_MODULE_ENTRY( pvsamv2, "Photovoltaic performance model, SAM component models V.2", 1 )
