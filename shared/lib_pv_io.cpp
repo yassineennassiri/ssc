@@ -5,6 +5,9 @@
 
 PVIOManager::PVIOManager(compute_module & cm)
 {
+	std::unique_ptr<Irradiance_IO> ptr(new Irradiance_IO(cm));
+	m_IrradianceIO = std::move(ptr);
+
 	for (size_t subarray = 0; subarray != 4; subarray++)
 	{
 		std::unique_ptr<Subarray_IO> ptr(new Subarray_IO(cm, subarray));

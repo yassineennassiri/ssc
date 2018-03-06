@@ -6,16 +6,19 @@
 
 #include "lib_util.h"
 #include "lib_irradproc.h"
+#include "lib_weatherfile.h"
 
+#include "../ssc/common.h"
 #include "../ssc/core.h"
 
-
+struct Simulation_IO;
+struct Irradiance_IO;
 struct Subarray_IO;
 
 /*
 struct PVSystem_IO;
 struct MPPTController_IO;
-struct Irradiance_IO;
+
 struct Battery_IO;
 struct Inverter_IO;
 */
@@ -26,26 +29,27 @@ public:
 
 	PVIOManager(compute_module &cm);
 
-
+	Simulation_IO * getSimulationIO() const;
+	Irradiance_IO * getIrradianceIO() const;
 	Subarray_IO * getSubarrayIO(size_t subarray) const;
 	
 	/*
 	PVSystem_IO * getPVSystemIO() const;
 	MPPTController_IO * getMPPTControllerIO() const;
-	Irradiance_IO * getIrradianceIO() const;
 	Battery_IO * getBatteryIO() const;
 	Inverter_IO * getInverterIO() const;
 	*/
 	
 private:
-
+	
 	// IOManager uniquely manages ownership
+	std::unique_ptr<Irradiance_IO> m_SimulationIO;
+	std::unique_ptr<Irradiance_IO> m_IrradianceIO;
 	std::vector<std::unique_ptr<Subarray_IO>> m_SubarraysIO;
 
 	/*
 	std::unique_ptr<PVSystem_IO> m_PVSystemIO;
 	std::unique_ptr<MPPTController_IO> m_MPPTControllerIO;
-	std::unique_ptr<Irradiance_IO> m_IrradianceIO;
 	std::unique_ptr<Battery_IO> m_BatteryIO;
 	std::unique_ptr<Inverter_IO> m_InverterIO;
 	*/
@@ -130,6 +134,47 @@ struct Subarray_IO
 		double tcell;
 	} module;
 
+};
+
+struct Irradiance_IO 
+{
+	Irradiance_IO(compute_module &cm)
+	{
+		if (cm.is_assigned("solar_resource_file")){ 
+			weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherfile(cm.as_string("solar_resource_file")));
+		}
+		else {
+			weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherdata(cm.lookup("solar_resource_data")));
+		}
+
+		// Check weather file
+		if (weatherDataProvider->has_message()) cm.log(weatherDataProvider->message(), SSC_WARNING);
+		weatherfile *weatherFile = dynamic_cast<weatherfile*>(weatherDataProvider.get());
+		if (!weatherFile->ok()) throw compute_module::exec_error("pvsamv1", weatherFile->message());
+		if (weatherFile->has_message()) cm.log(weatherFile->message(), SSC_WARNING);
+	}
+
+	std::unique_ptr<weather_data_provider> weatherDataProvider;
+};
+
+struct Simulation_IO 
+{
+	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO)
+	{
+		numberOfWeatherFileRecords = IrradianceIO.weatherDataProvider->nrecords();
+		stepsPerHour = numberOfWeatherFileRecords / 8760;
+		dtHour = 1.0 / stepsPerHour;
+		useLifetimeOutput = cm.as_integer("system_use_lifetime_output");
+		numberOfYears = 1.0;
+		if (useLifetimeOutput)
+			numberOfYears = cm.as_integer("analysis_period");
+	}
+
+	size_t numberOfYears;
+	size_t numberOfWeatherFileRecords;
+	size_t stepsPerHour;
+	double dtHour;
+	bool useLifetimeOutput;
 };
 
 #endif

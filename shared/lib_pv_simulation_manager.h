@@ -18,6 +18,8 @@ class PVSimulationManager
 public: 
 
 	PVSimulationManager(std::shared_ptr<PVIOManager> IOManager, std::shared_ptr <PVLossManager> LossManager);
+
+	// Can't copy a SimulationManager
 	PVSimulationManager(const PVSimulationManager&);
 	PVSimulationManager& operator=(const PVSimulationManager&);
 
