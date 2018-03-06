@@ -43,6 +43,7 @@
     <ClInclude Include="..\shared\lib_pv_io.h" />
     <ClInclude Include="..\shared\lib_pv_shade_loss_mpp.h" />
     <ClInclude Include="..\shared\lib_pv_simulation_manager.h" />
+    <ClInclude Include="..\shared\lib_pv_system_controller.h" />
     <ClInclude Include="..\shared\lib_sandia.h" />
     <ClInclude Include="..\shared\lib_snowmodel.h" />
     <ClInclude Include="..\shared\lib_util.h" />
@@ -72,6 +73,7 @@
     <ClCompile Include="..\shared\lib_pv_io.cpp" />
     <ClCompile Include="..\shared\lib_pv_shade_loss_mpp.cpp" />
     <ClCompile Include="..\shared\lib_pv_simulation_manager.cpp" />
+    <ClCompile Include="..\shared\lib_pv_system_controller.cpp" />
     <ClCompile Include="..\shared\lib_sandia.cpp" />
     <ClCompile Include="..\shared\lib_snowmodel.cpp" />
     <ClCompile Include="..\shared\lib_util.cpp" />

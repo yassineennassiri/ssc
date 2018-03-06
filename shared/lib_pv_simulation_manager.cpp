@@ -17,3 +17,14 @@ const bool PVSimulationManager::Simulate()
 	else
 		return EXIT_FAILURE;
 }
+
+const bool PVSimulationManager::RunSingleStep()
+{
+	// do stuff
+	bool ranSuccessfully = true;
+
+	if (ranSuccessfully)
+		return EXIT_SUCCESS;
+	else
+		return EXIT_FAILURE;
+}

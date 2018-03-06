@@ -82,7 +82,7 @@ struct Subarray_IO
 				(1 - cm.as_double("dcoptimizer_loss") / 100);
 
 			if (groundCoverageRatio < 0.01)
-				throw compute_module::exec_error("pvsamv1", "array ground coverage ratio must obey 0.01 < gcr");
+				throw compute_module::exec_error("pvsamv2", "array ground coverage ratio must obey 0.01 < gcr");
 		}
 	}
 
@@ -150,7 +150,7 @@ struct Irradiance_IO
 		// Check weather file
 		if (weatherDataProvider->has_message()) cm.log(weatherDataProvider->message(), SSC_WARNING);
 		weatherfile *weatherFile = dynamic_cast<weatherfile*>(weatherDataProvider.get());
-		if (!weatherFile->ok()) throw compute_module::exec_error("pvsamv1", weatherFile->message());
+		if (!weatherFile->ok()) throw compute_module::exec_error("pvsamv2", weatherFile->message());
 		if (weatherFile->has_message()) cm.log(weatherFile->message(), SSC_WARNING);
 	}
 
@@ -165,9 +165,10 @@ struct Simulation_IO
 		stepsPerHour = numberOfWeatherFileRecords / 8760;
 		dtHour = 1.0 / stepsPerHour;
 		useLifetimeOutput = cm.as_integer("system_use_lifetime_output");
-		numberOfYears = 1.0;
-		if (useLifetimeOutput)
+		numberOfYears = 1;
+		if (useLifetimeOutput){
 			numberOfYears = cm.as_integer("analysis_period");
+		}
 	}
 
 	size_t numberOfYears;
