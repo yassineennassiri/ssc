@@ -14,3 +14,8 @@ PVIOManager::PVIOManager(compute_module & cm)
 		m_SubarraysIO.push_back(std::move(ptr));
 	}
 }
+
+MPPTController_IO * PVIOManager::getMPPTControllerIO() const
+{
+	return m_MPPTControllerIO.get();
+}

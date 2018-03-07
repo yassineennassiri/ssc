@@ -343,6 +343,18 @@ double compute_module::as_double( const std::string &name ) throw( general_error
 	return (double) x.num;
 }
 
+double compute_module::if_assigned_as_double (const std::string &name) throw(general_error)
+{
+	if (is_assigned(name))
+	{
+		var_data &x = value(name);
+		if (x.type != SSC_NUMBER) throw cast_error("double", x, name);
+		return (double)x.num;
+	}
+	else
+		return NAN;
+}
+
 const char *compute_module::as_string( const std::string &name ) throw( general_error )
 {
 	var_data &x = value(name);

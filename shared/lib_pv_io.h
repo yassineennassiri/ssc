@@ -1,6 +1,7 @@
 #ifndef _LIB_PV_IO_H_
 #define _LIB_PV_IO_H_
 
+#include <map>
 #include <memory>
 #include <math.h>
 
@@ -14,13 +15,14 @@
 struct Simulation_IO;
 struct Irradiance_IO;
 struct Subarray_IO;
+struct Inverter_IO;
+struct MPPTController_IO;
 
 /*
 struct PVSystem_IO;
-struct MPPTController_IO;
+
 
 struct Battery_IO;
-struct Inverter_IO;
 */
 
 class PVIOManager
@@ -32,10 +34,11 @@ public:
 	Simulation_IO * getSimulationIO() const;
 	Irradiance_IO * getIrradianceIO() const;
 	Subarray_IO * getSubarrayIO(size_t subarray) const;
+	MPPTController_IO * getMPPTControllerIO() const;
+
 	
 	/*
 	PVSystem_IO * getPVSystemIO() const;
-	MPPTController_IO * getMPPTControllerIO() const;
 	Battery_IO * getBatteryIO() const;
 	Inverter_IO * getInverterIO() const;
 	*/
@@ -46,12 +49,12 @@ private:
 	std::unique_ptr<Irradiance_IO> m_SimulationIO;
 	std::unique_ptr<Irradiance_IO> m_IrradianceIO;
 	std::vector<std::unique_ptr<Subarray_IO>> m_SubarraysIO;
+	std::unique_ptr<MPPTController_IO> m_MPPTControllerIO;
+	std::unique_ptr<Inverter_IO> m_InverterIO;
 
 	/*
 	std::unique_ptr<PVSystem_IO> m_PVSystemIO;
-	std::unique_ptr<MPPTController_IO> m_MPPTControllerIO;
 	std::unique_ptr<Battery_IO> m_BatteryIO;
-	std::unique_ptr<Inverter_IO> m_InverterIO;
 	*/
 
 };
@@ -61,7 +64,7 @@ struct Subarray_IO
 {
 	Subarray_IO(compute_module &cm, size_t subarrayNumber)
 	{
-		std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber));
+		std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
 		enable = cm.as_boolean(prefix + "enable");
 
 		if (enable)
@@ -176,6 +179,82 @@ struct Simulation_IO
 	size_t stepsPerHour;
 	double dtHour;
 	bool useLifetimeOutput;
+};
+
+struct Inverter_IO
+{
+	Inverter_IO(compute_module &cm)
+	{
+		inverterType = cm.as_integer("inverter_model");
+		std::string type;
+		if (inverterType == 0)
+			type = "snl";
+		else if (inverterType == 1)
+			type = "ds";
+		else if (inverterType == 2) {
+			type = "pd";
+			partloadPowerPercent = cm.as_doublevec("inv_pd_partload");
+			partloadEfficiency = cm.as_doublevec("inv_pd_efficiency");
+		}
+		else if (inverterType == 3)
+			type = "cec_cg";
+		else
+			throw compute_module::exec_error("pvsamv2", "invalid inverter model type");
+		
+		Paco = cm.as_double("inv_" + type + "_paco");
+		Pdco = cm.as_double("inv_" + type + "_pdco");
+		Vdco = cm.as_double("inv_" + type + "_vdco");
+		Pso = cm.as_double("inv_" + type + "_pso");
+		Pntare = cm.if_assigned_as_double("inv_" + type + "_pnt");
+		C0 = C1 = C2 = 0;
+		if (cm.is_assigned("inv_" + type + "_c0"))
+			C0 = cm.as_double("inv_" + type + "c0");
+		if (cm.is_assigned("inv_" + type + "_c1"))
+			C1 = cm.as_double("inv_" + type + "c1");
+		if (cm.is_assigned("inv_" + type + "_c2"))
+			C2 = cm.as_double("inv_" + type + "c2");
+		efficiency = cm.if_assigned_as_double("inv_" + type + "_eff");
+		ratedACOuput = Paco;
+	}
+
+	int inverterType;
+	double efficiency;
+	double Paco;
+	double Pdco;
+	double Vdco;
+	double Pso;
+	double Pntare;
+	double C0;
+	double C1;
+	double C2;
+	double C3;
+	double ratedACOuput;
+	std::vector<double> partloadPowerPercent;
+	std::vector<double> partloadEfficiency;
+};
+
+struct MPPTController_IO
+{
+	MPPTController_IO(compute_module &cm)
+	{
+		n_enabledSubarrays = 0;
+		for (int subarrayNumber = 0; subarrayNumber != 4; subarrayNumber++)
+		{
+			std::string prefix = "subarray" + util::to_string(subarrayNumber) + "_";
+			bool enable = cm.as_boolean(prefix + "enable");
+			if (enable)
+			{
+				int MPPTType = cm.as_integer(prefix + "mppt_type");
+				int MPPTPort = cm.as_integer(prefix + "mppt_port");
+				subarrayMPPTControllers[subarrayNumber] = MPPTType;
+				subarrayMPPTPorts[subarrayNumber] = MPPTPort;
+				n_enabledSubarrays++;
+			}
+		}
+	}
+	int n_enabledSubarrays;
+	std::map<const int, int > subarrayMPPTControllers;
+	std::map<const int, int > subarrayMPPTPorts;
 };
 
 #endif

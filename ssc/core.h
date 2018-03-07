@@ -263,6 +263,7 @@ public:
 	float as_float( const std::string &name ) throw( general_error );
 	ssc_number_t as_number( const std::string &name ) throw( general_error );
 	double as_double( const std::string &name ) throw( general_error );
+	double if_assigned_as_double(const std::string &name ) throw(general_error);
 	const char *as_string( const std::string &name ) throw( general_error );
 	ssc_number_t *as_array( const std::string &name, size_t *count ) throw( general_error );
 	std::vector<double> as_doublevec( const std::string &name ) throw( general_error );
