@@ -12,30 +12,55 @@
 #include "../ssc/common.h"
 #include "../ssc/core.h"
 
+/// Structure containing data relevent at the SimulationManager level
 struct Simulation_IO;
+
+/// Structure contain data relevent to the Irradiance model
 struct Irradiance_IO;
+
+/// Structure containing subarray-level IO information
 struct Subarray_IO;
+
+/// Structure containing inverter IO information
 struct Inverter_IO;
+
+/// Structure containing MPPT controller IO information
 struct MPPTController_IO;
 
 /*
 struct PVSystem_IO;
-
-
 struct Battery_IO;
 */
 
+/**
+* \class PVIOManager
+*
+* This class contains the input and output data needed by all of the submodels in the detailed PV model
+* It is intended to be passed as a pointer and modified with the goal of encapsulating all input that comes
+* in at the user level and all output that needs to ultimately be passed back to the user.  
+*
+*
+* \note The PVIOManager contains structures that contain specific information about each system component
+*/
 class PVIOManager
 {
 public:
-
+	
+	/// Create a PVIOManager object by parsing the compute model
 	PVIOManager(compute_module &cm);
 
+	/// Return Simulation specific information
 	Simulation_IO * getSimulationIO() const;
-	Irradiance_IO * getIrradianceIO() const;
-	Subarray_IO * getSubarrayIO(size_t subarray) const;
-	MPPTController_IO * getMPPTControllerIO() const;
 
+	/// Return Irradiance specific information
+	Irradiance_IO * getIrradianceIO() const;
+
+	/// Return Subarray specific information for the given subarray
+	Subarray_IO * getSubarrayIO(size_t subarray) const;
+
+	/// Return MPPT Controller specific information for the given subarray
+	MPPTController_IO * getMPPTControllerIO() const;
+	
 	
 	/*
 	PVSystem_IO * getPVSystemIO() const;
@@ -45,7 +70,9 @@ public:
 	
 private:
 	
-	// IOManager uniquely manages ownership
+	/** These structures contain specific IO data for each part of the model
+	  * They are owned exclusively by the PVIOManager 
+	  */
 	std::unique_ptr<Irradiance_IO> m_SimulationIO;
 	std::unique_ptr<Irradiance_IO> m_IrradianceIO;
 	std::vector<std::unique_ptr<Subarray_IO>> m_SubarraysIO;
@@ -139,11 +166,11 @@ struct Subarray_IO
 
 };
 
-struct Irradiance_IO 
+struct Irradiance_IO
 {
 	Irradiance_IO(compute_module &cm)
 	{
-		if (cm.is_assigned("solar_resource_file")){ 
+		if (cm.is_assigned("solar_resource_file")) {
 			weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherfile(cm.as_string("solar_resource_file")));
 		}
 		else {
@@ -160,7 +187,7 @@ struct Irradiance_IO
 	std::unique_ptr<weather_data_provider> weatherDataProvider;
 };
 
-struct Simulation_IO 
+struct Simulation_IO
 {
 	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO)
 	{
@@ -169,7 +196,7 @@ struct Simulation_IO
 		dtHour = 1.0 / stepsPerHour;
 		useLifetimeOutput = cm.as_integer("system_use_lifetime_output");
 		numberOfYears = 1;
-		if (useLifetimeOutput){
+		if (useLifetimeOutput) {
 			numberOfYears = cm.as_integer("analysis_period");
 		}
 	}
@@ -200,7 +227,7 @@ struct Inverter_IO
 			type = "cec_cg";
 		else
 			throw compute_module::exec_error("pvsamv2", "invalid inverter model type");
-		
+
 		Paco = cm.as_double("inv_" + type + "_paco");
 		Pdco = cm.as_double("inv_" + type + "_pdco");
 		Vdco = cm.as_double("inv_" + type + "_vdco");
@@ -256,5 +283,6 @@ struct MPPTController_IO
 	std::map<const int, int > subarrayMPPTControllers;
 	std::map<const int, int > subarrayMPPTPorts;
 };
+
 
 #endif

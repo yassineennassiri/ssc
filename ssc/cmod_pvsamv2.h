@@ -85,6 +85,8 @@
 */
 
 /**
+* \class cm_pvsamv2
+*
 * Detailed photovoltaic model in SAM, version 2
 * Contains calculations to process a weather file, parse the irradiance, and evaluate PV subarray power production with AC or DC connected batteries
 */
@@ -92,10 +94,10 @@ class cm_pvsamv2 : public compute_module
 {
 public:
 	
-	//! PV model class constructor
+	/// PV compute module constructor
 	cm_pvsamv2();
 
-	//! Run the PV model
+	/// Run the compute module
 	void exec() throw (compute_module::general_error);
 	
 };
