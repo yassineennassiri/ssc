@@ -780,10 +780,8 @@ cm_pvsamv2::cm_pvsamv2()
 
 void cm_pvsamv2::exec( ) throw (compute_module::general_error)
 {	
-	std::shared_ptr<PVIOManager> IOManager = std::make_shared<PVIOManager>(*this);
-	std::shared_ptr<PVLossManager> LossManager = std::make_shared<PVLossManager>(IOManager);
-	std::unique_ptr<PVSimulationManager> SimulationManager(new PVSimulationManager(IOManager, LossManager));
-	
+
+	std::unique_ptr<PVSimulationManager> SimulationManager(new PVSimulationManager(*this));
 	bool error = SimulationManager->Simulate();
 
 	// Construct loss diagram, etc.

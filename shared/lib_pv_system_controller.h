@@ -23,15 +23,15 @@ class PVSystemController
 {
 public:
 	/// Construct a PVSystemController from a PVIOManager
-	PVSystemController(std::shared_ptr<PVIOManager> pvIOManager);
+	PVSystemController(PVIOManager * pvIOManager);
 
 	/// Run the System for one time step
 	const bool RunSingleStep();
 
 private:
 
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 
 	/// The PVSystemController exclusively manages the PVSystem
 	std::unique_ptr<PVSystem> m_pvSystem;
@@ -49,15 +49,15 @@ class PVSystem
 public:
 
 	/// Construct a PVSystem from a PVIOManager
-	PVSystem(std::shared_ptr<PVIOManager> pvIOManager);
+	PVSystem(PVIOManager * pvIOManager);
 
 	/// Simulation the PVSystem for one time step
 	const bool RunSingleStep();
 
 private:
 
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 
 	/// The PVSystem uniquely manages the DC and AC controllers
 	std::unique_ptr<PVDCController> m_pvDCController;
@@ -76,13 +76,13 @@ class PVDCController
 public: 
 
 	/// Construct a PVDCController from a PVIOManager
-	PVDCController(std::shared_ptr<PVIOManager> pvIOManager);
+	PVDCController(PVIOManager * pvIOManager);
 
 	//const bool RunSingleStep();
 private:
 
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 
 	/// The PVDCController uniquely manages MPPTControllers in the system
 	std::vector<std::unique_ptr<MPPTController>> m_MPPTControllers;
@@ -100,13 +100,13 @@ class PVACController
 {
 public:
 	/// Construct a PVDAController from a PVIOManager
-	PVACController(std::shared_ptr<PVIOManager> pvIOManager);
+	PVACController(PVIOManager * pvIOManager);
 
 	//const bool RunSingleStep();
 
 private:
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 
 };
 
@@ -121,14 +121,14 @@ class MPPTController
 {
 public:
 	/// Construct a MPPTController from a PVIOManager
-	MPPTController(std::shared_ptr<PVIOManager> pvIOManager);
+	MPPTController(PVIOManager * pvIOManager);
 
 	/// Simulation the MPPTController for one time step
 	const bool RunSingleStep();
 
 private:
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 
 	/// The MPPTController uniquely manages the Subarray's under its control
 	std::vector<std::unique_ptr<Subarray>> m_Subarrays;
@@ -149,15 +149,15 @@ class Subarray
 {
 public:
 	/// Construct a Subarray from a PVIOManager
-	Subarray(std::shared_ptr<PVIOManager> pvIOManager);
+	Subarray(PVIOManager * pvIOManager);
 
 	/// Simulate a Subarray for one time step
 	const bool RunSingleStep();
 
 private:
 
-	/// The PVIOManager is a shared pointer
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	PVIOManager * m_pvIOManager;
 	
 };
 

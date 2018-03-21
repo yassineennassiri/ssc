@@ -19,7 +19,7 @@ class PVSimulationManager
 public: 
 
 	/// Construct a PVSimulationManager with a PVIOManager and PVLossManager
-	PVSimulationManager(std::shared_ptr<PVIOManager> IOManager, std::shared_ptr <PVLossManager> LossManager);
+	PVSimulationManager(compute_module &cm);
 
 	/// PVSimulationManager is intended to be non-copyable
 	PVSimulationManager(const PVSimulationManager&);
@@ -33,12 +33,10 @@ private:
 	/// Run a single step of the simulation
 	const bool RunSingleStep();
 
-	/// The member Manager objects are shared (though could be reconcieved as unique_ptr
-	std::shared_ptr<PVIOManager> m_PVIOManager;
-	std::shared_ptr<PVLossManager> m_PVLossManager;
-
-	// SimulationManager uniquely manages ownership
-	//std::unique_ptr<PVSystemController> m_PVSystemController;
+	// These objects are managed exclusively by PVSimulationManager
+	std::unique_ptr<PVIOManager> m_PVIOManager;			/// An object containing all of the required inputs and outputs for the PV simulation
+	std::unique_ptr<PVLossManager> m_PVLossManager;		/// An object containing the methods and data to construct the loss diagram
+	//std::unique_ptr<PVSystemController> m_PVSystemController; /// An object that oversees the control of the PVSystem and any other technologies
 };
 
 /**
@@ -52,7 +50,7 @@ class PVLossManager
 public:
 	
 	/// Construct a PVLossManager with a PVIOManager
-	PVLossManager(std::shared_ptr<PVIOManager> pvIOManager) :
+	PVLossManager(PVIOManager * pvIOManager) :
 		m_pvIOManager(pvIOManager){}
 
 	/// Run the loss manager and parse the outputs

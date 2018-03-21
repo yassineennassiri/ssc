@@ -1,6 +1,6 @@
 #include "lib_pv_system_controller.h"
 
-PVSystemController::PVSystemController(std::shared_ptr <PVIOManager> pvIOManager) :
+PVSystemController::PVSystemController(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 	std::unique_ptr<PVSystem> ptr(new PVSystem(pvIOManager));
@@ -18,7 +18,7 @@ const bool PVSystemController::RunSingleStep()
 		return EXIT_FAILURE;
 }
 
-PVSystem::PVSystem(std::shared_ptr<PVIOManager> pvIOManager) :
+PVSystem::PVSystem(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 	std::unique_ptr<PVDCController> ptr(new PVDCController(pvIOManager));
@@ -39,17 +39,17 @@ const bool PVSystem::RunSingleStep()
 		return EXIT_FAILURE;
 }
 
-PVDCController::PVDCController(std::shared_ptr<PVIOManager> pvIOManager) :
+PVDCController::PVDCController(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 }
 
-PVACController::PVACController(std::shared_ptr<PVIOManager> pvIOManager) :
+PVACController::PVACController(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 }
 
-MPPTController::MPPTController(std::shared_ptr<PVIOManager> pvIOManager) :
+MPPTController::MPPTController(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 	m_MPPTIO = pvIOManager->getMPPTControllerIO();
@@ -71,7 +71,7 @@ const bool MPPTController::RunSingleStep()
 	return EXIT_SUCCESS;
 }
 
-Subarray::Subarray(std::shared_ptr<PVIOManager> pvIOManager) :
+Subarray::Subarray(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
 }
