@@ -28,6 +28,13 @@ public:
 	/// Run a PV Simulation
 	const bool Simulate();
 
+	/// Return a weak pointer to the PVIOManager
+	PVIOManager * getPVIOManager() { return m_PVIOManager.get(); }
+
+	/// Return a weak pointer to the PVLossManager
+	PVLossManager * getPVLossManager() { return m_PVLossManager.get(); }
+
+
 private:
 
 	/// Run a single step of the simulation
@@ -58,7 +65,7 @@ public:
 
 private:
 
-	/// A shared pointer to the PVIOManager
-	std::shared_ptr<PVIOManager> m_pvIOManager;
+	/// A weak pointer to the PVIOManager, managed by PVSimulationManager
+	PVIOManager * m_pvIOManager;
 };
 #endif

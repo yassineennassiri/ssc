@@ -86,3 +86,4 @@ const bool Subarray::RunSingleStep()
 	else
 		return EXIT_FAILURE;
 }
+

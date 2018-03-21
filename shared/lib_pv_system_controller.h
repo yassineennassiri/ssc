@@ -4,7 +4,11 @@
 #include <memory>
 
 #include "lib_pv_io.h"
+#include "lib_pv_module_model.h"
+#include "lib_pv_irradiance.h"
 
+// Forward declarations
+class ModuleModel;
 class Subarray;
 class MPPTController;
 class PVDCController;
@@ -158,7 +162,11 @@ private:
 
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
 	PVIOManager * m_pvIOManager;
-	
+
+	/// The Subarray uniquely owns and manages these models
+	std::unique_ptr<IrradianceModel> m_IrradianceModel;			/// The Irradiance Model which processes incoming irradiance into plane-of-array irradiance
+	std::unique_ptr<ModuleModel> m_ModuleModel;					/// The PV Module Model which converts plane of array irradiance into DC power
+	//std::unique_ptr<ChargeController> m_ChargeControllerModel;  /// The Battery Charge Controller, which if attached at the Subarray level, implies a DC-connected battery
 };
 
 #endif
