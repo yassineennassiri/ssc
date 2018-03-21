@@ -220,20 +220,8 @@ struct Irradiance_IO
 
 struct Simulation_IO
 {
-	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO)
-	{
-		numberOfWeatherFileRecords = IrradianceIO.numberOfWeatherFileRecords;
-		stepsPerHour = IrradianceIO.stepsPerHour;
-		dtHour = IrradianceIO.dtHour;
-
-		useLifetimeOutput = cm.as_integer("system_use_lifetime_output");
-		numberOfYears = 1;
-		if (useLifetimeOutput) {
-			numberOfYears = cm.as_integer("analysis_period");
-		}
-		numberOfSteps = numberOfYears * numberOfWeatherFileRecords;
-	}
-
+	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO);
+	
 	size_t numberOfYears;
 	size_t numberOfWeatherFileRecords;
 	size_t numberOfSteps;
@@ -244,40 +232,8 @@ struct Simulation_IO
 
 struct Inverter_IO
 {
-	Inverter_IO(compute_module &cm)
-	{
-		inverterType = cm.as_integer("inverter_model");
-		std::string type;
-		if (inverterType == 0)
-			type = "snl";
-		else if (inverterType == 1)
-			type = "ds";
-		else if (inverterType == 2) {
-			type = "pd";
-			partloadPowerPercent = cm.as_doublevec("inv_pd_partload");
-			partloadEfficiency = cm.as_doublevec("inv_pd_efficiency");
-		}
-		else if (inverterType == 3)
-			type = "cec_cg";
-		else
-			throw compute_module::exec_error("pvsamv2", "invalid inverter model type");
-
-		Paco = cm.as_double("inv_" + type + "_paco");
-		Pdco = cm.as_double("inv_" + type + "_pdco");
-		Vdco = cm.as_double("inv_" + type + "_vdco");
-		Pso = cm.as_double("inv_" + type + "_pso");
-		Pntare = cm.if_assigned_as_double("inv_" + type + "_pnt");
-		C0 = C1 = C2 = 0;
-		if (cm.is_assigned("inv_" + type + "_c0"))
-			C0 = cm.as_double("inv_" + type + "c0");
-		if (cm.is_assigned("inv_" + type + "_c1"))
-			C1 = cm.as_double("inv_" + type + "c1");
-		if (cm.is_assigned("inv_" + type + "_c2"))
-			C2 = cm.as_double("inv_" + type + "c2");
-		efficiency = cm.if_assigned_as_double("inv_" + type + "_eff");
-		ratedACOuput = Paco;
-	}
-
+	Inverter_IO(compute_module &cm);
+	
 	int inverterType;
 	double efficiency;
 	double Paco;
@@ -296,29 +252,8 @@ struct Inverter_IO
 
 struct MPPTController_IO
 {
-	MPPTController_IO(compute_module &cm)
-	{
-		n_enabledSubarrays = 0;
-		size_t tmp_max = 0;
-		for (size_t subarrayNumber = 0; subarrayNumber != 4; subarrayNumber++)
-		{
-			std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
-			bool enable = cm.as_boolean(prefix + "enable");
-			if (enable)
-			{
-				size_t MPPTType = static_cast<size_t>(cm.as_integer(prefix + "mppt_type"));
-				size_t MPPTPort = static_cast<size_t>(cm.as_integer(prefix + "mppt_port"));
+	MPPTController_IO(compute_module &cm);
 
-				subarrayMPPTControllers[subarrayNumber] = MPPTType;
-				subarrayMPPTPorts[subarrayNumber] = MPPTPort;
-				n_enabledSubarrays++;
-
-				if (MPPTType > tmp_max)
-					tmp_max = MPPTType;
-			}
-		}
-		n_MPPTControllers = tmp_max;
-	}
 	size_t n_enabledSubarrays;
 	std::map<const size_t, size_t > subarrayMPPTControllers;
 	std::map<const size_t, size_t > subarrayMPPTPorts;
