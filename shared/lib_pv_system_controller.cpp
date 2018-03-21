@@ -7,15 +7,9 @@ PVSystemController::PVSystemController(PVIOManager * pvIOManager) :
 	m_pvSystem = std::move(ptr);
 }
 
-const bool PVSystemController::RunSingleStep()
+const bool PVSystemController::RunSingleStep(const size_t runIndex)
 {
-	// do stuff
-	bool ranSuccessfully = true;
-
-	if (ranSuccessfully)
-		return EXIT_SUCCESS;
-	else
-		return EXIT_FAILURE;
+	return (m_pvSystem->RunSingleStep(runIndex));
 }
 
 PVSystem::PVSystem(PVIOManager * pvIOManager) :
@@ -28,20 +22,26 @@ PVSystem::PVSystem(PVIOManager * pvIOManager) :
 	m_pvACController = std::move(ptr2);
 }
 
-const bool PVSystem::RunSingleStep()
+const bool PVSystem::RunSingleStep(const size_t runIndex)
 {
-	// do stuff
-	bool ranSuccessfully = true;
-
-	if (ranSuccessfully)
-		return EXIT_SUCCESS;
-	else
-		return EXIT_FAILURE;
+	return m_pvDCController->RunSingleStep(runIndex);
 }
 
 PVDCController::PVDCController(PVIOManager * pvIOManager) :
-	m_pvIOManager(pvIOManager)
+	m_pvIOManager(pvIOManager),
+	m_MPPTIO(pvIOManager->getMPPTControllerIO())
 {
+}
+
+const bool PVDCController::RunSingleStep(const size_t runIndex)
+{
+	for (size_t mpptType = 0; mpptType != m_MPPTIO->n_MPPTControllers; mpptType++)
+	{
+		if (m_MPPTControllers[0]->RunSingleStep(runIndex, mpptType) == EXIT_FAILURE)
+			return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }
 
 PVACController::PVACController(PVIOManager * pvIOManager) :
@@ -60,12 +60,16 @@ MPPTController::MPPTController(PVIOManager * pvIOManager) :
 	}
 }
 
-const bool MPPTController::RunSingleStep()
+const bool MPPTController::RunSingleStep(const size_t runIndex, const size_t mpptType)
 {
 	for (size_t subarrayNumber = 0; subarrayNumber != m_MPPTIO->n_enabledSubarrays; subarrayNumber++)
 	{
-		m_Subarrays[subarrayNumber]->RunSingleStep();
+		// Only run the subarrays that are on this mppt controller.  
+		if (m_MPPTIO->subarrayMPPTControllers[subarrayNumber] == mpptType)
+			m_Subarrays[subarrayNumber]->RunSingleStep(runIndex);
 		
+		// do stuff with multiple MPPT ports
+
 		// do stuff with MPPT feedback to subarray and check error conditions
 	}
 	return EXIT_SUCCESS;
@@ -76,11 +80,18 @@ Subarray::Subarray(PVIOManager * pvIOManager) :
 {
 }
 
-const bool Subarray::RunSingleStep()
+const bool Subarray::RunSingleStep(const size_t runIndex)
 {
-	// do stuff
-	bool ranSuccessfully = true;
+	bool ranSuccessfully = false;
 
+	// Run the Irradiance model
+	if (m_IrradianceModel->RunSingleStep(runIndex)){
+		if (m_ModuleModel->RunSingleStep()){
+			ranSuccessfully = true;
+		}
+	}
+
+	// Run DC battery
 	if (ranSuccessfully)
 		return EXIT_SUCCESS;
 	else

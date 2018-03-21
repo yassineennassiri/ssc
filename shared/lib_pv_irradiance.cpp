@@ -1,12 +1,18 @@
 #include "lib_pv_irradiance.h"
 
 IrradianceModel::IrradianceModel(PVIOManager * pvIOManager) :
-	m_pvIOManager(pvIOManager)
+	m_pvIOManager(pvIOManager), 
+	m_irradianceIO(pvIOManager->getIrradianceIO())
 {
 }
 
-const bool IrradianceModel::RunSingleStep()
+const bool IrradianceModel::RunSingleStep(const size_t runIndex)
 {
+
+	if (!m_irradianceIO->weatherDataProvider.get()->read(&m_irradianceIO->weatherRecord)) {
+		throw compute_module::exec_error("pvsamv2", "could not read data line " + util::to_string((int)(runIndex + 1)) + " in weather file while loading POA data");
+	}
+
 	// do stuff
 	bool ranSuccessfully = true;
 
@@ -21,7 +27,7 @@ TrackerModel::TrackerModel(PVIOManager * pvIOManager) :
 {
 }
 
-const bool TrackerModel::RunSingleStep()
+const bool TrackerModel::RunSingleStep(const size_t runIndex)
 {
 	// do stuff
 	bool ranSuccessfully = true;

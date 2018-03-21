@@ -23,12 +23,13 @@ public:
 	IrradianceModel(PVIOManager * pvIOManager);
 
 	/// Process the irradiance for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 private:
 
-	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	/// Weak pointers that are owned by the PVSimulationManager or PVIOManager
 	PVIOManager * m_pvIOManager;
+	Irradiance_IO * m_irradianceIO;
 
 	/// The IrradianceModel uniquely owns and manages these models
 	std::unique_ptr<TrackerModel> m_TrackerModel;				/// The Tracker Model, which runs the tracking system for the subarray and modifies the POA irradiance
@@ -49,7 +50,7 @@ public:
 	TrackerModel(PVIOManager * pvIOManager);
 
 	/// Process the irradiance for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 private:
 

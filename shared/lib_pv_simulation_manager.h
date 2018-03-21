@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "lib_pv_io.h"
+#include "lib_pv_system_controller.h"
 
 class PVLossManager;
 class PVSystemController;
@@ -38,12 +39,15 @@ public:
 private:
 
 	/// Run a single step of the simulation
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 	// These objects are managed exclusively by PVSimulationManager
 	std::unique_ptr<PVIOManager> m_PVIOManager;			/// An object containing all of the required inputs and outputs for the PV simulation
 	std::unique_ptr<PVLossManager> m_PVLossManager;		/// An object containing the methods and data to construct the loss diagram
-	//std::unique_ptr<PVSystemController> m_PVSystemController; /// An object that oversees the control of the PVSystem and any other technologies
+	std::unique_ptr<PVSystemController> m_PVSystemController; /// An object that oversees the control of the PVSystem and any other technologies
+
+	// Managed by PVIOManager
+	Simulation_IO * m_simulationIO;   /// An object containing data relevent to the simulation level
 };
 
 /**

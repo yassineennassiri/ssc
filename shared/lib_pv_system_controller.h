@@ -30,7 +30,7 @@ public:
 	PVSystemController(PVIOManager * pvIOManager);
 
 	/// Run the System for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 private:
 
@@ -56,7 +56,7 @@ public:
 	PVSystem(PVIOManager * pvIOManager);
 
 	/// Simulation the PVSystem for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 private:
 
@@ -82,11 +82,12 @@ public:
 	/// Construct a PVDCController from a PVIOManager
 	PVDCController(PVIOManager * pvIOManager);
 
-	//const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 private:
 
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
 	PVIOManager * m_pvIOManager;
+	MPPTController_IO * m_MPPTIO;
 
 	/// The PVDCController uniquely manages MPPTControllers in the system
 	std::vector<std::unique_ptr<MPPTController>> m_MPPTControllers;
@@ -128,7 +129,7 @@ public:
 	MPPTController(PVIOManager * pvIOManager);
 
 	/// Simulation the MPPTController for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex, const size_t mpptType);
 
 private:
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
@@ -156,7 +157,7 @@ public:
 	Subarray(PVIOManager * pvIOManager);
 
 	/// Simulate a Subarray for one time step
-	const bool RunSingleStep();
+	const bool RunSingleStep(const size_t runIndex);
 
 private:
 

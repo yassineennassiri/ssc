@@ -166,43 +166,77 @@ struct Subarray_IO
 
 };
 
+/**
+* \struct Irradiance_IO
+*
+* This structure contains the input and output data needed by the IrradianceModel
+* It is contained within the IOManager.
+*
+* \note The data contained in Irradiance_IO is independent of a subarray.  The Subarray_IO may contain
+*	    other irradiance components that are specific to each subarray.
+*
+*/
 struct Irradiance_IO
 {
-	Irradiance_IO(compute_module &cm)
-	{
-		if (cm.is_assigned("solar_resource_file")) {
-			weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherfile(cm.as_string("solar_resource_file")));
-		}
-		else {
-			weatherDataProvider = std::unique_ptr<weather_data_provider>(new weatherdata(cm.lookup("solar_resource_data")));
-		}
+	/// Construct the Irradiance_IO structure from the compute module input.  This sets up all inputs for the IrradianceModel
+	Irradiance_IO(compute_module &cm);
 
-		// Check weather file
-		if (weatherDataProvider->has_message()) cm.log(weatherDataProvider->message(), SSC_WARNING);
-		weatherfile *weatherFile = dynamic_cast<weatherfile*>(weatherDataProvider.get());
-		if (!weatherFile->ok()) throw compute_module::exec_error("pvsamv2", weatherFile->message());
-		if (weatherFile->has_message()) cm.log(weatherFile->message(), SSC_WARNING);
-	}
+	/// Allocate the Irradiance_IO outputs
+	void AllocateOutputs(compute_module &cm);
 
-	std::unique_ptr<weather_data_provider> weatherDataProvider;
+	/// Assign outputs from member data after the IrradianceModel has run 
+	void AssignOutputs(compute_module &cm);
+
+	// Irradiance Data Inputs
+	std::unique_ptr<weather_data_provider> weatherDataProvider;   /// A class which encapsulates the weather data regardless of input method
+	weather_record weatherRecord;								  /// Describes the weather data
+	weather_header weatherHeader;								  /// Describes the weather data header
+	double tsShiftHours;										  /// Sun position time offset
+	bool instantaneous;											  /// Describes whether the weather data is instantaneous (or not)
+	size_t numberOfYears;										  /// The number of years in the simulation
+	size_t numberOfWeatherFileRecords;							  /// The number of records in the weather file
+	size_t stepsPerHour;										  /// The number of steps per hour
+	double dtHour;											      /// The timestep in hours
+	int radiationMode;											  /// Specify which components of radiance should be used: 0=B&D, 1=G&B, 2=G&D, 3=POA-Ref, 4=POA-Pyra
+	int skyModel;												  /// Specify which sky diffuse model should be used: 0=isotropic, 1=hdkr, 2=perez
+
+	// Irradiance data Outputs (p_ is just a convention to organize all pointer outputs)
+	ssc_number_t * p_weatherFileGHI;			/// The Global Horizonal Irradiance from the weather file
+	ssc_number_t * p_weatherFileDNI;			/// The Direct Normal (Beam) Irradiance from the weather file
+	ssc_number_t * p_weatherFileDHI;			/// The Direct Normal (Beam) Irradiance from the weather file
+	ssc_number_t * p_weatherFilePOA;			/// The Plane of Array Irradiance from the weather file
+	ssc_number_t * p_sunPositionTime;			/// <UNSURE>
+	ssc_number_t * p_weatherFileWindSpeed;		/// The Wind Speed from the weather file
+	ssc_number_t * p_weatherFileAmbientTemp;	/// The ambient temperature from the weather file
+	ssc_number_t * p_weatherFileAlbedo;			/// The ground albedo from the weather file
+	ssc_number_t * p_weatherFileSnowDepth;		/// The snow depth from the weather file
+	ssc_number_t * p_IrradianceCalculated[3];	/// The calculated components of the irradiance
+	ssc_number_t * p_sunZenithAngle;			/// The calculate sun zenith angle
+	ssc_number_t * p_sunAltitudeAngle;			/// The calculated sun altitude angle
+	ssc_number_t * p_sunAzimuthAngle;			/// The calculated sun azimuth angle
+	ssc_number_t * p_absoluteAirmass;			/// The calculated absolute airmass
+	ssc_number_t * p_sunUpOverHorizon;			/// The calculation of whether the sun is up over the horizon
 };
 
 struct Simulation_IO
 {
 	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO)
 	{
-		numberOfWeatherFileRecords = IrradianceIO.weatherDataProvider->nrecords();
-		stepsPerHour = numberOfWeatherFileRecords / 8760;
-		dtHour = 1.0 / stepsPerHour;
+		numberOfWeatherFileRecords = IrradianceIO.numberOfWeatherFileRecords;
+		stepsPerHour = IrradianceIO.stepsPerHour;
+		dtHour = IrradianceIO.dtHour;
+
 		useLifetimeOutput = cm.as_integer("system_use_lifetime_output");
 		numberOfYears = 1;
 		if (useLifetimeOutput) {
 			numberOfYears = cm.as_integer("analysis_period");
 		}
+		numberOfSteps = numberOfYears * numberOfWeatherFileRecords;
 	}
 
 	size_t numberOfYears;
 	size_t numberOfWeatherFileRecords;
+	size_t numberOfSteps;
 	size_t stepsPerHour;
 	double dtHour;
 	bool useLifetimeOutput;
@@ -265,23 +299,30 @@ struct MPPTController_IO
 	MPPTController_IO(compute_module &cm)
 	{
 		n_enabledSubarrays = 0;
-		for (int subarrayNumber = 0; subarrayNumber != 4; subarrayNumber++)
+		size_t tmp_max = 0;
+		for (size_t subarrayNumber = 0; subarrayNumber != 4; subarrayNumber++)
 		{
-			std::string prefix = "subarray" + util::to_string(subarrayNumber) + "_";
+			std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
 			bool enable = cm.as_boolean(prefix + "enable");
 			if (enable)
 			{
-				int MPPTType = cm.as_integer(prefix + "mppt_type");
-				int MPPTPort = cm.as_integer(prefix + "mppt_port");
+				size_t MPPTType = static_cast<size_t>(cm.as_integer(prefix + "mppt_type"));
+				size_t MPPTPort = static_cast<size_t>(cm.as_integer(prefix + "mppt_port"));
+
 				subarrayMPPTControllers[subarrayNumber] = MPPTType;
 				subarrayMPPTPorts[subarrayNumber] = MPPTPort;
 				n_enabledSubarrays++;
+
+				if (MPPTType > tmp_max)
+					tmp_max = MPPTType;
 			}
 		}
+		n_MPPTControllers = tmp_max;
 	}
-	int n_enabledSubarrays;
-	std::map<const int, int > subarrayMPPTControllers;
-	std::map<const int, int > subarrayMPPTPorts;
+	size_t n_enabledSubarrays;
+	std::map<const size_t, size_t > subarrayMPPTControllers;
+	std::map<const size_t, size_t > subarrayMPPTPorts;
+	size_t n_MPPTControllers;
 };
 
 
