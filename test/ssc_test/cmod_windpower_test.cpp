@@ -121,7 +121,7 @@ TEST_F(CMWindPowerIntegration, UsingDataArray_cmod_windpower){
 
 	free_winddata_array(windresourcedata);
 
-	// 30 min data
+	// subhourly 30 min data
 	ssc_data_unassign(data, "wind_resource_data");
 	windresourcedata = create_winddata_array(2,1);
 	vt->assign("wind_resource_data", *windresourcedata);
