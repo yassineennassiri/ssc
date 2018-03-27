@@ -1,6 +1,7 @@
 #ifndef _LIB_PV_IRRADIANCE_H_
 #define _LIB_PV_IRRADIANCE_H_
 
+#include "lib_irradproc.h"
 #include "lib_pv_io.h"
 #include <memory>
 
@@ -30,6 +31,7 @@ private:
 	/// Weak pointers that are owned by the PVSimulationManager or PVIOManager
 	PVIOManager * m_pvIOManager;
 	Irradiance_IO * m_irradianceIO;
+	std::vector<Subarray_IO *> m_subarraysIO;
 
 	/// The IrradianceModel uniquely owns and manages these models
 	std::unique_ptr<TrackerModel> m_TrackerModel;				/// The Tracker Model, which runs the tracking system for the subarray and modifies the POA irradiance

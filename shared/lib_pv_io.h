@@ -49,6 +49,9 @@ public:
 	/// Create a PVIOManager object by parsing the compute model
 	PVIOManager(compute_module &cm);
 
+	/// Return pointer to compute module
+	compute_module * getComputeModule() const;
+
 	/// Return Simulation specific information
 	Simulation_IO * getSimulationIO() const;
 
@@ -69,6 +72,9 @@ public:
 	*/
 	
 private:
+	
+	/// A pointer to the underlying compute module object
+	compute_module * m_computeModule;
 	
 	/** These structures contain specific IO data for each part of the model
 	  * They are owned exclusively by the PVIOManager 
@@ -172,8 +178,9 @@ struct Subarray_IO
 * This structure contains the input and output data needed by the IrradianceModel
 * It is contained within the IOManager.
 *
-* \note The data contained in Irradiance_IO is independent of a subarray.  The Subarray_IO may contain
-*	    other irradiance components that are specific to each subarray.
+* \note The data contained in Irradiance_IO is primarily the data read in from the weather file
+*		In general, the data is independent of a subarray, with the exception of plane-of-array (POA)
+*		irradiance data, which may be specified in the weatherfile on a subarray basis.
 *
 */
 struct Irradiance_IO
@@ -187,6 +194,10 @@ struct Irradiance_IO
 	/// Assign outputs from member data after the IrradianceModel has run 
 	void AssignOutputs(compute_module &cm);
 
+	// Constants
+	static const int irradiationMax = 1500;						  /// The maximum irradiation (W/m2) allowed
+	static const int irradprocNoInterpolateSunriseSunset = -1;    /// Interpolate the sunrise/sunset
+
 	// Irradiance Data Inputs
 	std::unique_ptr<weather_data_provider> weatherDataProvider;   /// A class which encapsulates the weather data regardless of input method
 	weather_record weatherRecord;								  /// Describes the weather data
@@ -196,15 +207,18 @@ struct Irradiance_IO
 	size_t numberOfYears;										  /// The number of years in the simulation
 	size_t numberOfWeatherFileRecords;							  /// The number of records in the weather file
 	size_t stepsPerHour;										  /// The number of steps per hour
+	size_t numberOfSubarrays;									  /// The number of subarrays (needed if reading POA data from weather file)
 	double dtHour;											      /// The timestep in hours
 	int radiationMode;											  /// Specify which components of radiance should be used: 0=B&D, 1=G&B, 2=G&D, 3=POA-Ref, 4=POA-Pyra
 	int skyModel;												  /// Specify which sky diffuse model should be used: 0=isotropic, 1=hdkr, 2=perez
+	bool useWeatherFileAlbedo;									  /// Specify whether to use the weather file albedo
+	std::vector<double> userSpecifiedMonthlyAlbedo;				  /// User can provide monthly ground albedo values (0-1)
 
 	// Irradiance data Outputs (p_ is just a convention to organize all pointer outputs)
 	ssc_number_t * p_weatherFileGHI;			/// The Global Horizonal Irradiance from the weather file
 	ssc_number_t * p_weatherFileDNI;			/// The Direct Normal (Beam) Irradiance from the weather file
 	ssc_number_t * p_weatherFileDHI;			/// The Direct Normal (Beam) Irradiance from the weather file
-	ssc_number_t * p_weatherFilePOA;			/// The Plane of Array Irradiance from the weather file
+	std::vector<ssc_number_t *> p_weatherFilePOA; /// The Plane of Array Irradiance from the weather file
 	ssc_number_t * p_sunPositionTime;			/// <UNSURE>
 	ssc_number_t * p_weatherFileWindSpeed;		/// The Wind Speed from the weather file
 	ssc_number_t * p_weatherFileAmbientTemp;	/// The ambient temperature from the weather file
@@ -250,14 +264,26 @@ struct Inverter_IO
 	std::vector<double> partloadEfficiency;
 };
 
+/**
+* \struct MPPTController_IO
+*
+* This structure contains the input and output data needed by the MPPTController model
+* It is contained within the IOManager.
+*
+*/
 struct MPPTController_IO
 {
+	/// Construct a MPPTController_IO object from the compute_module
 	MPPTController_IO(compute_module &cm);
 
-	size_t n_enabledSubarrays;
-	std::map<const size_t, size_t > subarrayMPPTControllers;
-	std::map<const size_t, size_t > subarrayMPPTPorts;
-	size_t n_MPPTControllers;
+	// Constants
+	static const int maxSubarrays = 4;	/// The maximum number of subarrays allowed in the simulation (could move to higher level)
+
+	// User input
+	size_t n_enabledSubarrays;									/// The number of enabled subarrays in the simulation. Subarrays must be sequentially enabled.
+	std::map<const size_t, size_t > subarrayMPPTControllers;	/// Map that takes subarray number as a key and returns the MPPT Controller as a value 
+	std::map<const size_t, size_t > subarrayMPPTPorts;			/// Map that takes subarray number as a key and returns the MPPTPort as a value
+	size_t n_MPPTControllers;									/// The number of MPPTControllers
 };
 
 
