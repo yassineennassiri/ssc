@@ -38,6 +38,7 @@ public:
 		compute_module *cm = static_cast<compute_module*>(mod);
 
 		// Declare these as smart pointers.  Simply means won't worry about memory deallocation later
+		// This line is currently failing, down in core.cpp, due to the cm object not being able find the variables
 		std::unique_ptr<PVIOManager> tmp(new PVIOManager(*cm));
 		PVIO = std::move(tmp);
 
