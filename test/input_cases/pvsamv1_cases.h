@@ -10,7 +10,7 @@
 *   matches expected results.  Data generated from code-generator (Shift+F5) within SAM UI.
 *   Test uses SSCAPI interfaces (similiar to SDK usage) to pass and receive data to PVSAMV1
 */
-int pvsam_residential_pheonix(ssc_data_t &data)
+static int pvsam_residential_pheonix(ssc_data_t &data)
 {
 	belpe_default(data);
 	int status = run_module(data, "belpe");

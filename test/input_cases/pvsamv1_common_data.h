@@ -5,29 +5,30 @@
 
 #include "code_generator_utilities.h"
 
-const char * SSCDIR = std::getenv("SSCDIR");
+// Have to make these all static or else get link errors
+static const char * SSCDIR = std::getenv("SSCDIR");
 
-char solar_resource_path[100];
-char solar_resource_path_15_min[100];
-char load_profile_path[100];
-char target_power_path[100];
-char sell_rate_path[100];
-char subarray1_shading[100];
-char subarray2_shading[100];
+static char solar_resource_path[100];
+static char solar_resource_path_15_min[100];
+static char load_profile_path[100];
+static char target_power_path[100];
+static char sell_rate_path[100];
+static char subarray1_shading[100];
+static char subarray2_shading[100];
 
-int n1 = sprintf(solar_resource_path, "%s/test/input_cases/pvsamv1_data/USA AZ Phoenix (TMY2).csv", SSCDIR);
-int n2 = sprintf(load_profile_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_residential_load.csv", SSCDIR);
-int n3 = sprintf(target_power_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_batt_target_power.csv", SSCDIR);
-int n4 = sprintf(sell_rate_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_ur_ts_sell_rate.csv", SSCDIR);
-int n5 = sprintf(solar_resource_path_15_min, "%s/test/input_cases/pvsamv1_data/LosAngeles_WeatherFile_15min.csv", SSCDIR);
-int n6 = sprintf(subarray1_shading, "%s/test/input_cases/pvsamv1_data/subarray1_shading_timestep.csv", SSCDIR);
-int n7 = sprintf(subarray2_shading, "%s/test/input_cases/pvsamv1_data/subarray2_shading_timestep.csv", SSCDIR);
+static int n1 = sprintf(solar_resource_path, "%s/test/input_cases/pvsamv1_data/USA AZ Phoenix (TMY2).csv", SSCDIR);
+static int n2 = sprintf(load_profile_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_residential_load.csv", SSCDIR);
+static int n3 = sprintf(target_power_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_batt_target_power.csv", SSCDIR);
+static int n4 = sprintf(sell_rate_path, "%s/test/input_cases/pvsamv1_data/pvsamv1_ur_ts_sell_rate.csv", SSCDIR);
+static int n5 = sprintf(solar_resource_path_15_min, "%s/test/input_cases/pvsamv1_data/LosAngeles_WeatherFile_15min.csv", SSCDIR);
+static int n6 = sprintf(subarray1_shading, "%s/test/input_cases/pvsamv1_data/subarray1_shading_timestep.csv", SSCDIR);
+static int n7 = sprintf(subarray2_shading, "%s/test/input_cases/pvsamv1_data/subarray2_shading_timestep.csv", SSCDIR);
 
 
 /**
 *  Default data for no-financial pvsamv1 run that can be further modified
 */
-void pvsamv_nofinancial_default(ssc_data_t &data)
+static void pvsamv_nofinancial_default(ssc_data_t &data)
 {
 	ssc_data_set_string(data, "solar_resource_file", solar_resource_path);
 	ssc_data_set_number(data, "transformer_no_load_loss", 0);
@@ -311,7 +312,7 @@ void pvsamv_nofinancial_default(ssc_data_t &data)
 /**
 *  Default data for belpe run that can be further modified
 */
-void belpe_default(ssc_data_t &data)
+static void belpe_default(ssc_data_t &data)
 {
 	ssc_data_set_number(data, "en_belpe", 0);
 	set_array(data, "load", load_profile_path, 8760);
@@ -344,7 +345,7 @@ void belpe_default(ssc_data_t &data)
 /**
 *  Default data for pvsamv1 residential run that can be further modified
 */
-void pvsamv1_with_residential_default(ssc_data_t &data)
+static void pvsamv1_with_residential_default(ssc_data_t &data)
 {
 	ssc_data_set_number(data, "transformer_no_load_loss", 0);
 	ssc_data_set_number(data, "transformer_load_loss", 0);
@@ -723,7 +724,7 @@ void pvsamv1_with_residential_default(ssc_data_t &data)
 /**
 *  Default data for utility_rate5 run that can be further modified
 */
-void utility_rate5_default(ssc_data_t &data)
+static void utility_rate5_default(ssc_data_t &data)
 {
 	ssc_data_set_number(data, "inflation_rate", 2.5);
 	ssc_number_t p_degradation[1] = { 0.5 };
@@ -759,7 +760,7 @@ void utility_rate5_default(ssc_data_t &data)
 /**
 *  Default data for cashloan run that can be further modified
 */
-void cashloan_default(ssc_data_t &data)
+static void cashloan_default(ssc_data_t &data)
 {
 	ssc_number_t p_federal_tax_rate[1] = { 30 };
 	ssc_data_set_array(data, "federal_tax_rate", p_federal_tax_rate, 1);

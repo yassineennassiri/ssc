@@ -3,7 +3,10 @@
 PVSystemController::PVSystemController(PVIOManager * pvIOManager) :
 	m_pvIOManager(pvIOManager)
 {
-	std::unique_ptr<PVSystem> ptr(new PVSystem(pvIOManager));
+	std::unique_ptr<IrradianceModel> ptr2(new IrradianceModel(pvIOManager));
+	m_irradianceModel = std::move(ptr2);
+
+	std::unique_ptr<PVSystem> ptr(new PVSystem(pvIOManager, m_irradianceModel.get()));
 	m_pvSystem = std::move(ptr);
 }
 
@@ -12,13 +15,14 @@ const bool PVSystemController::RunSingleStep(const size_t runIndex)
 	return (m_pvSystem->RunSingleStep(runIndex));
 }
 
-PVSystem::PVSystem(PVIOManager * pvIOManager) :
-	m_pvIOManager(pvIOManager)
+PVSystem::PVSystem(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) :
+	m_pvIOManager(pvIOManager),
+	m_irradianceModel(irradianceModel)
 {
-	std::unique_ptr<PVDCController> ptr(new PVDCController(pvIOManager));
+	std::unique_ptr<PVDCController> ptr(new PVDCController(pvIOManager, irradianceModel));
 	m_pvDCController = std::move(ptr);
 
-	std::unique_ptr<PVACController> ptr2(new PVACController(pvIOManager));
+	std::unique_ptr<PVACController> ptr2(new PVACController(pvIOManager, irradianceModel));
 	m_pvACController = std::move(ptr2);
 }
 
@@ -27,10 +31,15 @@ const bool PVSystem::RunSingleStep(const size_t runIndex)
 	return m_pvDCController->RunSingleStep(runIndex);
 }
 
-PVDCController::PVDCController(PVIOManager * pvIOManager) :
+PVDCController::PVDCController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) :
 	m_pvIOManager(pvIOManager),
-	m_MPPTIO(pvIOManager->getMPPTControllerIO())
+	m_MPPTIO(pvIOManager->getMPPTControllerIO()),
+	m_irradianceModel(irradianceModel)
 {
+	for (size_t mpptController = 1; mpptController <= m_MPPTIO->n_MPPTControllers; mpptController++) {
+		std::unique_ptr<MPPTController> tmp(new MPPTController(pvIOManager, irradianceModel));
+		m_MPPTControllers.push_back(std::move(tmp));
+	}
 }
 
 const bool PVDCController::RunSingleStep(const size_t runIndex)
@@ -44,13 +53,15 @@ const bool PVDCController::RunSingleStep(const size_t runIndex)
 	return EXIT_SUCCESS;
 }
 
-PVACController::PVACController(PVIOManager * pvIOManager) :
-	m_pvIOManager(pvIOManager)
+PVACController::PVACController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) :
+	m_pvIOManager(pvIOManager),
+	m_irradianceModel(irradianceModel)
 {
 }
 
-MPPTController::MPPTController(PVIOManager * pvIOManager) :
-	m_pvIOManager(pvIOManager)
+MPPTController::MPPTController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) :
+	m_pvIOManager(pvIOManager),
+	m_irradianceModel(irradianceModel)
 {
 	m_MPPTIO = pvIOManager->getMPPTControllerIO();
 	for (size_t subarrayNumber = 0; subarrayNumber != m_MPPTIO->n_enabledSubarrays; subarrayNumber++)
@@ -65,8 +76,8 @@ const bool MPPTController::RunSingleStep(const size_t runIndex, const size_t mpp
 	for (size_t subarrayNumber = 0; subarrayNumber != m_MPPTIO->n_enabledSubarrays; subarrayNumber++)
 	{
 		// Only run the subarrays that are on this mppt controller.  
-		if (m_MPPTIO->subarrayMPPTControllers[subarrayNumber] == mpptType)
-			m_Subarrays[subarrayNumber]->RunSingleStep(runIndex);
+		//if (m_MPPTIO->subarrayMPPTControllers[subarrayNumber] == mpptType)
+		//	m_Subarrays[subarrayNumber]->RunSingleStep(runIndex);
 		
 		// do stuff with multiple MPPT ports
 

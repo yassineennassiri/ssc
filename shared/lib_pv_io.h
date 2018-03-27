@@ -73,23 +73,17 @@ public:
 	
 private:
 	
-	/// A pointer to the underlying compute module object
+	/// A pointer to the underlying compute module object which we don't manage
 	compute_module * m_computeModule;
 	
 	/** These structures contain specific IO data for each part of the model
 	  * They are owned exclusively by the PVIOManager 
 	  */
-	std::unique_ptr<Irradiance_IO> m_SimulationIO;
+	std::unique_ptr<Simulation_IO> m_SimulationIO;
 	std::unique_ptr<Irradiance_IO> m_IrradianceIO;
 	std::vector<std::unique_ptr<Subarray_IO>> m_SubarraysIO;
 	std::unique_ptr<MPPTController_IO> m_MPPTControllerIO;
 	std::unique_ptr<Inverter_IO> m_InverterIO;
-
-	/*
-	std::unique_ptr<PVSystem_IO> m_PVSystemIO;
-	std::unique_ptr<Battery_IO> m_BatteryIO;
-	*/
-
 };
 
 
@@ -98,7 +92,10 @@ struct Subarray_IO
 	Subarray_IO(compute_module &cm, size_t subarrayNumber)
 	{
 		std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
-		enable = cm.as_boolean(prefix + "enable");
+
+		enable = true;
+		if (subarrayNumber > 1)
+			enable = cm.as_boolean(prefix + "enable");
 
 		if (enable)
 		{
@@ -106,7 +103,7 @@ struct Subarray_IO
 			azimuth = cm.as_double(prefix + "azimuth");
 			trackMode = cm.as_integer(prefix + "track_mode");
 			trackerRotationLimit = cm.as_double(prefix + "rotlim");
-			tiltEqualLatitude = cm.as_boolean(prefix + "tile_eq_lat");
+			tiltEqualLatitude = cm.as_boolean(prefix + "tilt_eq_lat");
 			groundCoverageRatio = cm.as_double(prefix + "gcr");
 			monthlyTilt = cm.as_doublevec(prefix + "monthly_tilt");
 			backtrackingEnabled = cm.as_boolean(prefix + "backtrack");

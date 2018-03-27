@@ -37,8 +37,10 @@ private:
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
 	PVIOManager * m_pvIOManager;
 
-	/// The PVSystemController exclusively manages the PVSystem
-	std::unique_ptr<PVSystem> m_pvSystem;
+	// The PVSystemController exclusively manages the PVSystem and Irradiance Model
+	std::unique_ptr<PVSystem> m_pvSystem;				 /// The PVSystem encapsulates the full DC and AC side components
+	std::unique_ptr<IrradianceModel> m_irradianceModel;  /// The Irradiance Model which processes incoming irradiance into plane-of-array irradiance
+
 };
 
 /**
@@ -53,7 +55,7 @@ class PVSystem
 public:
 
 	/// Construct a PVSystem from a PVIOManager
-	PVSystem(PVIOManager * pvIOManager);
+	PVSystem(PVIOManager * pvIOManager, IrradianceModel * irradianceModel);
 
 	/// Simulation the PVSystem for one time step
 	const bool RunSingleStep(const size_t runIndex);
@@ -62,6 +64,7 @@ private:
 
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
 	PVIOManager * m_pvIOManager;
+	IrradianceModel * m_irradianceModel;
 
 	/// The PVSystem uniquely manages the DC and AC controllers
 	std::unique_ptr<PVDCController> m_pvDCController;
@@ -80,14 +83,15 @@ class PVDCController
 public: 
 
 	/// Construct a PVDCController from a PVIOManager
-	PVDCController(PVIOManager * pvIOManager);
+	PVDCController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel);
 
 	const bool RunSingleStep(const size_t runIndex);
 private:
 
-	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	// Raw pointers not managed internally
 	PVIOManager * m_pvIOManager;
 	MPPTController_IO * m_MPPTIO;
+	IrradianceModel * m_irradianceModel;
 
 	/// The PVDCController uniquely manages MPPTControllers in the system
 	std::vector<std::unique_ptr<MPPTController>> m_MPPTControllers;
@@ -105,14 +109,14 @@ class PVACController
 {
 public:
 	/// Construct a PVDAController from a PVIOManager
-	PVACController(PVIOManager * pvIOManager);
+	PVACController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel);
 
 	//const bool RunSingleStep();
 
 private:
-	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	// Raw pointers managed elsewhere
 	PVIOManager * m_pvIOManager;
-
+	IrradianceModel * m_irradianceModel;
 };
 
 /**
@@ -126,14 +130,15 @@ class MPPTController
 {
 public:
 	/// Construct a MPPTController from a PVIOManager
-	MPPTController(PVIOManager * pvIOManager);
+	MPPTController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel);
 
 	/// Simulation the MPPTController for one time step
 	const bool RunSingleStep(const size_t runIndex, const size_t mpptType);
 
 private:
-	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
+	// Raw pointers managed elsewhere
 	PVIOManager * m_pvIOManager;
+	IrradianceModel * m_irradianceModel;
 
 	/// The MPPTController uniquely manages the Subarray's under its control
 	std::vector<std::unique_ptr<Subarray>> m_Subarrays;
@@ -163,9 +168,9 @@ private:
 
 	/// The PVIOManager is a weak pointer that is owned by the PVSimulationManager
 	PVIOManager * m_pvIOManager;
+	IrradianceModel *  m_IrradianceModel;
 
 	/// The Subarray uniquely owns and manages these models
-	std::unique_ptr<IrradianceModel> m_IrradianceModel;			/// The Irradiance Model which processes incoming irradiance into plane-of-array irradiance
 	std::unique_ptr<ModuleModel> m_ModuleModel;					/// The PV Module Model which converts plane of array irradiance into DC power
 	//std::unique_ptr<ChargeController> m_ChargeControllerModel;  /// The Battery Charge Controller, which if attached at the Subarray level, implies a DC-connected battery
 };
