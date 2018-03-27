@@ -4,7 +4,7 @@
 
 #include <lib_pv_irradiance.h>
 #include "../input_cases/pvsamv1_cases.h"
-
+#include <cmod_pvsamv2.h>
 
 class LibPVIrradiance : public ::testing::Test {
 
@@ -13,8 +13,8 @@ public:
 	// Member variables, including PVIOManager and IrradianceModel
 	ssc_data_t data;
 	ssc_module_t mod;
-	PVIOManager * PVIO;
-	IrradianceModel * irradianceModel;
+	std::unique_ptr<PVIOManager> PVIO;
+	std::unique_ptr<IrradianceModel> irradianceModel;
 
 	/// Set up the irradiance case
 	void SetUp()
@@ -29,11 +29,20 @@ public:
 			ssc_data_free(data);
 			return;
 		}
+		if (ssc_module_exec(mod, data) == 0)
+		{
+			printf("error during simulation.");
+			ssc_module_free(mod);
+			ssc_data_free(data);
+		}
 		compute_module *cm = static_cast<compute_module*>(mod);
 
 		// Declare these as smart pointers.  Simply means won't worry about memory deallocation later
-		PVIO = new PVIOManager(*cm);
-		irradianceModel = new IrradianceModel(PVIO);
+		std::unique_ptr<PVIOManager> tmp(new PVIOManager(*cm));
+		PVIO = std::move(tmp);
+
+		std::unique_ptr<IrradianceModel> tmp2(new IrradianceModel(PVIO.get()));
+		irradianceModel = std::move(tmp2);
 	}
 	/// Tear down case. 
 	void TearDown() {
