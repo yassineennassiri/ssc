@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <string>
 
 #include "core.h"
 #include "vartab.h"
@@ -24,6 +25,24 @@ public:
 		ssc_data_free(data_);
 	}
 	
+	/// runs compute module and returns true if successful
+	bool compute() {
+		ssc_module_t module = ssc_module_create(table_->getCMODType());
+		if (NULL == module)
+		{
+			printf("error: could not create %s module.", table_->getCMODType());
+			return false;
+		}
+		if (ssc_module_exec(module, data_) == 0)
+		{
+			printf("error during simulation.");
+			ssc_module_free(module);
+			return false;
+		}
+		ssc_module_free(module);
+		return true;
+	}
+
 protected:
 	SimulationTestTable * table_;
 	ssc_data_t data_;
@@ -66,15 +85,23 @@ private:
 				return false;
 			}
 		}
+		return true;
 	}
 };
 
+/// Run all tests in TestResult
 TEST_P(computeModuleTest, RunSimulationTest) {
 	EXPECT_TRUE(true);
 	int n = table_->getNumResult();
 	for (int i = 0; i < n; i++) {
-		ssc_number_t actualResult = 0.0;
+		bool boolCompute = compute();
+
 		const TestResult* testResult = &(table_->getResult())[i];
+		if (testResult->testType == ERR) {
+			EXPECT_FALSE(boolCompute);
+		}
+
+		ssc_number_t actualResult = 0.0;
 		std::stringstream ss(testResult->sscVarName);
 		std::string varName, index;
 		size_t varIndex;
@@ -88,12 +115,24 @@ TEST_P(computeModuleTest, RunSimulationTest) {
 			ssc_data_get_number(data_, testResult->sscVarName, &actualResult);
 		}
 
-
-		if (testResult->testType == NR) {
-			EXPECT_NEAR(actualResult, testResult->expectedResult, testResult->errorBound);
+		std::string failureMsg = testResult->sscVarName  + ':' + std::to_string(actualResult) + " / " + std::to_string(testResult->expectedResult);
+		if (testResult->testType == EQ || testResult->testType == TF) {
+			EXPECT_EQ(actualResult, testResult->expectedResult) << failureMsg;
+		}
+		else if (testResult->testType == NR) {
+			EXPECT_NEAR(actualResult, testResult->expectedResult, testResult->errorBound) << failureMsg;
+		}
+		else if (testResult->testType == GT) {
+			EXPECT_GT(actualResult, testResult->expectedResult) << failureMsg;
+		}
+		else if (testResult->testType == LT) {
+			EXPECT_LT(actualResult, testResult->expectedResult) << failureMsg;
+		}
+		else {
+			EXPECT_TRUE(1);
 		}
 	}
 }
 
 
-INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::Values(*windpowerTestDefault, *windpowerTestDefault));
+INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::Values(&windpowerTestDefault, &windpowerTestDefault));

@@ -8,10 +8,16 @@ PVIOManager::PVIOManager(compute_module & cm)
 	std::unique_ptr<Irradiance_IO> ptr(new Irradiance_IO(cm));
 	m_IrradianceIO = std::move(ptr);
 
-	for (size_t subarray = 0; subarray != 4; subarray++)
+	std::unique_ptr<Simulation_IO> ptr2(new Simulation_IO(cm, *m_IrradianceIO));
+	m_SimulationIO = std::move(ptr2);
+
+	std::unique_ptr<MPPTController_IO> ptr3(new MPPTController_IO(cm));
+	m_MPPTControllerIO = std::move(ptr3);
+
+	for (size_t subarray = 1; subarray <= m_MPPTControllerIO->maxSubarrays; subarray++)
 	{
-		std::unique_ptr<Subarray_IO> ptr(new Subarray_IO(cm, subarray));
-		m_SubarraysIO.push_back(std::move(ptr));
+		std::unique_ptr<Subarray_IO> ptr4(new Subarray_IO(cm, subarray));
+		m_SubarraysIO.push_back(std::move(ptr4));
 	}
 	m_computeModule = &cm;
 }
@@ -19,6 +25,7 @@ Irradiance_IO * PVIOManager::getIrradianceIO() const { return m_IrradianceIO.get
 MPPTController_IO * PVIOManager::getMPPTControllerIO() const {return m_MPPTControllerIO.get();}
 compute_module * PVIOManager::getComputeModule() const { return m_computeModule; }
 Subarray_IO * PVIOManager::getSubarrayIO(size_t subarrayNumber) const { return m_SubarraysIO[subarrayNumber].get(); }
+Simulation_IO * PVIOManager::getSimulationIO() const { return m_SimulationIO.get(); }
 
 
 Irradiance_IO::Irradiance_IO(compute_module &cm)
@@ -171,15 +178,22 @@ MPPTController_IO::MPPTController_IO(compute_module &cm)
 {
 	n_enabledSubarrays = 0;
 	size_t tmp_max = 0;
-	for (size_t subarrayNumber = 0; subarrayNumber != maxSubarrays; subarrayNumber++)
+	for (size_t subarrayNumber = 1; subarrayNumber <= maxSubarrays; subarrayNumber++)
 	{
 		std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
-		bool enable = cm.as_boolean(prefix + "enable");
+		bool enable = true;
+		if (subarrayNumber > 1) {
+			enable = cm.as_boolean(prefix + "enable");
+		}
 		if (enable)
 		{
+			// need to define these in var table
+			/*
 			size_t MPPTType = static_cast<size_t>(cm.as_integer(prefix + "mppt_type"));
 			size_t MPPTPort = static_cast<size_t>(cm.as_integer(prefix + "mppt_port"));
-
+			*/
+			size_t MPPTType = 1;
+			size_t MPPTPort = 1;
 			subarrayMPPTControllers[subarrayNumber] = MPPTType;
 			subarrayMPPTPorts[subarrayNumber] = MPPTPort;
 			n_enabledSubarrays++;

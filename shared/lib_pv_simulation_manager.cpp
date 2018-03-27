@@ -4,6 +4,7 @@ PVSimulationManager::PVSimulationManager(compute_module &cm)
 {
 	std::unique_ptr<PVIOManager> tmp(new PVIOManager(cm));
 	m_PVIOManager = std::move(tmp);
+	m_simulationIO = m_PVIOManager->getSimulationIO();
 
 	std::unique_ptr<PVLossManager> tmp2(new PVLossManager(m_PVIOManager.get()));
 	m_PVLossManager = std::move(tmp2);

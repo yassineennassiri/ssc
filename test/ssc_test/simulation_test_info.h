@@ -1,8 +1,6 @@
 #ifndef __TestInfo__
 #define __TestInfo__
 
-#include <string>
-
 enum {
 	STR,
 	NUM,
@@ -25,7 +23,7 @@ enum {
 	NR,
 	GT,
 	LT,
-	BL,
+	TF,
 	ERR
 };
 
@@ -44,19 +42,20 @@ static void modifyDefaults(TestInfo defaults, TestInfo specificCase) {
 
 class SimulationTestTable {
 public:
-	SimulationTestTable(std::string computeModule, TestInfo* I, int nInfo, TestResult* R, int nRes) {
+	SimulationTestTable(const char*  computeModule, TestInfo* I, int nInfo, TestResult* R, int nRes) {
 		computeModuleType = computeModule;
 		info = I;
 		result = R;
 		nI = nInfo;
 		nR = nRes;
 	}
+	const char* getCMODType() { return computeModuleType; }
 	int getNumInfo() { return nI; }
 	int getNumResult() { return nR; }
 	TestInfo* getInfo() { return info; }
 	TestResult* getResult() { return result; }
 private:
-	std::string computeModuleType;
+	const char* computeModuleType;
 	TestInfo* info;
 	TestResult* result;
 	int nI, nR;
