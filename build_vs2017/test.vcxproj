@@ -49,7 +49,7 @@
     <ClInclude Include="..\test\ssc_test\cmod_pvsamv1_test.h" />
     <ClInclude Include="..\test\ssc_test\cmod_pvwattsv5_test.h" />
     <ClInclude Include="..\test\ssc_test\cmod_windpower_test.h" />
-    <ClInclude Include="..\test\ssc_test\cmod_windpower_test2.h" />
+    <ClInclude Include="..\test\ssc_test\computeModuleTest.h" />
     <ClInclude Include="..\test\ssc_test\simulation_test_info.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

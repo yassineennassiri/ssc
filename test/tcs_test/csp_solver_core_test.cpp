@@ -40,11 +40,9 @@ class UsingFileCaseWeatherReader : public CspWeatherReaderTest{
 	string file;
 protected:
 	void SetUp(){
-#ifdef _MSC_VER		
-		file = "../../../test/input_docs/weather.csv";
-#else	
-		file = "../test/input_docs/weather.csv";
-#endif	
+		char file[150];
+		int b = sprintf(file, "%s/test/input_docs/weather.csv", std::getenv("SSCDIR"));
+
 		wr.m_filename = file;
 		CspWeatherReaderTest::SetUp();
 		sim_info.ms_ts.m_step = 3600;

@@ -42,8 +42,9 @@ static void modifyDefaults(TestInfo defaults, TestInfo specificCase) {
 
 class SimulationTestTable {
 public:
-	SimulationTestTable(const char*  computeModule, TestInfo* I, int nInfo, TestResult* R, int nRes) {
-		computeModuleType = computeModule;
+	const char* name;
+	SimulationTestTable(const char* cmodType, TestInfo* I, int nInfo, TestResult* R, int nRes) {
+		computeModuleType = cmodType;
 		info = I;
 		result = R;
 		nI = nInfo;
@@ -54,11 +55,14 @@ public:
 	int getNumResult() { return nR; }
 	TestInfo* getInfo() { return info; }
 	TestResult* getResult() { return result; }
-private:
+
+
+protected:
 	const char* computeModuleType;
 	TestInfo* info;
 	TestResult* result;
 	int nI, nR;
 };
+
 
 #endif
