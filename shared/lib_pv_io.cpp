@@ -86,6 +86,9 @@ Irradiance_IO::Irradiance_IO(compute_module &cm)
 
 	useWeatherFileAlbedo = cm.as_boolean("use_wf_albedo");
 	userSpecifiedMonthlyAlbedo = cm.as_doublevec("albedo");
+
+	// Ensure all outputs are allocated
+	AllocateOutputs(cm);
 }
 
 void Irradiance_IO::AllocateOutputs(compute_module &cm)

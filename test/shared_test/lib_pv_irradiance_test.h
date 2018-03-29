@@ -29,12 +29,9 @@ public:
 			ssc_data_free(data);
 			return;
 		}
-		if (ssc_module_exec(mod, data) == 0)
-		{
-			printf("error during simulation.");
-			ssc_module_free(mod);
-			ssc_data_free(data);
-		}
+		// Doesn't actually matter if it succeeds, need the var table initalized.
+		ssc_module_exec(mod, data);
+
 		compute_module *cm = static_cast<compute_module*>(mod);
 
 		// Declare these as smart pointers.  Simply means won't worry about memory deallocation later
@@ -49,6 +46,9 @@ public:
 	void TearDown() {
 		if (data) {
 			ssc_data_clear(data);
+		}
+		if (mod) {
+			ssc_module_free(mod);
 		}
 	}
 };
