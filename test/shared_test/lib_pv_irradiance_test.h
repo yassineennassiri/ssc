@@ -3,53 +3,39 @@
 
 
 #include <lib_pv_irradiance.h>
-#include "../input_cases/pvsamv1_cases.h"
 #include <cmod_pvsamv2.h>
+#include "lib_pv_io.h"
+#include "core.h"
 
-class LibPVIrradiance : public ::testing::Test {
+#include "../input_cases/pvsamv1_cases.h"
+#include "lib_pv_io_test.h"
 
-public:
-
-	// Member variables, including PVIOManager and IrradianceModel
+class fakeComputeModule : public compute_module {
 	ssc_data_t data;
-	ssc_module_t mod;
-	std::unique_ptr<PVIOManager> PVIO;
-	std::unique_ptr<IrradianceModel> irradianceModel;
-
-	/// Set up the irradiance case
-	void SetUp()
-	{
+public:
+	fakeComputeModule() {
 		data = ssc_data_create();
+		/// temporarily use report generator data
 		pvsamv_nofinancial_default(data);
-
-		mod = ssc_module_create(const_cast<char*>("pvsamv2"));
-		if (NULL == mod)
-		{
-			printf("error: could not create 'pvsamv2' module.");
-			ssc_data_free(data);
-			return;
-		}
-		if (ssc_module_exec(mod, data) == 0)
-		{
-			printf("error during simulation.");
-			ssc_module_free(mod);
-			ssc_data_free(data);
-		}
-		compute_module *cm = static_cast<compute_module*>(mod);
-
-		// Declare these as smart pointers.  Simply means won't worry about memory deallocation later
-		// This line is currently failing, down in core.cpp, due to the cm object not being able find the variables
-		std::unique_ptr<PVIOManager> tmp(new PVIOManager(*cm));
-		PVIO = std::move(tmp);
-
-		std::unique_ptr<IrradianceModel> tmp2(new IrradianceModel(PVIO.get()));
-		irradianceModel = std::move(tmp2);
+		var_table *vt = static_cast<var_table*>(data);
+		m_vartab = vt;
 	}
-	/// Tear down case. 
+	void exec() {}
+};
+
+class LibPVIrradianceTest : public ::testing::Test{
+public:
+	fakeComputeModule* cm;
+	IrradianceModel* irradianceModel;
+	PVIOManager* PVIO;
+	void SetUp() {
+		cm = new fakeComputeModule();
+		PVIO = new PVIOManager(cm);
+		irradianceModel = new IrradianceModel(PVIO);
+	}
 	void TearDown() {
-		if (data) {
-			ssc_data_clear(data);
-		}
+		delete PVIO;
+		delete irradianceModel;
 	}
 };
 

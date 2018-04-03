@@ -2,7 +2,7 @@
 
 PVSimulationManager::PVSimulationManager(compute_module &cm)
 {
-	std::unique_ptr<PVIOManager> tmp(new PVIOManager(cm));
+	std::unique_ptr<PVIOManager> tmp(new PVIOManager(&cm));
 	m_PVIOManager = std::move(tmp);
 	m_simulationIO = m_PVIOManager->getSimulationIO();
 

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include "lib_pv_irradiance_test.h"
 
-TEST_F(LibPVIrradiance, DefaultNoFinancialModel) {
+TEST_F(LibPVIrradianceTest, DefaultNoFinancialModel) {
 
-	irradianceModel->RunSingleStep(0);
+	EXPECT_EQ(irradianceModel->RunSingleStep(0), EXIT_SUCCESS);
 }
 

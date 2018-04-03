@@ -45,9 +45,8 @@ struct Battery_IO;
 class PVIOManager
 {
 public:
-	
 	/// Create a PVIOManager object by parsing the compute model
-	PVIOManager(compute_module &cm);
+	PVIOManager(compute_module* cm);
 
 	/// Return pointer to compute module
 	compute_module * getComputeModule() const;
@@ -89,30 +88,30 @@ private:
 
 struct Subarray_IO
 {
-	Subarray_IO(compute_module &cm, size_t subarrayNumber)
+	Subarray_IO(compute_module* cm, size_t subarrayNumber)
 	{
 		std::string prefix = "subarray" + util::to_string(static_cast<int>(subarrayNumber)) + "_";
 
 		enable = true;
 		if (subarrayNumber > 1)
-			enable = cm.as_boolean(prefix + "enable");
+			enable = cm->as_boolean(prefix + "enable");
 
 		if (enable)
 		{
-			tilt = fabs(cm.as_double(prefix + "tilt"));
-			azimuth = cm.as_double(prefix + "azimuth");
-			trackMode = cm.as_integer(prefix + "track_mode");
-			trackerRotationLimit = cm.as_double(prefix + "rotlim");
-			tiltEqualLatitude = cm.as_boolean(prefix + "tilt_eq_lat");
-			groundCoverageRatio = cm.as_double(prefix + "gcr");
-			monthlyTilt = cm.as_doublevec(prefix + "monthly_tilt");
-			backtrackingEnabled = cm.as_boolean(prefix + "backtrack");
-			derate = (1 - cm.as_double(prefix + "mismatch_loss") / 100) *
-				(1 - cm.as_double(prefix + "diodeconn_loss") / 100) *
-				(1 - cm.as_double(prefix + "dcwiring_loss") / 100) *
-				(1 - cm.as_double(prefix + "tracking_loss") / 100) *
-				(1 - cm.as_double(prefix + "nameplate_loss") / 100) *
-				(1 - cm.as_double("dcoptimizer_loss") / 100);
+			tilt = fabs(cm->as_double(prefix + "tilt"));
+			azimuth = cm->as_double(prefix + "azimuth");
+			trackMode = cm->as_integer(prefix + "track_mode");
+			trackerRotationLimit = cm->as_double(prefix + "rotlim");
+			tiltEqualLatitude = cm->as_boolean(prefix + "tilt_eq_lat");
+			groundCoverageRatio = cm->as_double(prefix + "gcr");
+			monthlyTilt = cm->as_doublevec(prefix + "monthly_tilt");
+			backtrackingEnabled = cm->as_boolean(prefix + "backtrack");
+			derate = (1 - cm->as_double(prefix + "mismatch_loss") / 100) *
+				(1 - cm->as_double(prefix + "diodeconn_loss") / 100) *
+				(1 - cm->as_double(prefix + "dcwiring_loss") / 100) *
+				(1 - cm->as_double(prefix + "tracking_loss") / 100) *
+				(1 - cm->as_double(prefix + "nameplate_loss") / 100) *
+				(1 - cm->as_double("dcoptimizer_loss") / 100);
 
 			if (groundCoverageRatio < 0.01)
 				throw compute_module::exec_error("pvsamv2", "array ground coverage ratio must obey 0.01 < gcr");
@@ -183,13 +182,13 @@ struct Subarray_IO
 struct Irradiance_IO
 {
 	/// Construct the Irradiance_IO structure from the compute module input.  This sets up all inputs for the IrradianceModel
-	Irradiance_IO(compute_module &cm);
+	Irradiance_IO(compute_module* cm);
 
 	/// Allocate the Irradiance_IO outputs
-	void AllocateOutputs(compute_module &cm);
+	void AllocateOutputs(compute_module* cm);
 
 	/// Assign outputs from member data after the IrradianceModel has run 
-	void AssignOutputs(compute_module &cm);
+	void AssignOutputs(compute_module* cm);
 
 	// Constants
 	static const int irradiationMax = 1500;						  /// The maximum irradiation (W/m2) allowed
@@ -231,19 +230,19 @@ struct Irradiance_IO
 
 struct Simulation_IO
 {
-	Simulation_IO(compute_module &cm, Irradiance_IO & IrradianceIO);
+	Simulation_IO(compute_module* cm, Irradiance_IO & IrradianceIO);
 	
 	size_t numberOfYears;
 	size_t numberOfWeatherFileRecords;
 	size_t numberOfSteps;
 	size_t stepsPerHour;
 	double dtHour;
-	bool useLifetimeOutput;
+	bool useLifetimeOutput = 0;
 };
 
 struct Inverter_IO
 {
-	Inverter_IO(compute_module &cm);
+	Inverter_IO(compute_module* cm);
 	
 	int inverterType;
 	double efficiency;
@@ -271,7 +270,7 @@ struct Inverter_IO
 struct MPPTController_IO
 {
 	/// Construct a MPPTController_IO object from the compute_module
-	MPPTController_IO(compute_module &cm);
+	MPPTController_IO(compute_module* cm);
 
 	// Constants
 	static const int maxSubarrays = 4;	/// The maximum number of subarrays allowed in the simulation (could move to higher level)
