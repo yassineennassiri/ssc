@@ -297,6 +297,7 @@ private:
 	
 	unordered_map< std::string, var_info* > *m_infomap;
 
+protected:
 	/* these members are take values only during a call to 'compute(..)'
 	  and are NULL otherwise */
 	handler_interface   *m_handler;

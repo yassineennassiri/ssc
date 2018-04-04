@@ -44,9 +44,7 @@
     <ClCompile Include="..\test\shared_test\lib_pv_irradiance_test.cpp">
       <Filter>shared_test</Filter>
     </ClCompile>
-    <ClCompile Include="..\test\ssc_test\computeModuleTest.h">
-      <Filter>ssc_test</Filter>
-    </ClCompile>
+    <ClCompile Include="..\test\ssc_test\cmod_windpower_test2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shared_test">
@@ -102,8 +100,9 @@
     <ClInclude Include="..\test\shared_test\lib_pv_irradiance_test.h">
       <Filter>shared_test</Filter>
     </ClInclude>
-    <ClInclude Include="..\test\ssc_test\cmod_windpower_test2.cpp">
-      <Filter>ssc_test</Filter>
+    <ClInclude Include="..\test\ssc_test\computeModuleTest.h" />
+    <ClInclude Include="..\test\shared_test\lib_pv_io_test.h">
+      <Filter>shared_test</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -68,8 +68,21 @@ TestResult windpowerDefaultResult[] = {
 	{"monthly_energy[11]",					NR,					2.8218e6,				.1}
 };
 
+
+
 //SimulationTestTable windpowerTestDefault("windpower", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
 windpowerTestDeclaration defaultTest("default", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
+
+//TestInfo windpowerLeapInfo[] = {
+//	/*	SSC Var Name							Data Type			Test Values				Length,Width */
+//	{ "wind_resource_filename",				STR,					leapYear }
+//};
+//modify(windpowerDefaultInfo, windpowerLeapInfo);
+//
+//TestResult windpowerLeapResult[]
+//= {}
+//
+//windpowerTestDeclaration leapYearTest();
 
 
 INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::ValuesIn(allWindIntegrationTests));
