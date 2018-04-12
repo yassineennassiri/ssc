@@ -36,8 +36,8 @@ struct TestResult {
 	double errorBound;			///< percent error allowed
 };
 
-static void modifyDefaults(TestInfo defaults, TestInfo specificCase) {
-	//int x;
+static void modifyTestInfo(TestInfo* defaults, TestInfo* specificCase) {
+	int x;
 };
 
 class SimulationTestTable {
