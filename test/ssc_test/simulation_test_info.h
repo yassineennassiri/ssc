@@ -32,30 +32,49 @@ struct TestResult {
 
 	const char* sscVarName;
 	unsigned int testType;	
-	double expectedResult;	///< expected test results per value
+	double expectedResult;		///< expected test results per value
 	double errorBound;			///< percent error allowed
-};
-
-static void modifyTestInfo(TestInfo* defaults, TestInfo* specificCase) {
-	int x;
 };
 
 class SimulationTestTable {
 public:
 	const char* name;
-	SimulationTestTable(const char* cmodType, TestInfo* I, int nInfo, TestResult* R, int nRes) {
+	SimulationTestTable(const char* cmodType, const char* testName, TestInfo* I, int nInfo, TestResult* R, int nRes) {
+		name = testName;
 		computeModuleType = cmodType;
 		info = I;
 		result = R;
 		nI = nInfo;
 		nR = nRes;
 	}
+	SimulationTestTable(const SimulationTestTable& first) {
+		name = first.name;
+		computeModuleType = first.computeModuleType;
+		info = first.info;
+		result = first.result;
+		nI = first.nI;
+		nR = first.nR;
+	}
 	const char* getCMODType() { return computeModuleType; }
 	int getNumInfo() { return nI; }
 	int getNumResult() { return nR; }
 	TestInfo* getInfo() { return info; }
 	TestResult* getResult() { return result; }
-
+	
+	void swap(SimulationTestTable& other) {
+		using std::swap;
+		SimulationTestTable first = *this;
+		swap(first.name, other.name);
+		swap(first.computeModuleType, other.computeModuleType);
+		swap(first.info, other.info);
+		swap(first.result, other.result);
+		swap(first.nI, other.nI);
+		swap(first.nR, other.nR);
+	}
+	SimulationTestTable& operator=(SimulationTestTable other) {
+		swap(other);
+		return *this;
+	}
 
 protected:
 	const char* computeModuleType;
@@ -64,5 +83,8 @@ protected:
 	int nI, nR;
 };
 
+void modifyTestInfo(SimulationTestTable* defaults, SimulationTestTable* specificCase) {
+	int x;
+};
 
 #endif

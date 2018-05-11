@@ -4,27 +4,51 @@
 #include "simulation_test_info.h"
 #include "computeModuleTest.h"
 
-std::vector<SimulationTestTable*> allWindIntegrationTests;
+// first test must be contain all possible inputs
+std::vector<SimulationTestTable*> windIntgTests;
 
 /**
 * windPowerTestDeclaration creates a SimulationTestTable out of a pair of TestInfo and TestResult structs
 * The new SimulationTestTable is added to allWindIntegrationTests, to be instantiated as computeModuleTests
 */
 
-class windpowerTestDeclaration {
+class testDeclaration {
 	SimulationTestTable* test;
 public:
-	windpowerTestDeclaration(const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
-		test = new SimulationTestTable("windpower", I, (int)nInfo, R, nRes);
-		allWindIntegrationTests.push_back(test);
-		//if (nInfo < windpowerDefaultNum) {
-
-		//}
+	testDeclaration(std::vector<SimulationTestTable*>& allTests, const char* cmodName, const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
+		if (allTests.size() > 0 && nInfo < allTests[0]->getNumInfo()) {
+			test = new SimulationTestTable(*allTests[0]);
+			test->name = testName;
+			modifyTestInfo(allTests[0], test);
+			allTests.push_back(test);
+		}
+		else {
+			test = new SimulationTestTable(cmodName, testName, I, (int)nInfo, R, nRes);
+			allTests.push_back(test);
+		}
 	}
-	~windpowerTestDeclaration() {
-		// delete test?
+	~testDeclaration() {
+		delete test;
 	}
 };
+
+//class windpowerTestDeclaration {
+//	SimulationTestTable* test;
+//public:
+//	windpowerTestDeclaration(const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
+//		if (allWindIntegrationTests.size() > 0 && nInfo < allWindIntegrationTests[0]->getNumInfo()) {
+//			test = new SimulationTestTable(*allWindIntegrationTests[0]);
+//			modifyTestInfo(allWindIntegrationTests[0], test);
+//		}
+//		else {
+//			test = new SimulationTestTable("windpower", I, (int)nInfo, R, nRes);
+//			allWindIntegrationTests.push_back(test);
+//		}
+//	}
+//	~windpowerTestDeclaration() {
+//		delete test;
+//	}
+//};
 
 
 // Set up wind resource file paths
@@ -42,7 +66,7 @@ const char* xcoord = "0, 616, 1232, 1848, 2464, 3080, 3696, 4312, 308, 924, 1540
 const char* ycoord = "0, 0, 0, 0, 0, 0, 0, 0, 616, 616, 616, 616, 616, 616, 616, 616, 1232, 1232, 1232, 1232, 1232, 1232, 1232, 1232, 1848, 1848, 1848, 1848, 1848, 1848, 1848, 1848";
 
 // Default Test Info
-size_t windpowerDefaultNum = 18;
+
 TestInfo windpowerDefaultInfo[] = {
 /*	SSC Var Name							Data Type			Test Values				Length,Width */
 	{"wind_resource_filename",				STR,				hourly							},
@@ -73,15 +97,15 @@ TestResult windpowerDefaultResult[] = {
 };
 
 //SimulationTestTable windpowerTestDefault("windpower", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
-windpowerTestDeclaration defaultTest("default", &windpowerDefaultInfo[0], windpowerDefaultNum, &windpowerDefaultResult[0], 3);
+testDeclaration defaultTest(windIntgTests, "windpower", "default", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
 
 TestInfo windpowerLeapYearInfo[] = {
 /*	SSC Var Name							Data Type			Test Values				Length,Width */
 	{ "wind_resource_filename",				STR,				leapYear }
 };
 
-windpowerTestDeclaration leapYearTest("leapYear", &windpowerLeapYearInfo[0], 1, &windpowerDefaultResult[0], 3);
+testDeclaration leapYearTest(windIntgTests, "windpower", "leapYear", &windpowerLeapYearInfo[0], 1, &windpowerDefaultResult[0], 3);
 
 
 
-INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::ValuesIn(allWindIntegrationTests));
+INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::ValuesIn(windIntgTests));

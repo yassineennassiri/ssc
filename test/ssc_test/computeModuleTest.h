@@ -92,7 +92,6 @@ private:
 
 /// Run all tests in TestResult
 TEST_P(computeModuleTest, RunSimulationTest) {
-	EXPECT_TRUE(true);
 	int n = table_->getNumResult();
 	bool boolCompute = compute();
 	for (int i = 0; i < n; i++) {
@@ -100,7 +99,7 @@ TEST_P(computeModuleTest, RunSimulationTest) {
 		if (testResult->testType == ERR) {
 			EXPECT_FALSE(boolCompute);
 		}
-		EXPECT_TRUE(boolCompute);
+		ASSERT_TRUE(boolCompute) << table_->getCMODType() << "-" << table_->name << ": did not compute.";
 		ssc_number_t actualResult = 0.0;
 		std::stringstream ss(testResult->sscVarName);
 		std::string varName, index;
@@ -114,9 +113,8 @@ TEST_P(computeModuleTest, RunSimulationTest) {
 		else {
 			ssc_data_get_number(data_, testResult->sscVarName, &actualResult);
 		}
-
 		std::stringstream failureMsg;
-		failureMsg << testResult->sscVarName << " failed. Actual/Expected: " << std::to_string(actualResult) << " / " << std::to_string(testResult->expectedResult);
+		failureMsg << table_->getCMODType() << "-" << table_->name << ":\n\t" << testResult->sscVarName << " failed. Actual/Expected: " << std::to_string(actualResult) << " / " << std::to_string(testResult->expectedResult);
 		if (testResult->testType == EQ || testResult->testType == TF) {
 			EXPECT_EQ(actualResult, testResult->expectedResult) << failureMsg.str();
 		}
