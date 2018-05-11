@@ -1,55 +1,14 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include "simulation_test_info.h"
 #include "computeModuleTest.h"
 
 // first test must be contain all possible inputs
 std::vector<SimulationTestTable*> windIntgTests;
-
-/**
-* windPowerTestDeclaration creates a SimulationTestTable out of a pair of TestInfo and TestResult structs
-* The new SimulationTestTable is added to allWindIntegrationTests, to be instantiated as computeModuleTests
-*/
-
-class testDeclaration {
-	SimulationTestTable* test;
-public:
-	testDeclaration(std::vector<SimulationTestTable*>& allTests, const char* cmodName, const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
-		if (allTests.size() > 0 && nInfo < allTests[0]->getNumInfo()) {
-			test = new SimulationTestTable(*allTests[0]);
-			test->name = testName;
-			modifyTestInfo(allTests[0], test);
-			allTests.push_back(test);
-		}
-		else {
-			test = new SimulationTestTable(cmodName, testName, I, (int)nInfo, R, nRes);
-			allTests.push_back(test);
-		}
-	}
-	~testDeclaration() {
-		delete test;
-	}
-};
-
-//class windpowerTestDeclaration {
-//	SimulationTestTable* test;
-//public:
-//	windpowerTestDeclaration(const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
-//		if (allWindIntegrationTests.size() > 0 && nInfo < allWindIntegrationTests[0]->getNumInfo()) {
-//			test = new SimulationTestTable(*allWindIntegrationTests[0]);
-//			modifyTestInfo(allWindIntegrationTests[0], test);
-//		}
-//		else {
-//			test = new SimulationTestTable("windpower", I, (int)nInfo, R, nRes);
-//			allWindIntegrationTests.push_back(test);
-//		}
-//	}
-//	~windpowerTestDeclaration() {
-//		delete test;
-//	}
-//};
-
+std::unordered_map<const char*, size_t> windIntgVarMap;
+computeModuleTestData windPowerTesting(&windIntgTests, &windIntgVarMap, "windpower");
 
 // Set up wind resource file paths
 char hourly[150];
@@ -65,8 +24,7 @@ const char* powercurve_powerout = "0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21.
 const char* xcoord = "0, 616, 1232, 1848, 2464, 3080, 3696, 4312, 308, 924, 1540, 2156, 2772, 3388, 4004, 4620, 0, 616, 1232, 1848, 2464, 3080, 3696, 4312, 308, 924, 1540, 2156, 2772, 3388, 4004, 4620 ";
 const char* ycoord = "0, 0, 0, 0, 0, 0, 0, 0, 616, 616, 616, 616, 616, 616, 616, 616, 1232, 1232, 1232, 1232, 1232, 1232, 1232, 1232, 1848, 1848, 1848, 1848, 1848, 1848, 1848, 1848";
 
-// Default Test Info
-
+// 1. Default Test Info: using SAM GUI defaults
 TestInfo windpowerDefaultInfo[] = {
 /*	SSC Var Name							Data Type			Test Values				Length,Width */
 	{"wind_resource_filename",				STR,				hourly							},
@@ -96,16 +54,16 @@ TestResult windpowerDefaultResult[] = {
 	{"monthly_energy[11]",					NR,					2.8218e6,				.1}
 };
 
-//SimulationTestTable windpowerTestDefault("windpower", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
-testDeclaration defaultTest(windIntgTests, "windpower", "default", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
+testDeclaration defaultTest(windPowerTesting, "default", &windpowerDefaultInfo[0], 18, &windpowerDefaultResult[0], 3);
 
+// 2. Defaults with Leap Year File provide same results
 TestInfo windpowerLeapYearInfo[] = {
 /*	SSC Var Name							Data Type			Test Values				Length,Width */
 	{ "wind_resource_filename",				STR,				leapYear }
 };
 
-testDeclaration leapYearTest(windIntgTests, "windpower", "leapYear", &windpowerLeapYearInfo[0], 1, &windpowerDefaultResult[0], 3);
+testDeclaration leapYearTest(windPowerTesting, "leapYear", &windpowerLeapYearInfo[0], 1, &windpowerDefaultResult[0], 3);
 
 
 
-INSTANTIATE_TEST_CASE_P(Testin, computeModuleTest, testing::ValuesIn(windIntgTests));
+INSTANTIATE_TEST_CASE_P(WindPowerIntegrationTest, computeModuleTest, testing::ValuesIn(windIntgTests));

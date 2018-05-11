@@ -1,5 +1,6 @@
 #ifndef __TestInfo__
 #define __TestInfo__
+#include <unordered_map>
 
 enum {
 	STR,
@@ -36,6 +37,7 @@ struct TestResult {
 	double errorBound;			///< percent error allowed
 };
 
+
 class SimulationTestTable {
 public:
 	const char* name;
@@ -47,20 +49,66 @@ public:
 		nI = nInfo;
 		nR = nRes;
 	}
-	SimulationTestTable(const SimulationTestTable& first) {
+	// to add const
+	SimulationTestTable(SimulationTestTable& first) {
 		name = first.name;
 		computeModuleType = first.computeModuleType;
-		info = first.info;
-		result = first.result;
 		nI = first.nI;
 		nR = first.nR;
+		info = new TestInfo[nI];
+		result = new TestResult[nR];
+		for (size_t i = 0; i < nI; i++) {
+			info[i].dataType = first.getInfo()[i].dataType;
+			info[i].length = first.getInfo()[i].length;
+			info[i].sscVarName = first.getInfo()[i].sscVarName;
+			info[i].values = first.getInfo()[i].values;
+			info[i].width = first.getInfo()[i].width;
+
+		}
+		for (size_t i = 0; i < nR; i++) {
+			result[i].errorBound = first.getResult()[i].errorBound;
+			result[i].expectedResult = first.getResult()[i].expectedResult;
+			result[i].sscVarName = first.getResult()[i].sscVarName;
+			result[i].testType = first.getResult()[i].testType;
+		}
+
 	}
+	//to add dtor
 	const char* getCMODType() { return computeModuleType; }
 	int getNumInfo() { return nI; }
 	int getNumResult() { return nR; }
 	TestInfo* getInfo() { return info; }
 	TestResult* getResult() { return result; }
-	
+	void setResult(TestResult* R, size_t nRes) { result = R; nR = (int)nRes; }
+
+	SimulationTestTable& operator=(SimulationTestTable other) {
+		swap(other);
+		return *this;
+	}
+
+	bool modifyTestInfo(std::unordered_map<const char*, size_t>& map, TestInfo* I, size_t nInfo, const char* name) {
+		for (size_t i = 0; i < nInfo; i++) {
+			size_t varIndex = 0;
+			std::unordered_map<const char*, size_t>::iterator it = map.find(I[i].sscVarName);
+			if (it != map.end()) {
+				varIndex = (*it).second;
+				info[varIndex].values = I[i].values;
+			}
+			else {
+				std::cout << computeModuleType << "-" << name << ": could not find sscVarName "
+					<< I[i].sscVarName << "\n";
+				return false;
+			}
+		}
+		return true;
+	}
+
+protected:
+	const char* computeModuleType;
+	TestInfo* info;
+	TestResult* result;
+	int nI, nR;
+
 	void swap(SimulationTestTable& other) {
 		using std::swap;
 		SimulationTestTable first = *this;
@@ -71,20 +119,53 @@ public:
 		swap(first.nI, other.nI);
 		swap(first.nR, other.nR);
 	}
-	SimulationTestTable& operator=(SimulationTestTable other) {
-		swap(other);
-		return *this;
+};
+
+class computeModuleTestData {
+public:
+	std::vector<SimulationTestTable*>* tests;
+	std::unordered_map<const char*, size_t>* map;
+	const char* name;
+
+	computeModuleTestData(std::vector<SimulationTestTable*>* t, std::unordered_map<const char*, size_t>* m, const char* n) {
+		tests = t;
+		map = m;
+		name = n;
 	}
-
-protected:
-	const char* computeModuleType;
-	TestInfo* info;
-	TestResult* result;
-	int nI, nR;
 };
 
-void modifyTestInfo(SimulationTestTable* defaults, SimulationTestTable* specificCase) {
-	int x;
+/**
+* testDeclaration creates a SimulationTestTable out of a pair of TestInfo and TestResult structs.
+* The new SimulationTestTable is added to given vector, to be instantiated as computeModuleTests.
+* Modifying TestInfo is created from duplicated default TestInfo.
+*/
+
+class testDeclaration {
+	SimulationTestTable* test;
+public:
+	testDeclaration(computeModuleTestData& testData, const char* testName, TestInfo* I, size_t nInfo, TestResult* R, int nRes) {
+		std::vector<SimulationTestTable*>* allTests = testData.tests;
+		if (allTests->size() > 0 && nInfo < (*allTests)[0]->getNumInfo()) {
+			test = new SimulationTestTable(*(*allTests)[0]);
+			test->name = testName;
+			bool success = test->modifyTestInfo(*(testData.map), I, nInfo, testName);
+			if (success) {
+				test->setResult(R, nRes);
+				(*allTests).push_back(test);
+			}
+		}
+		else {
+			for (size_t i = 0; i < nInfo; i++) {
+				(*testData.map)[I[i].sscVarName] = i;
+			}
+			test = new SimulationTestTable(testData.name, testName, I, (int)nInfo, R, nRes);
+			(*allTests).push_back(test);
+		}
+	}
+	~testDeclaration() {
+		delete test;
+	}
 };
+
 
 #endif

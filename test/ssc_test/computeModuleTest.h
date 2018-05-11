@@ -54,6 +54,7 @@ private:
 			const TestInfo* info = &(table_->getInfo())[i];
 			if (info->dataType == STR) {
 				ssc_data_set_string(data_, info->sscVarName, info->values);
+				std::cout << "\n\n" << info->sscVarName << "," << info->values << "\n\n";
 			}
 			else if (info->dataType == NUM) {
 				ssc_data_set_number(data_, info->sscVarName, (ssc_number_t)atof(info->values));
