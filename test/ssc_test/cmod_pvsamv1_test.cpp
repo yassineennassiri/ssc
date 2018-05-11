@@ -4,7 +4,7 @@
 #include "../input_cases/pvsamv1_cases.h"
 
 /// Test PVSAMv1 with all defaults and no-financial model
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_DefaultNoFinancialModel){
+TEST_F(CMPvsamv1PowerIntegration, DefaultNoFinancialModel){
 	
 	int pvsam_errors = run_module(data, "pvsamv1");
 
@@ -30,7 +30,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_DefaultNoFinancialModel){
 }
 
 /// Test PVSAMv1 with all defaults and residential financial model
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_DefaultResidentialModel)
+TEST_F(CMPvsamv1PowerIntegration, DefaultResidentialModel)
 {
 
 	ssc_data_t data = ssc_data_create();
@@ -102,7 +102,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_DefaultResidentialModel)
 }
 
 /// Test PVSAMv1 with default no-financial model and a 15-minute weather file 
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelCustomWeatherFile) {
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelCustomWeatherFile) {
 
 	std::map<std::string, std::string> pairs; 
 	pairs["solar_resource_file"] = solar_resource_path_15_min;
@@ -131,7 +131,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelCustomWeatherFile) {
 }
 
 /// Test PVSAMv1 with default no-financial model and combinations of Sky Diffuse Model and Weather File Irradiance
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelSkyDiffuseAndIrradModels) 
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelSkyDiffuseAndIrradModels) 
 {
 	std::vector<double> annual_energy_expected = { 8513, 8522, 8525, 8635, 8645, 8647, 8714, 8723, 8726, 7623, 7377};
 	std::map<std::string, double> pairs;
@@ -179,7 +179,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelSkyDiffuseAndIrradMod
 }
 	
 /// Test PVSAMv1 with default no-financial model and combinations of module and inverter models
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelModuleAndInverterModels)
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelModuleAndInverterModels)
 {
 	std::vector<double> annual_energy_expected = { 2518, 2548, 2476, 2518, 8714, 8694, 8661, 8714, 54, 57, 60, 54, 5405, 5400, 5347, 5404, 1767, 1807, 1736, 1767};
 	std::map<std::string, double> pairs;
@@ -208,7 +208,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelModuleAndInverterMode
 }
 
 /// Test PVSAMv1 with default no-financial model and sytem design page changes
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelSystemDesign)
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelSystemDesign)
 {
 	pvsamv_nofinancial_default(data);
 
@@ -318,7 +318,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelSystemDesign)
 }
 
 /// Test PVSAMv1 with default no-financial model and different shading options
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelShading)
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelShading)
 {
 	// 0: No Shading, 1: 3D Shading, 2: 3D shading with self shading (non-linear), 3: Snow
 	std::vector<double> annual_energy_expected = { 12911, 10607, 10579, 10377};
@@ -383,7 +383,7 @@ TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelShading)
 }
 
 /// Test PVSAMv1 with default no-financial model and different loss options
-TEST_F(CMPvsamv1PowerIntegration, DISABLED_NoFinancialModelLosses)
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelLosses)
 {
 	// 0: Default Losses, 1: Modify Point Losses, 2: Modify Availability
 	std::vector<double> annual_energy_expected = { 8714, 7874, 7607 };
