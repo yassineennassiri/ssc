@@ -780,11 +780,45 @@ cm_pvsamv2::cm_pvsamv2()
 
 void cm_pvsamv2::exec( ) throw (compute_module::general_error)
 {	
+	// Create the IO (input/output) class for the PV simulation, this handles all inputs and outputs for the entire compute module
+	std::unique_ptr<PVIOManager> IOManager(new PVIOManager(this));
+	std::unique_ptr<PVSystem> PVSystem(IOManager); //sorry Nick for all the things that are broken! I think we'd only need to pass in the IOManager?
 
-	std::unique_ptr<PVSimulationManager> SimulationManager(new PVSimulationManager(*this));
-	bool error = SimulationManager->Simulate();
+	// Temporal loop governing the simulation
+	size_t weatherFileIndex = 0; /// Index in the weather file, which repeats every year of the simulation
+	size_t outputIndex = 0; ///current index in the timeseries outputs, which can go for the lifetime of the system in lifetime mode
+	
+	for (size_t year = 0; year < IOManager->SimulationIO->numberOfYears; year++) {
+		for (size_t hour = 0; hour < util::hours_per_year; hour++) {
+			for (size_t step = 0; step < IOManager->getSimulationIO->stepsPerHour; step++)
+			{
+				//read in and error check the weather file data
+				PVSystem->WeatherFile->ReadAndCheckLine();
+				
+				//calculate the solar position
+				PVSystem->SolarPosition->CalculateSolarPosition();
 
-	// Construct loss diagram, etc.
+				//DC Side of System
+				PVSystem->PVDCController->RunSingleStep();
+
+				//AC Side of System
+				PVSystem->PVACController->calculate(); //this would do inverter temperature, inverter power, and AC battery?
+
+				//Transformer
+				PVSystem->Transformer->calculate();
+
+				//AC Curtailment
+				PVSystem->Grid->curtailment();
+
+
+				//Increment indices-- I think these indices need to be passed in above?
+				weatherFileIndex++;
+				outputIndex++;
+			}
+
+		}
+
+	}
 
 }
 	

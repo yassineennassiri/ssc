@@ -12,7 +12,7 @@ PVSimulationManager::PVSimulationManager(compute_module &cm)
 	std::unique_ptr<PVSystemController> tmp3(new PVSystemController(m_PVIOManager.get()));
 	m_PVSystemController = std::move(tmp3);
 }
-
+/*
 const bool PVSimulationManager::Simulate()
 {
 	size_t index = 0;
@@ -35,7 +35,7 @@ const bool PVSimulationManager::Simulate()
 		return EXIT_SUCCESS;
 	else
 		return EXIT_FAILURE;
-}
+}*/ //flattening this layer into the main pvsamv2
 
 const bool PVSimulationManager::RunSingleStep(size_t runIndex)
 {

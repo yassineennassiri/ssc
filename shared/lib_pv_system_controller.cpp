@@ -31,7 +31,7 @@ const bool PVSystem::RunSingleStep(const size_t runIndex)
 	return m_pvDCController->RunSingleStep(runIndex);
 }
 
-PVDCController::PVDCController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) :
+PVDCController::PVDCController(PVIOManager * pvIOManager, IrradianceModel * irradianceModel) : //irradiance model would be above this-jmf
 	m_pvIOManager(pvIOManager),
 	m_MPPTIO(pvIOManager->getMPPTControllerIO()),
 	m_irradianceModel(irradianceModel)
@@ -40,6 +40,17 @@ PVDCController::PVDCController(PVIOManager * pvIOManager, IrradianceModel * irra
 		std::unique_ptr<MPPTController> tmp(new MPPTController(pvIOManager, irradianceModel));
 		m_MPPTControllers.push_back(std::move(tmp));
 	}
+
+	//jmf starting here
+	//get nominal DC power for each subarray
+	for (size_t i = 0; i < m_pvIOManager->PVSystemIO->numberSubarrays; i++)
+		m_pvIOManager->SubarrayIO->getSubarrayDCPower(); //this function would include all the bulleted items in PV Model Pseudocode (sam-documentation repo)
+	
+	//run MPPT controller
+	m_pvIOManager->getMPPTControllerIO->calculateVoltages();
+
+	//DC Battery here??
+
 }
 
 const bool PVDCController::RunSingleStep(const size_t runIndex)

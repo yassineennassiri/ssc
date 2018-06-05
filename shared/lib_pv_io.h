@@ -46,10 +46,10 @@ class PVIOManager
 {
 public:
 	/// Create a PVIOManager object by parsing the compute model
-	PVIOManager(compute_module* cm);
+	PVIOManager(cm_pvsamv2* cm);
 
 	/// Return pointer to compute module
-	compute_module * getComputeModule() const;
+	cm_pvsamv2 * getComputeModule() const;
 
 	/// Return Simulation specific information
 	Simulation_IO * getSimulationIO() const;
