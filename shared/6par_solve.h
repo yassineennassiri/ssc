@@ -54,6 +54,8 @@
 #include "6par_newton.h"
 #include "lib_util.h"
 
+#include <iostream>
+
 class notification_interface
 {
 public:
@@ -174,11 +176,11 @@ public:
 	
 	module6par() 
 		: Type(monoSi), Vmp(0), Imp(0), Voc(0), Isc(0), bVoc(0), aIsc(0), gPmp(0), Nser(0), Tref(0),
-			a(0.0), Il(0.0), Io(0.0), Rs(0.0), Rsh(0.0), Adj(0.0) {  }
+			a(0.0), Il(0.0), Io(0.0), Rs(0.0), Rsh(0.0), Adj(0.0), uncertaintyPmp(0.015) {  }
 
 	module6par( int _type, double _vmp, double _imp, double _voc, double _isc, double _bvoc, double _aisc, double _gpmp, int _nser, double _Tref )
 		: Type(_type), Vmp(_vmp), Imp(_imp), Voc(_voc), Isc(_isc), bVoc(_bvoc), aIsc(_aisc), gPmp(_gpmp), Nser(_nser), Tref(_Tref),
-			a(0.0), Il(0.0), Io(0.0), Rs(0.0), Rsh(0.0), Adj(0.0) {  }
+			a(0.0), Il(0.0), Io(0.0), Rs(0.0), Rsh(0.0), Adj(0.0), uncertaintyPmp(0.015) {  }
 
 	std::string Name;
 	std::string Tech;
@@ -192,6 +194,12 @@ public:
 	double Tref;
 	
 	double a, Il, Io, Rs, Rsh, Adj;
+
+	double uncertaintyPmp;
+
+	void setUncertaintyPmp(double percent) {
+		uncertaintyPmp = percent / 100.;
+	}
 
 	double bandgap()
 	{
@@ -337,7 +345,7 @@ public:
 	{
 		// ensure values are in "reasonable" ranges
 		if ( a < 0.05 || a > 15.0 ) return -1;
-		if ( Il < 0.5 || Il > 15.0 ) return -2;
+		if ( Il < 0.2 || Il > 15.0 ) return -2;
 		if ( Io < 1e-16 || Io > 1e-7 ) return -3;
 		if ( Rs < 0.001 || Rs > 75.0 ) return -4;
 		if ( Rsh < 1.0 || Rsh > 100001.0 ) return -5;
@@ -351,8 +359,10 @@ public:
 		I = module6par::current(V, Il, Io, Rs, a, Rsh, Imp );
 		P = V * I;
 		double Pmp = Vmp * Imp;
-		if ( fabs( (P-Pmp)/Pmp ) > 0.015 )
+		if (fabs((P - Pmp) / Pmp) > uncertaintyPmp) {
+			//std::cout << fabs((P - Pmp) / Pmp) << "\n";
 			return -33;
+		}
 				
 		// make sure I @ open circut is basically zero (less than 1% of Imp)
 		V = Voc;
@@ -503,7 +513,7 @@ public:
 		int err = solve<Real>( max_iter, tol, nif );
 		
 		
-		if ( err < 0 && (Type == Amorphous || Type == CdTe) )
+		if ( err < 0 && (Type != multiSi) )
 		{
 			// attempt decreasing 'a' and solving
 			int downattempt = 0;
@@ -549,7 +559,85 @@ public:
 		return err;
 	}
 
-	
+	template< typename Real >
+	int solve_without_guess_sanity_and_heuristics( double Io0, double Il0, double Rs0, double Rsh0, double a0,
+		int max_iter, double tol, notification_interface *nif = 0)
+	{
+		Io = Io0;
+		Il = Il0;
+		Rs = Rs0;
+		Rsh = Rsh0;
+		a = a0;
+		Adj = 0;
+
+		int err = solve<Real>(max_iter, tol, nif);
+
+
+		if (err < 0 && (Type != multiSi))
+		{
+			// attempt decreasing 'a' and solving
+			int downattempt = 0;
+			while (err < 0 && ++downattempt <= 6)
+			{
+				Io = Io0;
+				Il = Il0;
+				Rs = Rs0;
+				Rsh = Rsh0;
+				a = a0;
+				Adj = 0;
+				a /= (1 + downattempt * 0.2); // divide down by 1.2, 1.4, 1.6, 1.8, 2.0, 2.2
+				if (downattempt > 4) Io /= 100;
+				err = solve<Real>(max_iter, tol, nif);
+			}
+
+			// attempt increasing 'a' and solving
+			int upattempt = 0;
+			while (err < 0 && ++upattempt <= 6)
+			{
+				Io = Io0;
+				Il = Il0;
+				Rs = Rs0;
+				Rsh = Rsh0;
+				a = a0;
+				Adj = 0;
+				a *= (1 + upattempt * 0.2); // multiply up by 1.2, 1.4, 1.6, 1.8, 2.0, 2.2
+				if (upattempt > 4) Io /= 100;
+				err = solve<Real>(max_iter, tol, nif);
+			}
+		}
+		else if (err < 0 && Type == multiSi)
+		{
+			Io = Io0;
+			Il = Il0;
+			Rs = Rs0;
+			Rsh = Rsh0;
+			a = a0;
+			Adj = 0;
+			Io /= 100;
+			Rsh /= 2;
+			err = solve<Real>(max_iter, tol, nif);
+		}
+
+		double Isc_save = Isc;
+		int nattempt = 0;
+		while (err < 0 && nattempt < 5)
+		{
+			Isc *= 1.01;
+			Io = Io0;
+			Il = Il0;
+			Rs = Rs0;
+			Rsh = Rsh0;
+			a = a0;
+			Adj = 0;
+			err = solve<Real>(max_iter, tol, nif);
+			nattempt++;
+		}
+
+		Isc = Isc_save;
+
+
+		return err;
+	}
 };
 
 #endif
