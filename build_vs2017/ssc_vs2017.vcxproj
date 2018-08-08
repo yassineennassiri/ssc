@@ -87,6 +87,7 @@
     <ClCompile Include="..\ssc\cmod_utilityrate3.cpp" />
     <ClCompile Include="..\ssc\cmod_utilityrate4.cpp" />
     <ClCompile Include="..\ssc\cmod_utilityrate5.cpp" />
+    <ClCompile Include="..\ssc\cmod_validate_pc_tables.cpp" />
     <ClCompile Include="..\ssc\cmod_wfcheck.cpp" />
     <ClCompile Include="..\ssc\cmod_wfcsv.cpp" />
     <ClCompile Include="..\ssc\cmod_wfreader.cpp" />
