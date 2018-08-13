@@ -162,7 +162,7 @@ public:
     void exec() throw(general_error)
     {
         // Compile model parameters from SSC inputs
-        C_sco2_rc_csp_template::S_des_par mut_par;      // structure holding parameters for model under test
+        C_sco2_rc_csp_template::S_des_par mut_par;      // structure holding design parameters for model under test
         if (compile_params(mut_par)) {
             throw exec_error("model_under_test", "error in model parameters");
         };
@@ -277,10 +277,21 @@ public:
         }
 
         // Calculate basis model heat and power from sample set
-
-
-
-
+        C_sco2_rc_csp_template::S_od_par mut_od_par;
+        const double od_opt_tol = 0.1;                   // doesn't appear to be used
+        C_sco2_rc_csp_template::E_off_design_strategies od_strategy = C_sco2_rc_csp_template::E_off_design_strategies::E_MAX_ETA;       // arbitrarily chosen
+        const C_sco2_rc_csp_template::S_od_solved *mut_od_sol;
+        std::vector<double> Q_dot_basis_ff(pow(nSamples, 3)), W_dot_basis_ff(pow(nSamples, 3));
+        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+            mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i);
+            mut_od_par.m_T_amb = T_amb_ff.at(i);
+            mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_double("m_dot_htf_des");
+            mut->off_design_nested_opt(mut_od_par, od_strategy, od_opt_tol);
+            mut_od_sol = mut->get_od_solved();
+            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot);
+            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net);
+        }
+        
         // Compare regression and basis model outputs
 
     }
