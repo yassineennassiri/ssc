@@ -58,6 +58,7 @@
 
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
+    { SSC_INPUT,    SSC_NUMBER,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')"   "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
     { SSC_INPUT,    SSC_NUMBER,     "T_htf_hot_des",        "HTF design hot temperature (PHX inlet)",                 "C",          "",    "",      "*",     "",       "" },
@@ -648,6 +649,8 @@ public:
         }
 
         assign("m_dot_htf_ND_low", m_dot_htf_ND_low);
+
+        return 0;
     }
 
     // The following are helper functions for Rankine model tables
