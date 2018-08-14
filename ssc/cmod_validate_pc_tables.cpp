@@ -168,169 +168,23 @@ public:
 
     void exec() throw(general_error)
     {
-        
-        C_sco2_rc_csp_template::S_des_par sco2_rc_des_par;
-        // System design parameters
-        sco2_rc_des_par.m_hot_fl_code = as_integer("htf");							//[-] Integer code for HTF
-        sco2_rc_des_par.mc_hot_fl_props = as_matrix("htf_props");					//[-] Custom HTF properties
-        sco2_rc_des_par.m_T_htf_hot_in = as_double("T_htf_hot_des") + 273.15;			//[K] Convert from C
-        sco2_rc_des_par.m_phx_dt_hot_approach = as_double("dT_PHX_hot_approach");	//[K/C] Temperature difference between hot HTF and turbine CO2 inlet
-        sco2_rc_des_par.m_T_amb_des = as_double("T_amb_des") + 273.15;				//[K] Convert from C
-        sco2_rc_des_par.m_dt_mc_approach = as_double("dT_mc_approach");				//[K/C] Temperature difference between ambient air and main compressor inlet
-        sco2_rc_des_par.m_elevation = as_double("site_elevation");					//[m] Site elevation
-        sco2_rc_des_par.m_W_dot_net = as_double("W_dot_net_des")*1000.0;			//[kWe] Convert from MWe, cycle power output w/o cooling parasitics
-        sco2_rc_des_par.m_eta_thermal = as_double("eta_thermal_des");				//[-] Cycle thermal efficiency
-
-        sco2_rc_des_par.m_design_method = as_integer("design_method");			//[-] 1 = Specify efficiency, 2 = Specify total recup UA
-        if (sco2_rc_des_par.m_design_method == 1)
-        {
-            sco2_rc_des_par.m_eta_thermal = as_double("eta_thermal_des");				//[-] Cycle thermal efficiency
-            if (sco2_rc_des_par.m_eta_thermal < 0.0)
-            {
-                log("For cycle design method = 1, the input cycle thermal efficiency must be greater than 0", SSC_ERROR, -1.0);
-                return;
-            }
-            sco2_rc_des_par.m_UA_recup_tot_des = std::numeric_limits<double>::quiet_NaN();
-        }
-        else if (sco2_rc_des_par.m_design_method == 2)
-        {
-            sco2_rc_des_par.m_UA_recup_tot_des = as_double("UA_recup_tot_des");		//[kW/K] Total recuperator conductance
-            if (sco2_rc_des_par.m_UA_recup_tot_des < 0.0)
-            {
-                log("For cycle design method = 2, the input total recuperator conductance must be greater than 0", SSC_ERROR, -1.0);
-                return;
-            }
-            sco2_rc_des_par.m_eta_thermal = std::numeric_limits<double>::quiet_NaN();
-        }
-        else
-        {
-            std::string err_msg = util::format("The input cycle design method, %d, is invalid. It must be 1 or 2.", sco2_rc_des_par.m_design_method);
-            log(err_msg, SSC_ERROR, -1.0);
-        }
-
-        sco2_rc_des_par.m_is_recomp_ok = as_integer("is_recomp_ok");
-
-        double mc_PR_in = as_double("is_PR_fixed");		//[-]
-        if (mc_PR_in != 0.0)
-        {
-            if (mc_PR_in < 0.0)
-            {
-                sco2_rc_des_par.m_PR_mc_guess = mc_PR_in * 1.E3;		//[kPa] convert from MPa
-            }
-            else
-            {
-                sco2_rc_des_par.m_PR_mc_guess = mc_PR_in;			//[-] Pressure Ratio!
-            }
-            sco2_rc_des_par.m_fixed_PR_mc = true;
-        }
-        else
-        {
-            sco2_rc_des_par.m_PR_mc_guess = std::numeric_limits<double>::quiet_NaN();
-            sco2_rc_des_par.m_fixed_PR_mc = false;
-        }
-
-        // Cycle design parameters: hardcode pressure drops, for now
-        // Define hardcoded sco2 design point parameters
-        std::vector<double> DP_LT(2);
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
-        DP_LT[0] = 0;
-        DP_LT[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
-        std::vector<double> DP_HT(2);
-        DP_HT[0] = 0;
-        DP_HT[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
-        std::vector<double> DP_PC(2);
-        DP_PC[0] = 0;
-        DP_PC[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
-        std::vector<double> DP_PHX(2);
-        DP_PHX[0] = 0;
-        DP_PHX[1] = 0;
-        sco2_rc_des_par.m_DP_LT = DP_LT;
-        sco2_rc_des_par.m_DP_HT = DP_HT;
-        sco2_rc_des_par.m_DP_PC = DP_PC;
-        sco2_rc_des_par.m_DP_PHX = DP_PHX;
-        sco2_rc_des_par.m_N_sub_hxrs = 10;
-        sco2_rc_des_par.m_N_turbine = 3600.0;
-        sco2_rc_des_par.m_tol = 1.E-3;
-        sco2_rc_des_par.m_opt_tol = 1.E-3;
-
-        // Remaining cycle design parameters
-        sco2_rc_des_par.m_LT_eff_max = as_double("LT_recup_eff_max");
-        sco2_rc_des_par.m_HT_eff_max = as_double("HT_recup_eff_max");
-        sco2_rc_des_par.m_eta_mc = as_double("eta_isen_mc");
-        sco2_rc_des_par.m_eta_rc = as_double("eta_isen_rc");
-        sco2_rc_des_par.m_eta_t = as_double("eta_isen_t");
-        sco2_rc_des_par.m_P_high_limit = as_double("P_high_limit")*1000.0;		//[kPa], convert from MPa		
-
-                                                                                // PHX design parameters
-        sco2_rc_des_par.m_phx_dt_cold_approach = as_double("dT_PHX_cold_approach");
-        if (sco2_rc_des_par.m_phx_dt_cold_approach < 0.0)
-        {
-            sco2_rc_des_par.m_phx_dt_cold_approach = sco2_rc_des_par.m_phx_dt_hot_approach;
-        }
-
-        // Air cooler parameters
-        sco2_rc_des_par.m_frac_fan_power = as_double("fan_power_frac");
-        sco2_rc_des_par.m_deltaP_cooler_frac = as_double("deltaP_cooler_frac");
-
-        // For try/catch below
-        int out_type = -1;
-        std::string out_msg = "";
-
-        // Construction class and design system
-        C_sco2_rc_csp_template *p_sco2_recomp_csp;
-
+        // Select and initialize model
+        string model_name = as_string("model_name");
+        C_sco2_rc_csp_template *mut;
         C_sco2_recomp_csp sco2_recomp_csp_direct;
         C_sco2_recomp_csp_10MWe_scale sco2_recomp_csp_scale;
-
-        if (false)
-        {
-            p_sco2_recomp_csp = &sco2_recomp_csp_direct;
-        }
-        else
-        {
-            p_sco2_recomp_csp = &sco2_recomp_csp_scale;
-        }
-
-        // Pass through callback function (with update percent) and pointer
-        p_sco2_recomp_csp->mf_callback_update = ssc_cmod_update;
-        p_sco2_recomp_csp->mp_mf_update = (void*)(this);
-
-        try
-        {
-            p_sco2_recomp_csp->design(sco2_rc_des_par);
-        }
-        catch (C_csp_exception &csp_exception)
-        {
-            // Report warning before exiting with error
-            while (p_sco2_recomp_csp->mc_messages.get_message(&out_type, &out_msg))
-            {
-                log(out_msg);
-            }
-
-            throw exec_error("sco2_csp_system", csp_exception.m_error_message);
-        }
-
-
-        // Select and initialize model
-        C_sco2_rc_csp_template *mut;            // model under test, TODO - generalize the type of model
-        string model_name = as_string("model_name");
         if (model_name == "sco2_recomp_csp_direct") {
-            //C_sco2_recomp_csp sco2_recomp_csp_direct;
             mut = &sco2_recomp_csp_direct;
         }
         else if (model_name == "sco2_recomp_csp_scale") {
-            //C_sco2_recomp_csp_10MWe_scale sco2_recomp_csp_scale;
             mut = &sco2_recomp_csp_scale;
         }
         else {
             throw exec_error("model_under_test", "model name not found");
         }
-
+        
         // Compile model parameters from SSC inputs
-        C_sco2_rc_csp_template::S_des_par mut_par;      // structure holding design parameters for model under test
+        C_sco2_rc_csp_template::S_des_par mut_par;
         if (compile_params(mut_par)) {
             throw exec_error("model_under_test", "error in model parameters");
         };
@@ -340,8 +194,8 @@ public:
         mut->mp_mf_update = (void*)(this);
 
         // Run design simulation
-        //int out_type = -1;
-        //std::string out_msg = "";
+        int out_type = -1;
+        std::string out_msg = "";
         try
         {
             mut->design(mut_par);
@@ -352,27 +206,12 @@ public:
             while (mut->mc_messages.get_message(&out_type, &out_msg)) {
                 log(out_msg);
             }
-            throw exec_error("model_under_test", csp_exception.m_error_message);
+
+            throw exec_error("sco2_csp_system", csp_exception.m_error_message);
         }
 
         // Set design outputs and state points
         output_design_vals(mut);
-
-        /*double sco2_f_min = 0.5;
-        if (!mut->get_design_solved()->ms_rc_cycle_solved.m_is_rc)
-            sco2_f_min = 0.7;
-
-        double m_dot_htf_ND_low = sco2_f_min;;
-        if (is_assigned("m_dot_htf_ND_low"))
-        {
-            if (as_boolean("is_apply_default_htf_mins"))
-                m_dot_htf_ND_low = std::max(sco2_f_min, as_double("m_dot_htf_ND_low"));	//[-]
-            else
-                m_dot_htf_ND_low = as_double("m_dot_htf_ND_low");
-        }
-
-        assign("m_dot_htf_ND_low", m_dot_htf_ND_low);*/
-
 
         if (as_integer("is_generate_udpc") == 0) {
             log("\n Design calculations complete; no off-design cases requested");
