@@ -58,7 +58,7 @@
 
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
-    { SSC_INPUT,    SSC_NUMBER,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')"   "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_STRING,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')"   "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
     { SSC_INPUT,    SSC_NUMBER,     "T_htf_hot_des",        "HTF design hot temperature (PHX inlet)",                 "C",          "",    "",      "*",     "",       "" },
@@ -168,12 +168,6 @@ public:
 
     void exec() throw(general_error)
     {
-        // Compile model parameters from SSC inputs
-        C_sco2_rc_csp_template::S_des_par mut_par;      // structure holding design parameters for model under test
-        if (compile_params(mut_par)) {
-            throw exec_error("model_under_test", "error in model parameters");
-        };
-
         // Select and initialize model
         C_sco2_rc_csp_template *mut;            // model under test, TODO - generalize the type of model
         string model_name = as_string("model_name");
@@ -188,6 +182,12 @@ public:
         else {
             throw exec_error("model_under_test", "model name not found");
         }
+
+        // Compile model parameters from SSC inputs
+        C_sco2_rc_csp_template::S_des_par mut_par;      // structure holding design parameters for model under test
+        if (compile_params(mut_par)) {
+            throw exec_error("model_under_test", "error in model parameters");
+        };
 
         // Pass through callback function (with update percent) and pointer
         mut->mf_callback_update = ssc_cmod_update;
@@ -242,9 +242,9 @@ public:
 
         // Generate interaction effect tables
         C_ud_power_cycle custom_pc;
-        custom_pc.init(
-            T_htf_parametrics, as_double("T_htf_hot_des") + 273.15, as_double("T_htf_hot_low") + 273.15, as_double("T_htf_hot_high") + 273.15,
-            T_amb_parametrics, as_double("T_amb_des") + 273.15, as_double("T_amb_low") + 273.15, as_double("T_amb_high") + 273.15,
+        custom_pc.init(                 // the temperature parameters are in C
+            T_htf_parametrics, as_double("T_htf_hot_des"), as_double("T_htf_hot_low"), as_double("T_htf_hot_high"),
+            T_amb_parametrics, as_double("T_amb_des"), as_double("T_amb_low"), as_double("T_amb_high"),
             m_dot_htf_ND_parametrics, as_double("m_dot_htf_ND_parametrics"), as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
 
         // Generate sample of independent parameters
