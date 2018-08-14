@@ -230,7 +230,7 @@ public:
         custom_pc.init(                 // the temperature parameters are in C
             T_htf_parametrics, as_double("T_htf_hot_des"), as_double("T_htf_hot_low"), as_double("T_htf_hot_high"),
             T_amb_parametrics, as_double("T_amb_des"), as_double("T_amb_low"), as_double("T_amb_high"),
-            m_dot_htf_ND_parametrics, as_double("m_dot_htf_ND_parametrics"), as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
+            m_dot_htf_ND_parametrics, 1, as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
 
         // Generate sample of independent parameters
         // TODO - create orthogonal samples (e.g., Latin Hypercubes)
