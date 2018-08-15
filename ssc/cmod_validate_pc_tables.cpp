@@ -58,7 +58,8 @@
 
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
-    { SSC_INPUT,    SSC_STRING,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')"   "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_STRING,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')",  "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
     { SSC_INPUT,    SSC_NUMBER,     "T_htf_hot_des",        "HTF design hot temperature (PHX inlet)",                 "C",          "",    "",      "*",     "",       "" },
@@ -145,9 +146,9 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_OUTPUT,   SSC_ARRAY,      "P_co2_des",            "Array of cycle CO2 state point pressures",              "MPa",        "",    "",      "?=[1.2,2.3,3,4]", "",     "" },
 
     // Power Cycle Tables
-    { SSC_OUTPUT,   SSC_MATRIX,     "T_htf_ind",            "Parametric of HTF temperature w/ ND HTF mass flow rate levels", "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_OUTPUT,   SSC_MATRIX,     "T_amb_ind",            "Parametric of ambient temp w/ HTF temp levels",         "",     "",   "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_OUTPUT,   SSC_MATRIX,     "m_dot_htf_ND_ind",     "Parametric of ND HTF mass flow rate w/ ambient temp levels",    "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_htf_ind",            "Parametric of HTF temperature w/ ND HTF mass flow rate levels", "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_amb_ind",            "Parametric of ambient temp w/ HTF temp levels",         "",     "",   "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "m_dot_htf_ND_ind",     "Parametric of ND HTF mass flow rate w/ ambient temp levels",    "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
 
     // Regression vs. basis model comparison metrics
     { SSC_OUTPUT,   SSC_ARRAY,      "dQ_dot_regr_mns_basis",   "Regression model - basis model cycle input heat",      "MWt",       "",    "",              "",     "",       "" },
@@ -218,19 +219,39 @@ public:
             return;
         }
 
-        // Generate regression models, get and output main effect tables and parameters
+        // Get main effect tables
         util::matrix_t<double> T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics;
-        if (create_regressions(mut, mut_par, T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics)) {
-            throw exec_error("model_under_test", "regressions failed");
+        if (!as_boolean("load_me_tables") || !is_assigned("T_htf_ind") || !is_assigned("T_amb_ind") || !is_assigned("m_dot_htf_ND_ind")) {
+            // Generate regression models, get and output main effect tables
+            if (create_regressions(mut, mut_par, T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics)) {
+                throw exec_error("model_under_test", "regressions failed");
+            }
+            output_regressions(T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics);  // output main effect tables
         }
-        output_regressions(T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics);  // output main effect tables
+        else {
+            // Load main effect tables
+            T_htf_parametrics = as_matrix("T_htf_ind");
+            T_amb_parametrics = as_matrix("T_amb_ind");
+            m_dot_htf_ND_parametrics = as_matrix("m_dot_htf_ND_ind");
 
+            //get_matrix("T_htf_ind", T_htf_parametrics);
+            //get_matrix("T_amb_ind", T_amb_parametrics);
+            //get_matrix("m_dot_htf_ND_ind", m_dot_htf_ND_parametrics);
+            //ssc_number_t *T_htf_parametrics_in, *T_amb_parametrics_in, *m_dot_htf_ND_parametrics_in;
+            //std::size_t nrow_T_htf_parametrics, nrow_T_amb_parametrics, nrow_m_dot_htf_ND_parametrics;
+            //std::size_t ncol_T_htf_parametrics, ncol_T_amb_parametrics, ncol_m_dot_htf_ND_parametrics;
+            //T_htf_parametrics_in = as_matrix("T_htf_ind", &nrow_T_htf_parametrics, &ncol_T_htf_parametrics);
+            //T_amb_parametrics_in = as_matrix("T_amb_ind", &nrow_T_amb_parametrics, &ncol_T_amb_parametrics);
+            //m_dot_htf_ND_parametrics_in = as_matrix("m_dot_htf_ND_ind", &nrow_m_dot_htf_ND_parametrics, &ncol_m_dot_htf_ND_parametrics);
+        }
+        
         // Generate interaction effect tables
         C_ud_power_cycle custom_pc;
+
         custom_pc.init(                 // the temperature parameters are in C
             T_htf_parametrics, as_double("T_htf_hot_des"), as_double("T_htf_hot_low"), as_double("T_htf_hot_high"),
             T_amb_parametrics, as_double("T_amb_des"), as_double("T_amb_low"), as_double("T_amb_high"),
-            m_dot_htf_ND_parametrics, 1, as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
+            m_dot_htf_ND_parametrics, 1.0, as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
 
         // Generate sample of independent parameters
         // TODO - create orthogonal samples (e.g., Latin Hypercubes)
@@ -240,7 +261,8 @@ public:
         std::uniform_real_distribution<double> distr_T_amb(as_double("T_amb_low"), as_double("T_amb_high"));
         std::uniform_real_distribution<double> distr_m_dot_htf_ND(as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
         const std::vector<int>::size_type nSamples = 20;
-        std::vector<double> T_htf_hot(nSamples), T_amb(nSamples), m_dot_htf_ND(nSamples);
+        std::vector<double> T_htf_hot, T_amb, m_dot_htf_ND;
+        T_htf_hot.reserve(nSamples), T_amb.reserve(nSamples), m_dot_htf_ND.reserve(nSamples);
         for (int i = 0; i < nSamples; i++) {
             T_htf_hot.push_back(distr_T_htf_hot(generator));
             T_amb.push_back(distr_T_amb(generator));
@@ -248,13 +270,14 @@ public:
         }
         // Expand samples into a full factorial
         double n_ff = pow(nSamples, 3);
-        std::vector<double> T_htf_hot_ff(n_ff), T_amb_ff(n_ff), m_dot_htf_ND_ff(n_ff);
+        std::vector<double> T_htf_hot_ff, T_amb_ff, m_dot_htf_ND_ff;
+        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_htf_ND_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot.size(); i++) {
             for (std::vector<int>::size_type j = 0; j != T_amb.size(); j++) {
                 for (std::vector<int>::size_type k = 0; k != m_dot_htf_ND.size(); k++) {
                     T_htf_hot_ff.push_back(T_htf_hot.at(i));
-                    T_amb_ff.push_back(T_amb.at(i));
-                    m_dot_htf_ND_ff.push_back(m_dot_htf_ND.at(i));
+                    T_amb_ff.push_back(T_amb.at(j));
+                    m_dot_htf_ND_ff.push_back(m_dot_htf_ND.at(k));
                 }
             }
         }
@@ -263,7 +286,8 @@ public:
         double Q_dot_des, W_dot_des;
         W_dot_des = as_double("W_dot_net_des");
         Q_dot_des = W_dot_des / as_double("eta_thermal_des");
-        std::vector<double> Q_dot_regr_ff(n_ff), W_dot_regr_ff(n_ff);
+        std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
+        Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
             Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * Q_dot_des);
             W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * W_dot_des);
@@ -274,15 +298,16 @@ public:
         const double od_opt_tol = 0.1;                   // doesn't appear to be used
         C_sco2_rc_csp_template::E_off_design_strategies od_strategy = C_sco2_rc_csp_template::E_off_design_strategies::E_MAX_ETA;       // arbitrarily chosen
         const C_sco2_rc_csp_template::S_od_solved *mut_od_sol;
-        std::vector<double> Q_dot_basis_ff(n_ff), W_dot_basis_ff(n_ff);
+        std::vector<double> Q_dot_basis_ff, W_dot_basis_ff;
+        Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
             mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i);
             mut_od_par.m_T_amb = T_amb_ff.at(i);
             mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_double("m_dot_htf_des");
             mut->off_design_nested_opt(mut_od_par, od_strategy, od_opt_tol);
             mut_od_sol = mut->get_od_solved();
-            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot);
-            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net);
+            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot);            // kWt
+            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net);        // kWe
         }
         
         // Compare regression and basis models and output metrics
@@ -571,6 +596,7 @@ public:
         assign("T_htf_cold_des", (ssc_number_t)(T_htf_cold_calc - 273.15));		//[C] convert from K
         assign("m_dot_htf_des", (ssc_number_t)m_dot_htf_design);				//[kg/s]
         assign("eta_thermal_calc", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.m_eta_thermal);	//[-]
+        if (!is_assigned("eta_thermal_des") || as_number("eta_thermal_des") <= 0.0) assign("eta_thermal_des", as_number("eta_thermal_calc"));
         assign("m_dot_co2_full", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.m_m_dot_t);		//[kg/s]
         assign("recomp_frac", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.m_recomp_frac);		//[-]
             // Compressor
