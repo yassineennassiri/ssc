@@ -306,8 +306,8 @@ public:
             mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_double("m_dot_htf_des");
             mut->off_design_nested_opt(mut_od_par, od_strategy, od_opt_tol);
             mut_od_sol = mut->get_od_solved();
-            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot);            // kWt
-            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net);        // kWe
+            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot / 1000.);            // kWt -> MWt
+            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);        // kWe -> MWe
         }
         
         // Compare regression and basis models and output metrics
