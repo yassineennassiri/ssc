@@ -1284,6 +1284,37 @@ int C_sco2_recomp_csp::C_sco2_csp_od::operator()(S_f_inputs inputs, S_f_outputs 
 	return off_design_code;
 }
 
+int C_sco2_recomp_csp_10MWe_scale::C_sco2_csp_od::operator()(S_f_inputs inputs, S_f_outputs & outputs)
+{
+    S_od_par sco2_od_par;
+    sco2_od_par.m_T_htf_hot = inputs.m_T_htf_hot + 273.15;	//[K] convert from C
+    sco2_od_par.m_m_dot_htf = mpc_sco2_rc->get_phx_des_par()->m_m_dot_hot_des*inputs.m_m_dot_htf_ND;	//[kg/s] scale from [-]
+    sco2_od_par.m_T_amb = inputs.m_T_amb + 273.15;			//[K] convert from C
+
+    int od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
+
+    int off_design_code = -1;	//[-]
+
+    off_design_code = mpc_sco2_rc->optimize_off_design(sco2_od_par, od_strategy);
+
+    // Cycle off-design may want to operate below this value, so ND value could be < 1 everywhere
+    double W_dot_gross_design = mpc_sco2_rc->get_design_solved()->ms_rc_cycle_solved.m_W_dot_net;	//[kWe]
+    double Q_dot_in_design = mpc_sco2_rc->get_design_solved()->ms_rc_cycle_solved.m_W_dot_net
+        / mpc_sco2_rc->get_design_solved()->ms_rc_cycle_solved.m_eta_thermal;	//[kWt]
+
+    outputs.m_W_dot_gross_ND = mpc_sco2_rc->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net
+        / W_dot_gross_design;
+
+    outputs.m_Q_dot_in_ND = mpc_sco2_rc->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot
+        / Q_dot_in_design;
+
+    outputs.m_W_dot_cooling_ND = outputs.m_W_dot_gross_ND;
+
+    outputs.m_m_dot_water_ND = 1.0;
+
+    return off_design_code;
+}
+
 int C_sco2_recomp_csp::generate_ud_pc_tables(double T_htf_low /*C*/, double T_htf_high /*C*/, int n_T_htf /*-*/,
 	double T_amb_low /*C*/, double T_amb_high /*C*/, int n_T_amb /*-*/,
 	double m_dot_htf_ND_low /*-*/, double m_dot_htf_ND_high /*-*/, int n_m_dot_htf_ND,

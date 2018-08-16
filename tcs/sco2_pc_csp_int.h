@@ -262,8 +262,6 @@ public:
 		double T_amb_low /*C*/, double T_amb_high /*C*/, int n_T_amb /*-*/,
 		double m_dot_htf_ND_low /*-*/, double m_dot_htf_ND_high /*-*/, int n_m_dot_htf_ND,
 		util::matrix_t<double> & T_htf_ind, util::matrix_t<double> & T_amb_ind, util::matrix_t<double> & m_dot_htf_ND_ind) = 0;
-
-
 };
 
 class C_sco2_recomp_csp : public C_sco2_rc_csp_template
@@ -406,6 +404,20 @@ public:
 	C_sco2_recomp_csp_10MWe_scale();
 
 	~C_sco2_recomp_csp_10MWe_scale(){};
+
+    class C_sco2_csp_od : public C_od_pc_function
+    {
+    private:
+        C_sco2_recomp_csp_10MWe_scale *mpc_sco2_rc;
+
+    public:
+        C_sco2_csp_od(C_sco2_recomp_csp_10MWe_scale *pc_sco2_rc)
+        {
+            mpc_sco2_rc = pc_sco2_rc;
+        }
+
+        virtual int operator()(S_f_inputs inputs, S_f_outputs & outputs);
+    };
 
 	virtual void design(C_sco2_rc_csp_template::S_des_par des_par);
 
