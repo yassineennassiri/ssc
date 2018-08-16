@@ -151,6 +151,15 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INOUT,   SSC_MATRIX,      "m_dot_htf_ND_ind",     "Parametric of ND HTF mass flow rate w/ ambient temp levels",    "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
 
     // Regression vs. basis model comparison metrics
+    { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "T_amb_ff",             "Sample of ambient temp. for full-factorial model runs",     "C",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_htf_ND_ff",      "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
+
+    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_regr_ff",        "Regression model cycle input heat",                       "MWt",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_regr_ff",        "Regression model cycle output power",                     "MWe",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_basis_ff",       "Basis model cycle input heat",                            "MWt",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_basis_ff",       "Basis model cycle output power",                          "MWe",       "",    "",              "",     "",       "" },
+
     { SSC_OUTPUT,   SSC_ARRAY,      "dQ_dot_regr_mns_basis",   "Regression model - basis model cycle input heat",      "MWt",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "dW_dot_regr_mns_basis",   "Regression model - basis model cycle output power",    "MWe",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "pcdQ_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle input heat",   "MWt",       "",    "",              "",     "",       "" },
@@ -281,6 +290,13 @@ public:
                 }
             }
         }
+        // Output T_htf_hot, T_amb and m_dot_htf_ND values
+        ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", n_ff);
+        std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
+        ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
+        std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+        ssc_number_t *m_dot_htf_ND_ff_cm = allocate("m_dot_htf_ND_ff", n_ff);
+        std::copy(m_dot_htf_ND_ff.begin(), m_dot_htf_ND_ff.end(), m_dot_htf_ND_ff_cm);
 
         // Calculate regression model heat and power from sample set
         double Q_dot_des, W_dot_des;
@@ -289,26 +305,34 @@ public:
         std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
         Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * Q_dot_des);
-            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * W_dot_des);
+            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * Q_dot_des);     // MWt
+            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * W_dot_des);   // MWe
         }
+        // Output regression model values
+        ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
+        std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
+        ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
+        std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
 
         // Calculate basis model heat and power from sample set
-        C_sco2_rc_csp_template::S_od_par mut_od_par;
-        const double od_opt_tol = 0.1;                   // doesn't appear to be used
-        C_sco2_rc_csp_template::E_off_design_strategies od_strategy = C_sco2_rc_csp_template::E_off_design_strategies::E_MAX_ETA;       // arbitrarily chosen
-        const C_sco2_rc_csp_template::S_od_solved *mut_od_sol;
+        C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
+        int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
+        int off_design_code = -1;
         std::vector<double> Q_dot_basis_ff, W_dot_basis_ff;
         Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i);
-            mut_od_par.m_T_amb = T_amb_ff.at(i);
-            mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_double("m_dot_htf_des");
-            mut->off_design_nested_opt(mut_od_par, od_strategy, od_opt_tol);
-            mut_od_sol = mut->get_od_solved();
-            Q_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_Q_dot / 1000.);            // kWt -> MWt
-            W_dot_basis_ff.push_back(mut_od_sol->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);        // kWe -> MWe
+            mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
+            mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
+            mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
+            off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
+            Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+            W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
         }
+        // Output basis model values
+        ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
+        std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
+        ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
+        std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         
         // Compare regression and basis models and output metrics
         std::vector<double> dQ_dot_regr_mns_basis(n_ff), dW_dot_regr_mns_basis(n_ff);
@@ -319,6 +343,7 @@ public:
             pcdQ_dot_regr_mns_basis.at(i) = dQ_dot_regr_mns_basis.at(i) / Q_dot_basis_ff.at(i) * 100;
             pcdW_dot_regr_mns_basis.at(i) = dW_dot_regr_mns_basis.at(i) / W_dot_basis_ff.at(i) * 100;
         }
+        // Output model comparisons
         ssc_number_t *dQ_dot_regr_mns_basis_cm = allocate("dQ_dot_regr_mns_basis", n_ff);
         std::copy(dQ_dot_regr_mns_basis.begin(), dQ_dot_regr_mns_basis.end(), dQ_dot_regr_mns_basis_cm);
         ssc_number_t *dW_dot_regr_mns_basis_cm = allocate("dW_dot_regr_mns_basis", n_ff);
@@ -603,17 +628,33 @@ public:
         assign("P_comp_in", (ssc_number_t)(model->get_design_solved()->ms_rc_cycle_solved.m_pres[1 - 1] / 1000.0));		//[MPa] convert from kPa
         assign("P_comp_out", (ssc_number_t)(model->get_design_solved()->ms_rc_cycle_solved.m_pres[2 - 1] / 1000.0));		//[MPa] convert from kPa
         assign("mc_phi_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_phi_des);
-        assign("mc_tip_ratio_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_w_tip_ratio);		//[-]
-        assign("mc_n_stages", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_n_stages);	//[-]
+        assign("mc_tip_ratio_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_tip_ratio_max);		//[-]
+        int n_mc_stages = model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_n_stages;
+        assign("mc_n_stages", (ssc_number_t)n_mc_stages);	//[-]
         assign("mc_N_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_N_design);	//[rpm]
-        assign("mc_D", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_D_rotor);			//[m]
+
+        ssc_number_t *p_mc_D = allocate("mc_D", n_mc_stages);
+        std::vector<double> v_mc_D = model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.mv_D;
+        for (int i = 0; i < n_mc_stages; i++)
+        {
+            p_mc_D[i] = (ssc_number_t)v_mc_D[i];		//[m]
+        }
+
         assign("mc_phi_surge", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_phi_surge);	//[-]
             // Recompressor
         assign("rc_phi_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_phi_des);	//[-]
-        assign("rc_tip_ratio_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_w_tip_ratio);	//[-]
-        assign("rc_n_stages", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_n_stages);	//[-]
+        assign("rc_tip_ratio_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_tip_ratio_max);	//[-]
+        int n_rc_stages = model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_n_stages;		//[-]
+        assign("rc_n_stages", (ssc_number_t)n_rc_stages);	//[-]
         assign("rc_N_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_N_design);	//[rpm]
-        assign("rc_D", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_D_rotor);		//[m] 
+
+        ssc_number_t *p_rc_D = allocate("rc_D", n_rc_stages);
+        std::vector<double> v_rc_D = model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.mv_D;
+        for (int i = 0; i < n_rc_stages; i++)
+        {
+            p_rc_D[i] = (ssc_number_t)v_rc_D[i];		//[m]
+        }
+
         assign("rc_phi_surge", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_rc_ms_des_solved.m_phi_surge);//[-]
             // Turbine
         assign("t_nu_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_nu_design);           //[-]
@@ -621,15 +662,15 @@ public:
         assign("t_N_des", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_N_design);			   //[rpm]
         assign("t_D", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_D_rotor);                  //[m]
             // Recuperator
-        double UA_LTR = model->get_design_solved()->ms_rc_cycle_solved.m_UA_LT;		//[kW/K]
-        double UA_HTR = model->get_design_solved()->ms_rc_cycle_solved.m_UA_HT;		//[kW/K]
+        double UA_LTR = model->get_design_solved()->ms_rc_cycle_solved.m_UA_LTR;		//[kW/K]
+        double UA_HTR = model->get_design_solved()->ms_rc_cycle_solved.m_UA_HTR;		//[kW/K]
         assign("UA_recup_total", (ssc_number_t)(UA_LTR + UA_HTR));		//[kW/K]
         assign("UA_LTR", (ssc_number_t)UA_LTR);						//[kW/K]
-        assign("eff_LTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_LT_recup_des_solved.m_eff_design);		//[-]
-        assign("NTU_LTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_LT_recup_des_solved.m_NTU_design);		//[-]
+        assign("eff_LTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_LTR_des_solved.m_eff_design);		//[-]
+        assign("NTU_LTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_LTR_des_solved.m_NTU_design);		//[-]
         assign("UA_HTR", (ssc_number_t)UA_HTR);						//[kW/K]
-        assign("eff_HTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_HT_recup_des_solved.m_eff_design);		//[-]
-        assign("NTU_HTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_HT_recup_des_solved.m_NTU_design);		//[-]
+        assign("eff_HTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_HTR_des_solved.m_eff_design);		//[-]
+        assign("NTU_HTR", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.ms_HTR_des_solved.m_NTU_design);		//[-]
             // PHX
         assign("UA_PHX", (ssc_number_t)model->get_design_solved()->ms_phx_des_solved.m_UA_design_total);			//[kW/K]
         assign("eff_PHX", (ssc_number_t)model->get_design_solved()->ms_phx_des_solved.m_eff_design);				//[-]
@@ -637,7 +678,7 @@ public:
             // Air Cooler
 
             // State Points
-        int n_sp = C_RecompCycle::RC_OUT + 1;
+        int n_sp = C_sco2_cycle_core::END_SCO2_STATES;		// C_RecompCycle::RC_OUT + 1;
         ssc_number_t *p_T_co2_des = allocate("T_co2_des", n_sp);
         ssc_number_t *p_P_co2_des = allocate("P_co2_des", n_sp);
         for (int i = 0; i < n_sp; i++)
@@ -650,7 +691,7 @@ public:
         if (!model->get_design_solved()->ms_rc_cycle_solved.m_is_rc)
             sco2_f_min = 0.7;
 
-        double m_dot_htf_ND_low = sco2_f_min;
+        double m_dot_htf_ND_low = sco2_f_min;;
         if (is_assigned("m_dot_htf_ND_low"))
         {
             if (as_boolean("is_apply_default_htf_mins"))
@@ -660,7 +701,7 @@ public:
         }
 
         assign("m_dot_htf_ND_low", m_dot_htf_ND_low);
-
+        
         return 0;
     }
 
