@@ -59,6 +59,8 @@
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
     { SSC_INPUT,    SSC_STRING,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')",  "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "samples_per_ind",      "Number of samples per indepedent var. (total = x^3)",    "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "sample_type",          "0 = uniform, 1 = random (rect. distr.)",                 "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
@@ -228,7 +230,7 @@ public:
             return;
         }
 
-        // Get main effect tables
+        // Get main effects tables
         util::matrix_t<double> T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics;
         if (!as_boolean("load_me_tables") || !is_assigned("T_htf_ind") || !is_assigned("T_amb_ind") || !is_assigned("m_dot_htf_ND_ind")) {
             // Generate regression models, get and output main effect tables
@@ -238,83 +240,43 @@ public:
             output_regressions(T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics);  // output main effect tables
         }
         else {
-            // Load main effect tables
+            // Load main effects tables
             T_htf_parametrics = as_matrix("T_htf_ind");
             T_amb_parametrics = as_matrix("T_amb_ind");
             m_dot_htf_ND_parametrics = as_matrix("m_dot_htf_ND_ind");
-
-            //get_matrix("T_htf_ind", T_htf_parametrics);
-            //get_matrix("T_amb_ind", T_amb_parametrics);
-            //get_matrix("m_dot_htf_ND_ind", m_dot_htf_ND_parametrics);
-            //ssc_number_t *T_htf_parametrics_in, *T_amb_parametrics_in, *m_dot_htf_ND_parametrics_in;
-            //std::size_t nrow_T_htf_parametrics, nrow_T_amb_parametrics, nrow_m_dot_htf_ND_parametrics;
-            //std::size_t ncol_T_htf_parametrics, ncol_T_amb_parametrics, ncol_m_dot_htf_ND_parametrics;
-            //T_htf_parametrics_in = as_matrix("T_htf_ind", &nrow_T_htf_parametrics, &ncol_T_htf_parametrics);
-            //T_amb_parametrics_in = as_matrix("T_amb_ind", &nrow_T_amb_parametrics, &ncol_T_amb_parametrics);
-            //m_dot_htf_ND_parametrics_in = as_matrix("m_dot_htf_ND_ind", &nrow_m_dot_htf_ND_parametrics, &ncol_m_dot_htf_ND_parametrics);
         }
         
-        // Generate interaction effect tables
+        // Generate interaction effects tables
         C_ud_power_cycle custom_pc;
-
         custom_pc.init(                 // the temperature parameters are in C
             T_htf_parametrics, as_double("T_htf_hot_des"), as_double("T_htf_hot_low"), as_double("T_htf_hot_high"),
             T_amb_parametrics, as_double("T_amb_des"), as_double("T_amb_low"), as_double("T_amb_high"),
             m_dot_htf_ND_parametrics, 1.0, as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
 
-        // Generate sample of independent parameters
-        // TODO - create orthogonal samples (e.g., Latin Hypercubes)
-        unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-        std::default_random_engine generator(seed);
-        std::uniform_real_distribution<double> distr_T_htf_hot(as_double("T_htf_hot_low"), as_double("T_htf_hot_high"));
-        std::uniform_real_distribution<double> distr_T_amb(as_double("T_amb_low"), as_double("T_amb_high"));
-        std::uniform_real_distribution<double> distr_m_dot_htf_ND(as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
-        const std::vector<int>::size_type nSamples = 20;
-        std::vector<double> T_htf_hot, T_amb, m_dot_htf_ND;
-        T_htf_hot.reserve(nSamples), T_amb.reserve(nSamples), m_dot_htf_ND.reserve(nSamples);
-        for (int i = 0; i < nSamples; i++) {
-            T_htf_hot.push_back(distr_T_htf_hot(generator));
-            T_amb.push_back(distr_T_amb(generator));
-            m_dot_htf_ND.push_back(distr_m_dot_htf_ND(generator));
-        }
-        // Expand samples into a full factorial
-        double n_ff = pow(nSamples, 3);
+        // Generate samples of independent parameters and output to SSC
+        // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
+        int nSamples = as_integer("samples_per_ind");
+        int sample_type = as_integer("sample_type");
         std::vector<double> T_htf_hot_ff, T_amb_ff, m_dot_htf_ND_ff;
-        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_htf_ND_ff.reserve(n_ff);
-        for (std::vector<int>::size_type i = 0; i != T_htf_hot.size(); i++) {
-            for (std::vector<int>::size_type j = 0; j != T_amb.size(); j++) {
-                for (std::vector<int>::size_type k = 0; k != m_dot_htf_ND.size(); k++) {
-                    T_htf_hot_ff.push_back(T_htf_hot.at(i));
-                    T_amb_ff.push_back(T_amb.at(j));
-                    m_dot_htf_ND_ff.push_back(m_dot_htf_ND.at(k));
-                }
-            }
-        }
-        // Output T_htf_hot, T_amb and m_dot_htf_ND values
-        ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", n_ff);
-        std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
-        ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
-        std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
-        ssc_number_t *m_dot_htf_ND_ff_cm = allocate("m_dot_htf_ND_ff", n_ff);
-        std::copy(m_dot_htf_ND_ff.begin(), m_dot_htf_ND_ff.end(), m_dot_htf_ND_ff_cm);
+        generate_samples(nSamples, sample_type, T_htf_hot_ff, T_amb_ff, m_dot_htf_ND_ff);
 
-        // Calculate regression model heat and power from sample set
+        // Calculate regression model heat and power from sample set and output to SSC
         double Q_dot_des, W_dot_des;
         W_dot_des = as_double("W_dot_net_des");
         Q_dot_des = W_dot_des / as_double("eta_thermal_des");
         std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
+        int n_ff = pow(nSamples, 3);
         Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
             Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * Q_dot_des);     // MWt
             W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * W_dot_des);   // MWe
         }
-        // Output regression model values
         ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
         std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
         ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
         std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
 
-        // Calculate basis model heat and power from sample set
+        // Calculate basis model heat and power from sample set and output to SSC
         C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
         int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
         int off_design_code = -1;
@@ -328,7 +290,6 @@ public:
             Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
             W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
         }
-        // Output basis model values
         ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
         std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
         ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
@@ -352,7 +313,6 @@ public:
         std::copy(pcdQ_dot_regr_mns_basis.begin(), pcdQ_dot_regr_mns_basis.end(), pcdQ_dot_regr_mns_basis_cm);
         ssc_number_t *pcdW_dot_regr_mns_basis_cm = allocate("pcdW_dot_regr_mns_basis", n_ff);
         std::copy(pcdW_dot_regr_mns_basis.begin(), pcdW_dot_regr_mns_basis.end(), pcdW_dot_regr_mns_basis_cm);
-        // TODO - output T_htf_hot_ff, T_amb_ff and m_dot_htf_ND_ff
     }
 
     int compile_params(C_sco2_rc_csp_template::S_des_par &mut_params) {
@@ -703,6 +663,69 @@ public:
         assign("m_dot_htf_ND_low", m_dot_htf_ND_low);
         
         return 0;
+    }
+
+    int generate_samples(int nSamples, int sample_type, std::vector<double> &T_htf_hot_ff,
+        std::vector<double> &T_amb_ff, std::vector<double> &m_dot_htf_ND_ff) {
+
+        double T_htf_hot_des = as_double("T_htf_hot_des");
+        double T_htf_hot_low = as_double("T_htf_hot_low");
+        double T_htf_hot_high = as_double("T_htf_hot_high");
+        double T_amb_des = as_double("T_amb_des");
+        double T_amb_low = as_double("T_amb_low");
+        double T_amb_high = as_double("T_amb_high");
+        double m_dot_htf_ND_des = 1.0;
+        double m_dot_htf_ND_low = as_double("m_dot_htf_ND_low");
+        double m_dot_htf_ND_high = as_double("m_dot_htf_ND_high");
+
+        std::vector<double> T_htf_hot(nSamples), T_amb(nSamples), m_dot_htf_ND(nSamples);
+
+        if (sample_type == 0) {             // uniform sample
+            double d, inc;
+            inc = (T_htf_hot_high - T_htf_hot_low) / (nSamples - 1);        // fill T_htf_hot
+            d = T_htf_hot_low - inc;      // subtract inc so first value equals T_htf_hot_low
+            generate(T_htf_hot.begin(), T_htf_hot.end(), [&d, inc] { return d += inc; });
+            inc = (T_amb_high - T_amb_low) / (nSamples - 1);                // fill T_amb
+            d = T_amb_low - inc;
+            generate(T_amb.begin(), T_amb.end(), [&d, inc] { return d += inc; });
+            inc = (m_dot_htf_ND_high - m_dot_htf_ND_low) / (nSamples - 1);  // fill m_dot_htf_ND_low
+            d = m_dot_htf_ND_low - inc;
+            generate(m_dot_htf_ND.begin(), m_dot_htf_ND.end(), [&d, inc] { return d += inc; });
+        }
+        else if (sample_type == 1) {        // random from rectangular distribution
+            unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+            std::default_random_engine generator(seed);
+            std::uniform_real_distribution<double> distr_T_htf_hot(T_htf_hot_low, T_htf_hot_high);
+            std::uniform_real_distribution<double> distr_T_amb(T_amb_low, T_amb_high);
+            std::uniform_real_distribution<double> distr_m_dot_htf_ND(m_dot_htf_ND_low, m_dot_htf_ND_high);
+            for (int i = 0; i < nSamples; i++) {
+                T_htf_hot.at(i) = distr_T_htf_hot(generator);
+                T_amb.at(i) = distr_T_amb(generator);
+                m_dot_htf_ND.at(i) = distr_m_dot_htf_ND(generator);
+            }
+        }
+        else {
+            throw(C_csp_exception("No such sample type"));
+        }
+        // Expand samples into a full factorial
+        double n_ff = pow(nSamples, 3);
+        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_htf_ND_ff.reserve(n_ff);
+        for (std::vector<int>::size_type i = 0; i != T_htf_hot.size(); i++) {
+            for (std::vector<int>::size_type j = 0; j != T_amb.size(); j++) {
+                for (std::vector<int>::size_type k = 0; k != m_dot_htf_ND.size(); k++) {
+                    T_htf_hot_ff.push_back(T_htf_hot.at(i));
+                    T_amb_ff.push_back(T_amb.at(j));
+                    m_dot_htf_ND_ff.push_back(m_dot_htf_ND.at(k));
+                }
+            }
+        }
+        // Output T_htf_hot, T_amb and m_dot_htf_ND values
+        ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", n_ff);
+        std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
+        ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
+        std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+        ssc_number_t *m_dot_htf_ND_ff_cm = allocate("m_dot_htf_ND_ff", n_ff);
+        std::copy(m_dot_htf_ND_ff.begin(), m_dot_htf_ND_ff.end(), m_dot_htf_ND_ff_cm);
     }
 
     // The following are helper functions for Rankine model tables
