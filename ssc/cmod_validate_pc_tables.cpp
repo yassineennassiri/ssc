@@ -55,6 +55,7 @@
 //#include <algorithm>
 #include "csp_solver_util.h"
 #include "sco2_pc_csp_int.h"
+#include "interpolation_routines.h"
 
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
@@ -89,7 +90,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "deltaP_cooler_frac",   "Fraction of cycle high pres. that is design point cooler CO2 pres. drop", "", "", "", "?=0.002", "",      "" },
     // Off Design UDPC Options
     { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" },
-    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_htf_ND_low'", "", "", "",   "?=1",    "",      "" },
+    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "", "",   "?=1",    "",      "" },
     // User Defined Power Cycle Table Inputs
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_low",        "Lower level of HTF hot temperature",					  "C",          "",    "",      "",       "",      "" },
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_high",	    "Upper level of HTF hot temperature",					  "C",		    "",    "",      "",       "",      "" },
@@ -97,14 +98,14 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INOUT,    SSC_NUMBER,     "T_amb_low",		    "Lower level of ambient temperature",					  "C",		    "",    "",      "",       "",      "" },
     { SSC_INOUT,    SSC_NUMBER,     "T_amb_high",		    "Upper level of ambient temperature",					  "C",		    "",    "",      "",       "",      "" },
     { SSC_INOUT,    SSC_NUMBER,     "n_T_amb",			    "Number of ambient temperature parametric runs",		   "",		    "",    "",      "",       "",      "" },
-    { SSC_INOUT,    SSC_NUMBER,     "m_dot_htf_ND_low",	    "Lower level of normalized HTF mass flow rate",			   "",		    "",    "",      "",       "",      "" },
-    { SSC_INOUT,    SSC_NUMBER,     "m_dot_htf_ND_high",    "Upper level of normalized HTF mass flow rate",			   "",		    "",    "",      "",       "",      "" },
-    { SSC_INOUT,    SSC_NUMBER,     "n_m_dot_htf_ND",	    "Number of normalized HTF mass flow rate parametric runs", "",		    "",    "",      "",       "",      "" },
+    { SSC_INOUT,    SSC_NUMBER,     "m_dot_ND_low",	        "Lower level of normalized HTF mass flow rate",			   "",		    "",    "",      "",       "",      "" },
+    { SSC_INOUT,    SSC_NUMBER,     "m_dot_ND_high",        "Upper level of normalized HTF mass flow rate",			   "",		    "",    "",      "",       "",      "" },
+    { SSC_INOUT,    SSC_NUMBER,     "n_m_dot_ND",	        "Number of normalized HTF mass flow rate parametric runs", "",		    "",    "",      "",       "",      "" },
 
     // ** Design OUTPUTS **
     // System Design Solution
     { SSC_OUTPUT,   SSC_NUMBER,     "T_htf_cold_des",       "HTF design cold temperature (PHX outlet)",               "C",          "",    "",      "?=1.2345",     "",       "" },
-    { SSC_OUTPUT,   SSC_NUMBER,     "m_dot_htf_des",        "HTF mass flow rate",                                     "kg/s",       "",    "",      "?=1.2345",     "",       "" },
+    { SSC_OUTPUT,   SSC_NUMBER,     "m_dot_des",            "HTF mass flow rate",                                     "kg/s",       "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "eta_thermal_calc",     "Calculated cycle thermal efficiency",                    "-",          "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "m_dot_co2_full",       "CO2 mass flow rate through HTR, PHX, turbine",           "kg/s",       "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "recomp_frac",          "Recompression fraction",                                 "-",          "",    "",      "?=1.2345",     "",       "" },
@@ -148,24 +149,26 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_OUTPUT,   SSC_ARRAY,      "P_co2_des",            "Array of cycle CO2 state point pressures",              "MPa",        "",    "",      "?=[1.2,2.3,3,4]", "",     "" },
 
     // Power Cycle Tables
-    { SSC_INOUT,   SSC_MATRIX,      "T_htf_ind",            "Parametric of HTF temperature w/ ND HTF mass flow rate levels", "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "T_amb_ind",            "Parametric of ambient temp w/ HTF temp levels",         "",     "",   "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "m_dot_htf_ND_ind",     "Parametric of ND HTF mass flow rate w/ ambient temp levels",    "",   "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_htf_me",            "Main FX of HTF temperature w/ ND HTF mass flow rate levels", "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",            "Main FX of ambient temp w/ HTF temp levels",         "",     "",       "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",         "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
 
     // Regression vs. basis model comparison metrics
     { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "T_amb_ff",             "Sample of ambient temp. for full-factorial model runs",     "C",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_htf_ND_ff",      "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_ND_ff",          "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
 
-    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_regr_ff",        "Regression model cycle input heat",                       "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_regr_ff",        "Regression model cycle output power",                     "MWe",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_basis_ff",       "Basis model cycle input heat",                            "MWt",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_regr_ff",        "Regression model cycle input heat",                       "MWt",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_interp_ff",      "Interpolation model cycle input heat",                    "MWt",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_basis_ff",       "Basis model cycle output power",                          "MWe",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_regr_ff",        "Regression model cycle output power",                     "MWe",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_interp_ff",      "Interpolation model cycle output power",                  "MWe",       "",    "",              "",     "",       "" },
 
-    { SSC_OUTPUT,   SSC_ARRAY,      "dQ_dot_regr_mns_basis",   "Regression model - basis model cycle input heat",      "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "dW_dot_regr_mns_basis",   "Regression model - basis model cycle output power",    "MWe",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "pcdQ_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle input heat",   "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "pcdW_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle output power", "MWe",       "",    "",              "",     "",       "" },
+    //{ SSC_OUTPUT,   SSC_ARRAY,      "dQ_dot_regr_mns_basis",   "Regression model - basis model cycle input heat",      "MWt",       "",    "",              "",     "",       "" },
+    //{ SSC_OUTPUT,   SSC_ARRAY,      "dW_dot_regr_mns_basis",   "Regression model - basis model cycle output power",    "MWe",       "",    "",              "",     "",       "" },
+    //{ SSC_OUTPUT,   SSC_ARRAY,      "pcdQ_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle input heat",   "MWt",       "",    "",              "",     "",       "" },
+    //{ SSC_OUTPUT,   SSC_ARRAY,      "pcdW_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle output power", "MWe",       "",    "",              "",     "",       "" },
 
 var_info_invalid };
 
@@ -231,34 +234,44 @@ public:
         }
 
         // Get main effects tables
-        util::matrix_t<double> T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics;
-        if (!as_boolean("load_me_tables") || !is_assigned("T_htf_ind") || !is_assigned("T_amb_ind") || !is_assigned("m_dot_htf_ND_ind")) {
+        util::matrix_t<double> T_htf_me, T_amb_me, m_dot_ND_me;
+        if (!as_boolean("load_me_tables") || !is_assigned("T_htf_me") || !is_assigned("T_amb_me") || !is_assigned("m_dot_ND_me")) {
             // Generate regression models, get and output main effect tables
-            if (create_regressions(mut, mut_par, T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics)) {
+            if (create_regressions(mut, mut_par, T_htf_me, T_amb_me, m_dot_ND_me)) {
                 throw exec_error("model_under_test", "regressions failed");
             }
-            output_regressions(T_htf_parametrics, T_amb_parametrics, m_dot_htf_ND_parametrics);  // output main effect tables
+            output_regressions(T_htf_me, T_amb_me, m_dot_ND_me);  // output main effect tables
         }
         else {
-            // Load main effects tables
-            T_htf_parametrics = as_matrix("T_htf_ind");
-            T_amb_parametrics = as_matrix("T_amb_ind");
-            m_dot_htf_ND_parametrics = as_matrix("m_dot_htf_ND_ind");
+            // Load main effects tables from previous validation run to save compute time
+            T_htf_me = as_matrix("T_htf_me");
+            T_amb_me = as_matrix("T_amb_me");
+            m_dot_ND_me = as_matrix("m_dot_ND_me");
         }
         
         // Generate interaction effects tables
+        double
+            T_htf_hot_des = as_double("T_htf_hot_des"),
+            T_htf_hot_low = as_double("T_htf_hot_low"),
+            T_htf_hot_high = as_double("T_htf_hot_high"),
+            T_amb_des = as_double("T_amb_des"),
+            T_amb_low = as_double("T_amb_low"),
+            T_amb_high = as_double("T_amb_high"),
+            m_dot_ND_des = 1.0,
+            m_dot_ND_low = as_double("m_dot_ND_low"),
+            m_dot_ND_high = as_double("m_dot_ND_high");
         C_ud_power_cycle custom_pc;
         custom_pc.init(                 // the temperature parameters are in C
-            T_htf_parametrics, as_double("T_htf_hot_des"), as_double("T_htf_hot_low"), as_double("T_htf_hot_high"),
-            T_amb_parametrics, as_double("T_amb_des"), as_double("T_amb_low"), as_double("T_amb_high"),
-            m_dot_htf_ND_parametrics, 1.0, as_double("m_dot_htf_ND_low"), as_double("m_dot_htf_ND_high"));
+            T_htf_me, T_htf_hot_des, T_htf_hot_low, T_htf_hot_high,
+            T_amb_me, T_amb_des, T_amb_low, T_amb_high,
+            m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
 
         // Generate samples of independent parameters and output to SSC
         // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
-        int nSamples = as_integer("samples_per_ind");
+        int nSamples = as_integer("samples_per_me");
         int sample_type = as_integer("sample_type");
-        std::vector<double> T_htf_hot_ff, T_amb_ff, m_dot_htf_ND_ff;
-        generate_samples(nSamples, sample_type, T_htf_hot_ff, T_amb_ff, m_dot_htf_ND_ff);
+        std::vector<double> T_htf_hot_ff, T_amb_ff, m_dot_ND_ff;
+        generate_samples(nSamples, sample_type, T_htf_hot_ff, T_amb_ff, m_dot_ND_ff);
 
         // Calculate regression model heat and power from sample set and output to SSC
         double Q_dot_des, W_dot_des;
@@ -268,8 +281,8 @@ public:
         int n_ff = pow(nSamples, 3);
         Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * Q_dot_des);     // MWt
-            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_htf_ND_ff.at(i)) * W_dot_des);   // MWe
+            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
+            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * W_dot_des);   // MWe
         }
         ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
         std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
@@ -284,7 +297,7 @@ public:
         Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
             mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
-            mut_od_par.m_m_dot_htf = m_dot_htf_ND_ff.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
+            mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
             mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
             off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
             Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
@@ -295,24 +308,128 @@ public:
         ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
         std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         
-        // Compare regression and basis models and output metrics
-        std::vector<double> dQ_dot_regr_mns_basis(n_ff), dW_dot_regr_mns_basis(n_ff);
-        std::vector<double> pcdQ_dot_regr_mns_basis(n_ff), pcdW_dot_regr_mns_basis(n_ff);
-        for (std::vector<int>::size_type i = 0; i != Q_dot_regr_ff.size(); i++) {
-            dQ_dot_regr_mns_basis.at(i) = Q_dot_regr_ff.at(i) - Q_dot_basis_ff.at(i);
-            dW_dot_regr_mns_basis.at(i) = W_dot_regr_ff.at(i) - W_dot_basis_ff.at(i);
-            pcdQ_dot_regr_mns_basis.at(i) = dQ_dot_regr_mns_basis.at(i) / Q_dot_basis_ff.at(i) * 100;
-            pcdW_dot_regr_mns_basis.at(i) = dW_dot_regr_mns_basis.at(i) / W_dot_basis_ff.at(i) * 100;
+        // Calculate interpolation model using main effects tables as input
+        // Main Effect table structure:
+        //    Independent |    Gross Power Output   |   HTF Thermal Power	|   Cooling Parasitics  |	 Water Use 
+        // 0)  Variable   |  1) -   2) 0     3) +   |  4) -   5) 0    6) +  |  7) -    8) 0    9) + | 10) -  11) 0   12) +
+
+        // TODO - add cooling parasitics and water use
+        MatDoub IndepVars;
+        VectDoub Q_dot_me, W_dot_me;
+        int nObs = 3 * (T_htf_me.nrows() + m_dot_ND_me.nrows() + T_amb_me.nrows());
+        IndepVars.reserve(nObs), Q_dot_me.reserve(nObs), W_dot_me.reserve(nObs);
+        
+        // Populate from T_htf table
+        for (int i = 0; i < T_htf_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_low;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 1));
+            Q_dot_me.push_back(T_htf_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 2));
+            Q_dot_me.push_back(T_htf_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_high;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 3));
+            Q_dot_me.push_back(T_htf_me.at(i, 6));
         }
-        // Output model comparisons
-        ssc_number_t *dQ_dot_regr_mns_basis_cm = allocate("dQ_dot_regr_mns_basis", n_ff);
-        std::copy(dQ_dot_regr_mns_basis.begin(), dQ_dot_regr_mns_basis.end(), dQ_dot_regr_mns_basis_cm);
-        ssc_number_t *dW_dot_regr_mns_basis_cm = allocate("dW_dot_regr_mns_basis", n_ff);
-        std::copy(dW_dot_regr_mns_basis.begin(), dW_dot_regr_mns_basis.end(), dW_dot_regr_mns_basis_cm);
-        ssc_number_t *pcdQ_dot_regr_mns_basis_cm = allocate("pcdQ_dot_regr_mns_basis", n_ff);
-        std::copy(pcdQ_dot_regr_mns_basis.begin(), pcdQ_dot_regr_mns_basis.end(), pcdQ_dot_regr_mns_basis_cm);
-        ssc_number_t *pcdW_dot_regr_mns_basis_cm = allocate("pcdW_dot_regr_mns_basis", n_ff);
-        std::copy(pcdW_dot_regr_mns_basis.begin(), pcdW_dot_regr_mns_basis.end(), pcdW_dot_regr_mns_basis_cm);
+
+        // Populate from m_dot_ND table
+        for (int i = 0; i < m_dot_ND_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_low;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 1));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 2));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_high;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 3));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 6));
+        }
+
+        // Populate from T_amb table
+        for (int i = 0; i < T_amb_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_hot_low;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 1));
+            Q_dot_me.push_back(T_amb_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 2));
+            Q_dot_me.push_back(T_amb_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_high;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 3));
+            Q_dot_me.push_back(T_amb_me.at(i, 6));
+        }
+
+        double interp_beta = 1.5;       // try 1.99 too
+        double interp_nug = 0;
+        Powvargram W_dot_vgram(IndepVars, W_dot_me, interp_beta, interp_nug);                   // W_dot
+        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_me, W_dot_vgram);
+        Powvargram Q_dot_vgram(IndepVars, Q_dot_me, interp_beta, interp_nug);                   // Q_dot
+        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_me, Q_dot_vgram);
+
+        std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
+        Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
+        std::vector<double> indep_vars_test(3, 0.);
+        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+            indep_vars_test = { T_htf_hot_ff.at(i), m_dot_ND_ff.at(i), T_amb_ff.at(i) };
+            Q_dot_interp_ff.push_back(Q_dot_interp_table->interp(indep_vars_test));
+            W_dot_interp_ff.push_back(W_dot_interp_table->interp(indep_vars_test));
+        }
+
+
+        //// Compare regression and basis models and output metrics
+        //std::vector<double> dQ_dot_regr_mns_basis(n_ff), dW_dot_regr_mns_basis(n_ff);
+        //std::vector<double> pcdQ_dot_regr_mns_basis(n_ff), pcdW_dot_regr_mns_basis(n_ff);
+        //for (std::vector<int>::size_type i = 0; i != Q_dot_regr_ff.size(); i++) {
+        //    dQ_dot_regr_mns_basis.at(i) = Q_dot_regr_ff.at(i) - Q_dot_basis_ff.at(i);
+        //    dW_dot_regr_mns_basis.at(i) = W_dot_regr_ff.at(i) - W_dot_basis_ff.at(i);
+        //    pcdQ_dot_regr_mns_basis.at(i) = dQ_dot_regr_mns_basis.at(i) / Q_dot_basis_ff.at(i) * 100;
+        //    pcdW_dot_regr_mns_basis.at(i) = dW_dot_regr_mns_basis.at(i) / W_dot_basis_ff.at(i) * 100;
+        //}
+
+        //// Output model comparisons
+        //ssc_number_t *dQ_dot_regr_mns_basis_cm = allocate("dQ_dot_regr_mns_basis", n_ff);
+        //std::copy(dQ_dot_regr_mns_basis.begin(), dQ_dot_regr_mns_basis.end(), dQ_dot_regr_mns_basis_cm);
+        //ssc_number_t *dW_dot_regr_mns_basis_cm = allocate("dW_dot_regr_mns_basis", n_ff);
+        //std::copy(dW_dot_regr_mns_basis.begin(), dW_dot_regr_mns_basis.end(), dW_dot_regr_mns_basis_cm);
+        //ssc_number_t *pcdQ_dot_regr_mns_basis_cm = allocate("pcdQ_dot_regr_mns_basis", n_ff);
+        //std::copy(pcdQ_dot_regr_mns_basis.begin(), pcdQ_dot_regr_mns_basis.end(), pcdQ_dot_regr_mns_basis_cm);
+        //ssc_number_t *pcdW_dot_regr_mns_basis_cm = allocate("pcdW_dot_regr_mns_basis", n_ff);
+        //std::copy(pcdW_dot_regr_mns_basis.begin(), pcdW_dot_regr_mns_basis.end(), pcdW_dot_regr_mns_basis_cm);
     }
 
     int compile_params(C_sco2_rc_csp_template::S_des_par &mut_params) {
@@ -424,7 +541,7 @@ public:
     }
 
     int create_regressions(C_sco2_rc_csp_template *model, C_sco2_rc_csp_template::S_des_par &mut_params,
-        util::matrix_t<double> &T_htf_ptcs, util::matrix_t<double> &T_amb_ptcs, util::matrix_t<double> &m_dot_htf_ptcs) {
+        util::matrix_t<double> &T_htf_ptcs, util::matrix_t<double> &T_amb_ptcs, util::matrix_t<double> &m_dot_ptcs) {
 
         int out_type = -1;
         std::string out_msg = "";
@@ -472,32 +589,32 @@ public:
         }
         assign("n_T_amb", n_T_amb_in);
 
-        double m_dot_htf_ND_high = 1.05;
-        if (is_assigned("m_dot_htf_ND_high"))
+        double m_dot_ND_high = 1.05;
+        if (is_assigned("m_dot_ND_high"))
         {
-            m_dot_htf_ND_high = as_double("m_dot_htf_ND_high");
+            m_dot_ND_high = as_double("m_dot_ND_high");
         }
-        assign("m_dot_htf_ND_high", m_dot_htf_ND_high);
+        assign("m_dot_ND_high", m_dot_ND_high);
 
-        int n_m_dot_htf_ND_in = 10;
-        if (is_assigned("n_m_dot_htf_ND"))
+        int n_m_dot_ND_in = 10;
+        if (is_assigned("n_m_dot_ND"))
         {
-            n_m_dot_htf_ND_in = as_integer("n_m_dot_htf_ND");
+            n_m_dot_ND_in = as_integer("n_m_dot_ND");
         }
-        assign("n_m_dot_htf_ND", n_m_dot_htf_ND_in);
+        assign("n_m_dot_ND", n_m_dot_ND_in);
 
-        if (n_T_htf_hot_in < 3 || n_T_amb_in < 3 || n_m_dot_htf_ND_in < 3)
+        if (n_T_htf_hot_in < 3 || n_T_amb_in < 3 || n_m_dot_ND_in < 3)
         {
             throw exec_error("sco2_csp_ud_pc_tables", "Need at 3 three points for each independent variable");
         }
 
-        double m_dot_htf_ND_low = as_double("m_dot_htf_ND_low");
+        double m_dot_ND_low = as_double("m_dot_ND_low");
         try
         {
             model->generate_ud_pc_tables(T_htf_hot_low, T_htf_hot_high, n_T_htf_hot_in,
                 T_amb_low, T_amb_high, n_T_amb_in,
-                m_dot_htf_ND_low, m_dot_htf_ND_high, n_m_dot_htf_ND_in,
-                T_htf_ptcs, T_amb_ptcs, m_dot_htf_ptcs);
+                m_dot_ND_low, m_dot_ND_high, n_m_dot_ND_in,
+                T_htf_ptcs, T_amb_ptcs, m_dot_ptcs);
         }
         catch (C_csp_exception &csp_exception)
         {
@@ -517,37 +634,37 @@ public:
         }
     }
 
-    int output_regressions(util::matrix_t<double> &T_htf_ptcs, util::matrix_t<double> &T_amb_ptcs, util::matrix_t<double> &m_dot_htf_ptcs) {
+    int output_regressions(util::matrix_t<double> &T_htf_ptcs, util::matrix_t<double> &T_amb_ptcs, util::matrix_t<double> &m_dot_ptcs) {
         int n_T_htf_hot = (int)T_htf_ptcs.nrows();
         int n_T_amb = (int)T_amb_ptcs.nrows();
-        int n_m_dot_htf_ND = (int)m_dot_htf_ptcs.nrows();
+        int n_m_dot_ND = (int)m_dot_ptcs.nrows();
 
         int ncols = (int)T_htf_ptcs.ncols();
 
-        ssc_number_t *p_T_htf_ind = allocate("T_htf_ind", n_T_htf_hot, ncols);
+        ssc_number_t *p_T_htf_me = allocate("T_htf_me", n_T_htf_hot, ncols);
         for (int i = 0; i < n_T_htf_hot; i++)
         {
             for (int j = 0; j < ncols; j++)
             {
-                p_T_htf_ind[i*ncols + j] = (ssc_number_t)T_htf_ptcs(i, j);
+                p_T_htf_me[i*ncols + j] = (ssc_number_t)T_htf_ptcs(i, j);
             }
         }
 
-        ssc_number_t *p_T_amb_ind = allocate("T_amb_ind", n_T_amb, ncols);
+        ssc_number_t *p_T_amb_me = allocate("T_amb_me", n_T_amb, ncols);
         for (int i = 0; i < n_T_amb; i++)
         {
             for (int j = 0; j < ncols; j++)
             {
-                p_T_amb_ind[i*ncols + j] = (ssc_number_t)T_amb_ptcs(i, j);
+                p_T_amb_me[i*ncols + j] = (ssc_number_t)T_amb_ptcs(i, j);
             }
         }
 
-        ssc_number_t *p_m_dot_htf_ND_ind = allocate("m_dot_htf_ND_ind", n_m_dot_htf_ND, ncols);
-        for (int i = 0; i < n_m_dot_htf_ND; i++)
+        ssc_number_t *p_m_dot_ND_me = allocate("m_dot_ND_me", n_m_dot_ND, ncols);
+        for (int i = 0; i < n_m_dot_ND; i++)
         {
             for (int j = 0; j < ncols; j++)
             {
-                p_m_dot_htf_ND_ind[i*ncols + j] = (ssc_number_t)m_dot_htf_ptcs(i, j);
+                p_m_dot_ND_me[i*ncols + j] = (ssc_number_t)m_dot_ptcs(i, j);
             }
         }
 
@@ -576,10 +693,10 @@ public:
     }
 
     int output_design_vals(C_sco2_rc_csp_template *model) {
-        double m_dot_htf_design = model->get_phx_des_par()->m_m_dot_hot_des;	//[kg/s]
+        double m_dot_design = model->get_phx_des_par()->m_m_dot_hot_des;	//[kg/s]
         double T_htf_cold_calc = model->get_design_solved()->ms_phx_des_solved.m_T_h_out;		//[K]
         assign("T_htf_cold_des", (ssc_number_t)(T_htf_cold_calc - 273.15));		//[C] convert from K
-        assign("m_dot_htf_des", (ssc_number_t)m_dot_htf_design);				//[kg/s]
+        assign("m_dot_des", (ssc_number_t)m_dot_design);				//[kg/s]
         assign("eta_thermal_calc", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.m_eta_thermal);	//[-]
         if (!is_assigned("eta_thermal_des") || as_number("eta_thermal_des") <= 0.0) assign("eta_thermal_des", as_number("eta_thermal_calc"));
         assign("m_dot_co2_full", (ssc_number_t)model->get_design_solved()->ms_rc_cycle_solved.m_m_dot_t);		//[kg/s]
@@ -651,22 +768,22 @@ public:
         if (!model->get_design_solved()->ms_rc_cycle_solved.m_is_rc)
             sco2_f_min = 0.7;
 
-        double m_dot_htf_ND_low = sco2_f_min;;
-        if (is_assigned("m_dot_htf_ND_low"))
+        double m_dot_ND_low = sco2_f_min;;
+        if (is_assigned("m_dot_ND_low"))
         {
             if (as_boolean("is_apply_default_htf_mins"))
-                m_dot_htf_ND_low = std::max(sco2_f_min, as_double("m_dot_htf_ND_low"));	//[-]
+                m_dot_ND_low = std::max(sco2_f_min, as_double("m_dot_ND_low"));	//[-]
             else
-                m_dot_htf_ND_low = as_double("m_dot_htf_ND_low");
+                m_dot_ND_low = as_double("m_dot_ND_low");
         }
 
-        assign("m_dot_htf_ND_low", m_dot_htf_ND_low);
+        assign("m_dot_ND_low", m_dot_ND_low);
         
         return 0;
     }
 
     int generate_samples(int nSamples, int sample_type, std::vector<double> &T_htf_hot_ff,
-        std::vector<double> &T_amb_ff, std::vector<double> &m_dot_htf_ND_ff) {
+        std::vector<double> &T_amb_ff, std::vector<double> &m_dot_ND_ff) {
 
         double T_htf_hot_des = as_double("T_htf_hot_des");
         double T_htf_hot_low = as_double("T_htf_hot_low");
@@ -674,11 +791,11 @@ public:
         double T_amb_des = as_double("T_amb_des");
         double T_amb_low = as_double("T_amb_low");
         double T_amb_high = as_double("T_amb_high");
-        double m_dot_htf_ND_des = 1.0;
-        double m_dot_htf_ND_low = as_double("m_dot_htf_ND_low");
-        double m_dot_htf_ND_high = as_double("m_dot_htf_ND_high");
+        double m_dot_ND_des = 1.0;
+        double m_dot_ND_low = as_double("m_dot_ND_low");
+        double m_dot_ND_high = as_double("m_dot_ND_high");
 
-        std::vector<double> T_htf_hot(nSamples), T_amb(nSamples), m_dot_htf_ND(nSamples);
+        std::vector<double> T_htf_hot(nSamples), T_amb(nSamples), m_dot_ND(nSamples);
 
         if (sample_type == 0) {             // uniform sample
             double d, inc;
@@ -688,20 +805,20 @@ public:
             inc = (T_amb_high - T_amb_low) / (nSamples - 1);                // fill T_amb
             d = T_amb_low - inc;
             generate(T_amb.begin(), T_amb.end(), [&d, inc] { return d += inc; });
-            inc = (m_dot_htf_ND_high - m_dot_htf_ND_low) / (nSamples - 1);  // fill m_dot_htf_ND_low
-            d = m_dot_htf_ND_low - inc;
-            generate(m_dot_htf_ND.begin(), m_dot_htf_ND.end(), [&d, inc] { return d += inc; });
+            inc = (m_dot_ND_high - m_dot_ND_low) / (nSamples - 1);  // fill m_dot_ND_low
+            d = m_dot_ND_low - inc;
+            generate(m_dot_ND.begin(), m_dot_ND.end(), [&d, inc] { return d += inc; });
         }
         else if (sample_type == 1) {        // random from rectangular distribution
             unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
             std::default_random_engine generator(seed);
             std::uniform_real_distribution<double> distr_T_htf_hot(T_htf_hot_low, T_htf_hot_high);
             std::uniform_real_distribution<double> distr_T_amb(T_amb_low, T_amb_high);
-            std::uniform_real_distribution<double> distr_m_dot_htf_ND(m_dot_htf_ND_low, m_dot_htf_ND_high);
+            std::uniform_real_distribution<double> distr_m_dot_ND(m_dot_ND_low, m_dot_ND_high);
             for (int i = 0; i < nSamples; i++) {
                 T_htf_hot.at(i) = distr_T_htf_hot(generator);
                 T_amb.at(i) = distr_T_amb(generator);
-                m_dot_htf_ND.at(i) = distr_m_dot_htf_ND(generator);
+                m_dot_ND.at(i) = distr_m_dot_ND(generator);
             }
         }
         else {
@@ -709,33 +826,33 @@ public:
         }
         // Expand samples into a full factorial
         double n_ff = pow(nSamples, 3);
-        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_htf_ND_ff.reserve(n_ff);
+        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_ND_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot.size(); i++) {
             for (std::vector<int>::size_type j = 0; j != T_amb.size(); j++) {
-                for (std::vector<int>::size_type k = 0; k != m_dot_htf_ND.size(); k++) {
+                for (std::vector<int>::size_type k = 0; k != m_dot_ND.size(); k++) {
                     T_htf_hot_ff.push_back(T_htf_hot.at(i));
                     T_amb_ff.push_back(T_amb.at(j));
-                    m_dot_htf_ND_ff.push_back(m_dot_htf_ND.at(k));
+                    m_dot_ND_ff.push_back(m_dot_ND.at(k));
                 }
             }
         }
-        // Output T_htf_hot, T_amb and m_dot_htf_ND values
+        // Output T_htf_hot, T_amb and m_dot_ND values
         ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", n_ff);
         std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
         ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
         std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
-        ssc_number_t *m_dot_htf_ND_ff_cm = allocate("m_dot_htf_ND_ff", n_ff);
-        std::copy(m_dot_htf_ND_ff.begin(), m_dot_htf_ND_ff.end(), m_dot_htf_ND_ff_cm);
+        ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", n_ff);
+        std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
     }
 
     // The following are helper functions for Rankine model tables
-    double P_regr(double T_htf_ND, double T_amb_ND, double m_dot_htf_ND, double P_ref, std::map<std::string, int> &r_map,
-        const util::matrix_t<double> &T_htf_ptcs, const util::matrix_t<double> &T_amb_ptcs, const util::matrix_t<double> &m_dot_htf_ptcs) {
+    double P_regr(double T_htf_ND, double T_amb_ND, double m_dot_ND, double P_ref, std::map<std::string, int> &r_map,
+        const util::matrix_t<double> &T_htf_ptcs, const util::matrix_t<double> &T_amb_ptcs, const util::matrix_t<double> &m_dot_ptcs) {
 
         // Notation:
         // A = T_htf_ptcs
         // B = T_amb_ptcs
-        // C = m_dot_htf_ptcs
+        // C = m_dot_ptcs
 
         //double P_A, P_AB, P_B, P_BC, P_C;
 
