@@ -155,8 +155,8 @@ static var_info _cm_vtab_validate_pc_tables[] = {
 
     // Regression vs. basis model comparison metrics
     { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "T_amb_ff",             "Sample of ambient temp. for full-factorial model runs",     "C",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_ND_ff",          "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "T_amb_ff",             "Sample of ambient temp. for full-factorial model runs",     "C",       "",    "",              "",     "",       "" },
 
     { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_basis_ff",       "Basis model cycle input heat",                            "MWt",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_regr_ff",        "Regression model cycle input heat",                       "MWt",       "",    "",              "",     "",       "" },
@@ -268,10 +268,11 @@ public:
 
         // Generate samples of independent parameters and output to SSC
         // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
-        int nSamples = as_integer("samples_per_me");
+        int nSamples = as_integer("samples_per_ind");
         int sample_type = as_integer("sample_type");
-        std::vector<double> T_htf_hot_ff, T_amb_ff, m_dot_ND_ff;
-        generate_samples(nSamples, sample_type, T_htf_hot_ff, T_amb_ff, m_dot_ND_ff);
+        std::vector<double> T_htf_hot_ff, m_dot_ND_ff, T_amb_ff;
+        std::vector<int> numSamples = { nSamples, nSamples, nSamples };
+        generate_ff_samples(numSamples, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);
 
         // Calculate regression model heat and power from sample set and output to SSC
         double Q_dot_des, W_dot_des;
@@ -290,6 +291,7 @@ public:
         std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
 
         // Calculate basis model heat and power from sample set and output to SSC
+        /*
         C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
         int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
         int off_design_code = -1;
@@ -307,93 +309,30 @@ public:
         std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
         ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
         std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
-        
+        */
+
         // Calculate interpolation model using main effects tables as input
-        // Main Effect table structure:
-        //    Independent |    Gross Power Output   |   HTF Thermal Power	|   Cooling Parasitics  |	 Water Use 
-        // 0)  Variable   |  1) -   2) 0     3) +   |  4) -   5) 0    6) +  |  7) -    8) 0    9) + | 10) -  11) 0   12) +
 
         // TODO - add cooling parasitics and water use
         MatDoub IndepVars;
         VectDoub Q_dot_me, W_dot_me;
-        int nObs = 3 * (T_htf_me.nrows() + m_dot_ND_me.nrows() + T_amb_me.nrows());
-        IndepVars.reserve(nObs), Q_dot_me.reserve(nObs), W_dot_me.reserve(nObs);
-        
-        // Populate from T_htf table
-        for (int i = 0; i < T_htf_me.nrows(); i++) {
-            // Low-level
-            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
-            IndepVars.back().at(0) = T_htf_me.at(i, 0);
-            IndepVars.back().at(1) = m_dot_ND_low;
-            IndepVars.back().at(2) = T_amb_des;
-            W_dot_me.push_back(T_htf_me.at(i, 1));
-            Q_dot_me.push_back(T_htf_me.at(i, 4));
-            // Design-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_me.at(i, 0);
-            IndepVars.back().at(1) = m_dot_ND_des;
-            IndepVars.back().at(2) = T_amb_des;
-            W_dot_me.push_back(T_htf_me.at(i, 2));
-            Q_dot_me.push_back(T_htf_me.at(i, 5));
-            // High-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_me.at(i, 0);
-            IndepVars.back().at(1) = m_dot_ND_high;
-            IndepVars.back().at(2) = T_amb_des;
-            W_dot_me.push_back(T_htf_me.at(i, 3));
-            Q_dot_me.push_back(T_htf_me.at(i, 6));
+
+        // Populate interpolation training data
+        if (true) {
+            // From main effect tables
+            interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_me, W_dot_me);
+        }
+        else {
+            // From basis model output
+            int n_T_htf = 5;
+            int n_m_dot = 20;
+            int m_T_amb = 20;            
         }
 
-        // Populate from m_dot_ND table
-        for (int i = 0; i < m_dot_ND_me.nrows(); i++) {
-            // Low-level
-            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
-            IndepVars.back().at(0) = T_htf_hot_des;
-            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
-            IndepVars.back().at(2) = T_amb_low;
-            W_dot_me.push_back(m_dot_ND_me.at(i, 1));
-            Q_dot_me.push_back(m_dot_ND_me.at(i, 4));
-            // Design-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_hot_des;
-            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
-            IndepVars.back().at(2) = T_amb_des;
-            W_dot_me.push_back(m_dot_ND_me.at(i, 2));
-            Q_dot_me.push_back(m_dot_ND_me.at(i, 5));
-            // High-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_hot_des;
-            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
-            IndepVars.back().at(2) = T_amb_high;
-            W_dot_me.push_back(m_dot_ND_me.at(i, 3));
-            Q_dot_me.push_back(m_dot_ND_me.at(i, 6));
-        }
 
-        // Populate from T_amb table
-        for (int i = 0; i < T_amb_me.nrows(); i++) {
-            // Low-level
-            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
-            IndepVars.back().at(0) = T_htf_hot_low;
-            IndepVars.back().at(1) = m_dot_ND_des;
-            IndepVars.back().at(2) = T_amb_me.at(i, 0);
-            W_dot_me.push_back(T_amb_me.at(i, 1));
-            Q_dot_me.push_back(T_amb_me.at(i, 4));
-            // Design-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_hot_des;
-            IndepVars.back().at(1) = m_dot_ND_des;
-            IndepVars.back().at(2) = T_amb_me.at(i, 0);
-            W_dot_me.push_back(T_amb_me.at(i, 2));
-            Q_dot_me.push_back(T_amb_me.at(i, 5));
-            // High-level
-            IndepVars.push_back(vector<double>(3, 0.));
-            IndepVars.back().at(0) = T_htf_hot_high;
-            IndepVars.back().at(1) = m_dot_ND_des;
-            IndepVars.back().at(2) = T_amb_me.at(i, 0);
-            W_dot_me.push_back(T_amb_me.at(i, 3));
-            Q_dot_me.push_back(T_amb_me.at(i, 6));
-        }
 
+
+        // Train interpolation model
         double interp_beta = 1.5;       // try 1.99 too
         double interp_nug = 0;
         Powvargram W_dot_vgram(IndepVars, W_dot_me, interp_beta, interp_nug);                   // W_dot
@@ -401,14 +340,22 @@ public:
         Powvargram Q_dot_vgram(IndepVars, Q_dot_me, interp_beta, interp_nug);                   // Q_dot
         GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_me, Q_dot_vgram);
 
+        // Run interpolation model using sample set and output values
         std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
         Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
         std::vector<double> indep_vars_test(3, 0.);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            indep_vars_test = { T_htf_hot_ff.at(i), m_dot_ND_ff.at(i), T_amb_ff.at(i) };
-            Q_dot_interp_ff.push_back(Q_dot_interp_table->interp(indep_vars_test));
-            W_dot_interp_ff.push_back(W_dot_interp_table->interp(indep_vars_test));
+            indep_vars_test.at(0) = T_htf_hot_ff.at(i);
+            indep_vars_test.at(1) = m_dot_ND_ff.at(i);
+            indep_vars_test.at(2) = T_amb_ff.at(i);
+
+            Q_dot_interp_ff.push_back(Q_dot_interp_table->interp(indep_vars_test) * Q_dot_des); // MWt
+            W_dot_interp_ff.push_back(W_dot_interp_table->interp(indep_vars_test) * W_dot_des); // MWe
         }
+        ssc_number_t *Q_dot_interp_ff_cm = allocate("Q_dot_interp_ff", n_ff);
+        std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
+        ssc_number_t *W_dot_interp_ff_cm = allocate("W_dot_interp_ff", n_ff);
+        std::copy(W_dot_interp_ff.begin(), W_dot_interp_ff.end(), W_dot_interp_ff_cm);
 
 
         //// Compare regression and basis models and output metrics
@@ -782,67 +729,168 @@ public:
         return 0;
     }
 
-    int generate_samples(int nSamples, int sample_type, std::vector<double> &T_htf_hot_ff,
-        std::vector<double> &T_amb_ff, std::vector<double> &m_dot_ND_ff) {
+    int generate_ff_samples(std::vector<int> nSamples, int sample_type, std::vector<double> &T_htf_hot_ff,
+        std::vector<double> &m_dot_ND_ff, std::vector<double> &T_amb_ff) {
+        // For generating full-factorial samples
 
         double T_htf_hot_des = as_double("T_htf_hot_des");
         double T_htf_hot_low = as_double("T_htf_hot_low");
         double T_htf_hot_high = as_double("T_htf_hot_high");
-        double T_amb_des = as_double("T_amb_des");
-        double T_amb_low = as_double("T_amb_low");
-        double T_amb_high = as_double("T_amb_high");
         double m_dot_ND_des = 1.0;
         double m_dot_ND_low = as_double("m_dot_ND_low");
         double m_dot_ND_high = as_double("m_dot_ND_high");
+        double T_amb_des = as_double("T_amb_des");
+        double T_amb_low = as_double("T_amb_low");
+        double T_amb_high = as_double("T_amb_high");
 
-        std::vector<double> T_htf_hot(nSamples), T_amb(nSamples), m_dot_ND(nSamples);
+        int n_T_htf_hot = nSamples.at(0);
+        int n_m_dot_ND = nSamples.at(1);
+        int n_T_amb = nSamples.at(2);
+        std::vector<double> T_htf_hot(n_T_htf_hot), m_dot_ND(n_m_dot_ND), T_amb(n_T_amb);
 
         if (sample_type == 0) {             // uniform sample
             double d, inc;
-            inc = (T_htf_hot_high - T_htf_hot_low) / (nSamples - 1);        // fill T_htf_hot
+            inc = (T_htf_hot_high - T_htf_hot_low) / (n_T_htf_hot - 1);        // fill T_htf_hot
             d = T_htf_hot_low - inc;      // subtract inc so first value equals T_htf_hot_low
             generate(T_htf_hot.begin(), T_htf_hot.end(), [&d, inc] { return d += inc; });
-            inc = (T_amb_high - T_amb_low) / (nSamples - 1);                // fill T_amb
-            d = T_amb_low - inc;
-            generate(T_amb.begin(), T_amb.end(), [&d, inc] { return d += inc; });
-            inc = (m_dot_ND_high - m_dot_ND_low) / (nSamples - 1);  // fill m_dot_ND_low
+            inc = (m_dot_ND_high - m_dot_ND_low) / (n_m_dot_ND - 1);          // fill m_dot_ND_low
             d = m_dot_ND_low - inc;
             generate(m_dot_ND.begin(), m_dot_ND.end(), [&d, inc] { return d += inc; });
+            inc = (T_amb_high - T_amb_low) / (n_T_amb - 1);                // fill T_amb
+            d = T_amb_low - inc;
+            generate(T_amb.begin(), T_amb.end(), [&d, inc] { return d += inc; });
         }
         else if (sample_type == 1) {        // random from rectangular distribution
             unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
             std::default_random_engine generator(seed);
             std::uniform_real_distribution<double> distr_T_htf_hot(T_htf_hot_low, T_htf_hot_high);
-            std::uniform_real_distribution<double> distr_T_amb(T_amb_low, T_amb_high);
             std::uniform_real_distribution<double> distr_m_dot_ND(m_dot_ND_low, m_dot_ND_high);
-            for (int i = 0; i < nSamples; i++) {
-                T_htf_hot.at(i) = distr_T_htf_hot(generator);
-                T_amb.at(i) = distr_T_amb(generator);
-                m_dot_ND.at(i) = distr_m_dot_ND(generator);
-            }
+            std::uniform_real_distribution<double> distr_T_amb(T_amb_low, T_amb_high);
+            for (int i = 0; i < n_T_htf_hot; i++) { T_htf_hot.at(i) = distr_T_htf_hot(generator); }
+            for (int i = 0; i < n_m_dot_ND; i++) { m_dot_ND.at(i) = distr_m_dot_ND(generator); }
+            for (int i = 0; i < n_T_amb; i++) { T_amb.at(i) = distr_T_amb(generator); }
         }
         else {
             throw(C_csp_exception("No such sample type"));
         }
         // Expand samples into a full factorial
-        double n_ff = pow(nSamples, 3);
-        T_htf_hot_ff.reserve(n_ff), T_amb_ff.reserve(n_ff), m_dot_ND_ff.reserve(n_ff);
+        double n_ff = n_T_htf_hot * n_m_dot_ND * n_T_amb;
+        T_htf_hot_ff.reserve(n_ff), m_dot_ND_ff.reserve(n_ff), T_amb_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot.size(); i++) {
-            for (std::vector<int>::size_type j = 0; j != T_amb.size(); j++) {
-                for (std::vector<int>::size_type k = 0; k != m_dot_ND.size(); k++) {
+            for (std::vector<int>::size_type j = 0; j != m_dot_ND.size(); j++) {
+                for (std::vector<int>::size_type k = 0; k != T_amb.size(); k++) {
                     T_htf_hot_ff.push_back(T_htf_hot.at(i));
-                    T_amb_ff.push_back(T_amb.at(j));
-                    m_dot_ND_ff.push_back(m_dot_ND.at(k));
+                    m_dot_ND_ff.push_back(m_dot_ND.at(j));
+                    T_amb_ff.push_back(T_amb.at(k));
                 }
             }
         }
         // Output T_htf_hot, T_amb and m_dot_ND values
         ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", n_ff);
         std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
-        ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
-        std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
         ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", n_ff);
         std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
+        ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", n_ff);
+        std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+    }
+
+    int interp_inputs_from_maineffects(const util::matrix_t<double> &T_htf_me, const util::matrix_t<double> &m_dot_ND_me,
+        const util::matrix_t<double> &T_amb_me, /*Outputs:*/ MatDoub &IndepVars, VectDoub &Q_dot_me, VectDoub &W_dot_me) {
+        
+        double
+            T_htf_hot_des = as_double("T_htf_hot_des"),
+            T_htf_hot_low = as_double("T_htf_hot_low"),
+            T_htf_hot_high = as_double("T_htf_hot_high"),
+            T_amb_des = as_double("T_amb_des"),
+            T_amb_low = as_double("T_amb_low"),
+            T_amb_high = as_double("T_amb_high"),
+            m_dot_ND_des = 1.0,
+            m_dot_ND_low = as_double("m_dot_ND_low"),
+            m_dot_ND_high = as_double("m_dot_ND_high");
+
+        // Main Effect table structure:
+        //    Independent |    Gross Power Output   |   HTF Thermal Power	|   Cooling Parasitics  |	 Water Use 
+        // 0)  Variable   |  1) -   2) 0     3) +   |  4) -   5) 0    6) +  |  7) -    8) 0    9) + | 10) -  11) 0   12) +
+
+        int nObs = 3 * (T_htf_me.nrows() + m_dot_ND_me.nrows() + T_amb_me.nrows());
+        IndepVars.reserve(nObs), Q_dot_me.reserve(nObs), W_dot_me.reserve(nObs);
+
+        // Populate from T_htf table
+        for (int i = 0; i < T_htf_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_low;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 1));
+            Q_dot_me.push_back(T_htf_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 2));
+            Q_dot_me.push_back(T_htf_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_me.at(i, 0);
+            IndepVars.back().at(1) = m_dot_ND_high;
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(T_htf_me.at(i, 3));
+            Q_dot_me.push_back(T_htf_me.at(i, 6));
+        }
+
+        // Populate from m_dot_ND table
+        for (int i = 0; i < m_dot_ND_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_low;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 1));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_des;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 2));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_me.at(i, 0);
+            IndepVars.back().at(2) = T_amb_high;
+            W_dot_me.push_back(m_dot_ND_me.at(i, 3));
+            Q_dot_me.push_back(m_dot_ND_me.at(i, 6));
+        }
+
+        // Populate from T_amb table
+        for (int i = 0; i < T_amb_me.nrows(); i++) {
+            // Low-level
+            IndepVars.push_back(vector<double>(3, 0.));     // [T_htf, m_dot, T_amb]
+            IndepVars.back().at(0) = T_htf_hot_low;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 1));
+            Q_dot_me.push_back(T_amb_me.at(i, 4));
+            // Design-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_des;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 2));
+            Q_dot_me.push_back(T_amb_me.at(i, 5));
+            // High-level
+            IndepVars.push_back(vector<double>(3, 0.));
+            IndepVars.back().at(0) = T_htf_hot_high;
+            IndepVars.back().at(1) = m_dot_ND_des;
+            IndepVars.back().at(2) = T_amb_me.at(i, 0);
+            W_dot_me.push_back(T_amb_me.at(i, 3));
+            Q_dot_me.push_back(T_amb_me.at(i, 6));
+        }
+
+        return 0;
     }
 
     // The following are helper functions for Rankine model tables
