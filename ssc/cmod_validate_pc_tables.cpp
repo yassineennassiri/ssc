@@ -63,6 +63,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "samples_per_ind",      "Number of samples per indepedent var. (total = x^3)",    "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "sample_type",          "0 = uniform, 1 = random (rect. distr.)",                 "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "load_interp_train_data", "Load interpolation training data set?",                "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
     { SSC_INPUT,    SSC_NUMBER,     "T_htf_hot_des",        "HTF design hot temperature (PHX inlet)",                 "C",          "",    "",      "*",     "",       "" },
@@ -153,6 +154,13 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",            "Main FX of ambient temp w/ HTF temp levels",         "",     "",       "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
     { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",         "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
 
+    // Interpolation Training Data
+    { SSC_INOUT,   SSC_ARRAY,       "T_htf_interpT",       "Interpolation training data, T_htf",                         "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_interpT",    "Interpolation training data, m_dot",                         "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "T_amb_interpT",       "Interpolation training data, T_amb",                         "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_interpT", "Interpolation training data, Q_dot",                         "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_interpT", "Interpolation training data, W_dot",                         "",       "",    "",               "",     "",       "" },
+
     // Regression vs. basis model comparison metrics
     { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
     { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_ND_ff",          "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
@@ -183,7 +191,7 @@ public:
 
     void exec() throw(general_error)
     {
-        // Select and initialize model
+        // Select and initialize basis model
         string model_name = as_string("model_name");
         C_sco2_rc_csp_template *mut;
         C_sco2_recomp_csp sco2_recomp_csp_direct;
@@ -198,7 +206,7 @@ public:
             throw exec_error("model_under_test", "model name not found");
         }
         
-        // Compile model parameters from SSC inputs
+        // Compile basis model parameters from SSC inputs
         C_sco2_rc_csp_template::S_des_par mut_par;
         if (compile_params(mut_par)) {
             throw exec_error("model_under_test", "error in model parameters");
@@ -208,7 +216,7 @@ public:
         mut->mf_callback_update = ssc_cmod_update;
         mut->mp_mf_update = (void*)(this);
 
-        // Run design simulation
+        // Run design simulation of basis model to initialize it
         int out_type = -1;
         std::string out_msg = "";
         try
@@ -227,11 +235,6 @@ public:
 
         // Set design outputs and state points
         output_design_vals(mut);
-
-        if (as_integer("is_generate_udpc") == 0) {
-            log("\n Design calculations complete; no off-design cases requested");
-            return;
-        }
 
         // Get main effects tables
         util::matrix_t<double> T_htf_me, T_amb_me, m_dot_ND_me;
@@ -311,34 +314,87 @@ public:
         std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         */
 
-        // Calculate interpolation model using main effects tables as input
 
+        // Calculate interpolation model
         // TODO - add cooling parasitics and water use
         MatDoub IndepVars;
-        VectDoub Q_dot_me, W_dot_me;
+        VectDoub Q_dot_interpT, W_dot_interpT;
+        int nTrain;
 
         // Populate interpolation training data
-        if (true) {
-            // From main effect tables
-            interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_me, W_dot_me);
+        if (false) {
+            // From main effect tables:
+            interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_interpT, W_dot_interpT);
         }
         else {
-            // From basis model output
-            int n_T_htf = 5;
-            int n_m_dot = 20;
-            int m_T_amb = 20;            
+            std::vector<double> T_htf_interpT, m_dot_ND_interpT, T_amb_interpT;
+            std::vector<double> Q_dot_basis_interpT, W_dot_basis_interpT;
+
+            if (as_boolean("load_interp_train_data") && is_assigned("T_htf_interpT")
+                && is_assigned("m_dot_ND_interpT") && is_assigned("T_amb_interpT")
+                && is_assigned("Q_dot_basis_interpT") && is_assigned("W_dot_basis_interpT")) {
+                T_htf_interpT = as_vector_double("T_htf_interpT");
+                m_dot_ND_interpT = as_vector_double("m_dot_ND_interpT");
+                T_amb_interpT = as_vector_double("T_amb_interpT");
+                Q_dot_basis_interpT = as_vector_double("Q_dot_basis_interpT");
+                W_dot_basis_interpT = as_vector_double("W_dot_basis_interpT");
+                nTrain = T_htf_interpT.size();
+            }
+            else {
+                // From basis model output:
+                // Generate full-factorial sample set to run basis model
+                std::vector<int> numSamples = { 5, 20, 20 };    // { T_htf, m_dot, T_amb }
+                //std::vector<int> numSamples = { 2, 2, 2 };        // { T_htf, m_dot, T_amb }
+                int sample_type = 0;                            // 0 = uniform, non-random
+                generate_ff_samples(numSamples, sample_type, T_htf_interpT, m_dot_ND_interpT, T_amb_interpT);
+
+                // Run basis model with sample set
+                C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
+                int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
+                int off_design_code = -1;
+                nTrain = T_htf_interpT.size();
+                Q_dot_basis_interpT.reserve(nTrain), W_dot_basis_interpT.reserve(nTrain);
+                for (std::vector<int>::size_type i = 0; i != nTrain; i++) {
+                    mut_od_par.m_T_htf_hot = T_htf_interpT.at(i) + 273.15;
+                    mut_od_par.m_m_dot_htf = m_dot_ND_interpT.at(i) * as_number("m_dot_des");  // ND -> kg/s
+                    mut_od_par.m_T_amb = T_amb_interpT.at(i) + 273.15;
+                    off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
+                    Q_dot_basis_interpT.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                    W_dot_basis_interpT.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+                }
+
+                // Save interpolation training data set
+                ssc_number_t *T_htf_interpT_cm = allocate("T_htf_interpT", T_htf_interpT.size());
+                std::copy(T_htf_interpT.begin(), T_htf_interpT.end(), T_htf_interpT_cm);
+                ssc_number_t *m_dot_ND_interpT_cm = allocate("m_dot_ND_interpT", m_dot_ND_interpT.size());
+                std::copy(m_dot_ND_interpT.begin(), m_dot_ND_interpT.end(), m_dot_ND_interpT_cm);
+                ssc_number_t *T_amb_interpT_cm = allocate("T_amb_interpT", T_amb_interpT.size());
+                std::copy(T_amb_interpT.begin(), T_amb_interpT.end(), T_amb_interpT_cm);
+                ssc_number_t *Q_dot_basis_interpT_cm = allocate("Q_dot_basis_interpT", Q_dot_basis_interpT.size());
+                std::copy(Q_dot_basis_interpT.begin(), Q_dot_basis_interpT.end(), Q_dot_basis_interpT_cm);
+                ssc_number_t *W_dot_basis_interpT_cm = allocate("W_dot_basis_interpT", W_dot_basis_interpT.size());
+                std::copy(W_dot_basis_interpT.begin(), W_dot_basis_interpT.end(), W_dot_basis_interpT_cm);
+            }
+
+            // Populate interpolation training data with model outputs
+            IndepVars.reserve(nTrain), Q_dot_interpT.reserve(nTrain), W_dot_interpT.reserve(nTrain);
+            for (std::vector<int>::size_type i = 0; i != nTrain; i++) {
+                IndepVars.push_back(vector<double>(3, 0.));
+                IndepVars.back().at(0) = T_htf_interpT.at(i);
+                IndepVars.back().at(1) = m_dot_ND_interpT.at(i);
+                IndepVars.back().at(2) = T_amb_interpT.at(i);
+            }
+            W_dot_interpT = W_dot_basis_interpT;
+            Q_dot_interpT = Q_dot_basis_interpT;
         }
-
-
-
 
         // Train interpolation model
         double interp_beta = 1.5;       // try 1.99 too
         double interp_nug = 0;
-        Powvargram W_dot_vgram(IndepVars, W_dot_me, interp_beta, interp_nug);                   // W_dot
-        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_me, W_dot_vgram);
-        Powvargram Q_dot_vgram(IndepVars, Q_dot_me, interp_beta, interp_nug);                   // Q_dot
-        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_me, Q_dot_vgram);
+        Powvargram W_dot_vgram(IndepVars, W_dot_interpT, interp_beta, interp_nug);                   // W_dot
+        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_interpT, W_dot_vgram);
+        Powvargram Q_dot_vgram(IndepVars, Q_dot_interpT, interp_beta, interp_nug);                   // Q_dot
+        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_interpT, Q_dot_vgram);
 
         // Run interpolation model using sample set and output values
         std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
@@ -349,34 +405,14 @@ public:
             indep_vars_test.at(1) = m_dot_ND_ff.at(i);
             indep_vars_test.at(2) = T_amb_ff.at(i);
 
-            Q_dot_interp_ff.push_back(Q_dot_interp_table->interp(indep_vars_test) * Q_dot_des); // MWt
-            W_dot_interp_ff.push_back(W_dot_interp_table->interp(indep_vars_test) * W_dot_des); // MWe
+            Q_dot_interp_ff.push_back( Q_dot_interp_table->interp(indep_vars_test) ); // MWt
+            W_dot_interp_ff.push_back( W_dot_interp_table->interp(indep_vars_test) ); // MWe
         }
         ssc_number_t *Q_dot_interp_ff_cm = allocate("Q_dot_interp_ff", n_ff);
         std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
         ssc_number_t *W_dot_interp_ff_cm = allocate("W_dot_interp_ff", n_ff);
         std::copy(W_dot_interp_ff.begin(), W_dot_interp_ff.end(), W_dot_interp_ff_cm);
 
-
-        //// Compare regression and basis models and output metrics
-        //std::vector<double> dQ_dot_regr_mns_basis(n_ff), dW_dot_regr_mns_basis(n_ff);
-        //std::vector<double> pcdQ_dot_regr_mns_basis(n_ff), pcdW_dot_regr_mns_basis(n_ff);
-        //for (std::vector<int>::size_type i = 0; i != Q_dot_regr_ff.size(); i++) {
-        //    dQ_dot_regr_mns_basis.at(i) = Q_dot_regr_ff.at(i) - Q_dot_basis_ff.at(i);
-        //    dW_dot_regr_mns_basis.at(i) = W_dot_regr_ff.at(i) - W_dot_basis_ff.at(i);
-        //    pcdQ_dot_regr_mns_basis.at(i) = dQ_dot_regr_mns_basis.at(i) / Q_dot_basis_ff.at(i) * 100;
-        //    pcdW_dot_regr_mns_basis.at(i) = dW_dot_regr_mns_basis.at(i) / W_dot_basis_ff.at(i) * 100;
-        //}
-
-        //// Output model comparisons
-        //ssc_number_t *dQ_dot_regr_mns_basis_cm = allocate("dQ_dot_regr_mns_basis", n_ff);
-        //std::copy(dQ_dot_regr_mns_basis.begin(), dQ_dot_regr_mns_basis.end(), dQ_dot_regr_mns_basis_cm);
-        //ssc_number_t *dW_dot_regr_mns_basis_cm = allocate("dW_dot_regr_mns_basis", n_ff);
-        //std::copy(dW_dot_regr_mns_basis.begin(), dW_dot_regr_mns_basis.end(), dW_dot_regr_mns_basis_cm);
-        //ssc_number_t *pcdQ_dot_regr_mns_basis_cm = allocate("pcdQ_dot_regr_mns_basis", n_ff);
-        //std::copy(pcdQ_dot_regr_mns_basis.begin(), pcdQ_dot_regr_mns_basis.end(), pcdQ_dot_regr_mns_basis_cm);
-        //ssc_number_t *pcdW_dot_regr_mns_basis_cm = allocate("pcdW_dot_regr_mns_basis", n_ff);
-        //std::copy(pcdW_dot_regr_mns_basis.begin(), pcdW_dot_regr_mns_basis.end(), pcdW_dot_regr_mns_basis_cm);
     }
 
     int compile_params(C_sco2_rc_csp_template::S_des_par &mut_params) {
@@ -795,7 +831,7 @@ public:
     }
 
     int interp_inputs_from_maineffects(const util::matrix_t<double> &T_htf_me, const util::matrix_t<double> &m_dot_ND_me,
-        const util::matrix_t<double> &T_amb_me, /*Outputs:*/ MatDoub &IndepVars, VectDoub &Q_dot_me, VectDoub &W_dot_me) {
+        const util::matrix_t<double> &T_amb_me, MatDoub &IndepVars, VectDoub &Q_dot_me, VectDoub &W_dot_me) {
         
         double
             T_htf_hot_des = as_double("T_htf_hot_des"),
