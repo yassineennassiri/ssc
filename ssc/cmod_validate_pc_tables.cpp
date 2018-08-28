@@ -52,6 +52,9 @@
 #include <map>
 #include <chrono>
 #include <random>
+#include <fstream>
+#include <iostream>
+#include <iomanip>
 //#include <algorithm>
 #include "csp_solver_util.h"
 #include "sco2_pc_csp_int.h"
@@ -267,14 +270,31 @@ public:
             int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
             int off_design_code = -1;
             Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
+
+            // Log to file
+            std::ofstream log;
+            std::cout << std::setprecision(3) << std::fixed;    // 3 decimal places
+            log.open("validate_pc_tables_log.dat");
+            log << "T_htf_hot [K]" << "\t" << "m_dot_ND [-]" << "\t" << "T_amb [K]" << "\t" << "Q_dot [MWt]" << "\t" << "W_dot [MWe]" << "\n";
+
             for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
                 mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
                 mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
                 mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
+
+                // Log to file
+                log << T_htf_hot_ff.at(i) << "\t" << m_dot_ND_ff.at(i) << "\t" << T_amb_ff.at(i) << "\t";
+                log.flush();
+
                 off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
                 Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
                 W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+
+                // Log to file
+                log << Q_dot_basis_ff.at(i) << "\t" << W_dot_basis_ff.at(i) << "\n";
+                log.flush();
             }
+            log.close();
 
             // Save basis model data set
             ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
