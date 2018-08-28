@@ -60,10 +60,10 @@
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
     { SSC_INPUT,    SSC_STRING,     "model_name",           "Name of model to test (e.g., 'sco2_recomp_csp_scale')",  "",           "",    "",      "*",     "",       "" },
-    { SSC_INPUT,    SSC_NUMBER,     "samples_per_ind",      "Number of samples per indepedent var. (total = x^3)",    "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_ARRAY,      "indep_levels",         "Levels of the indep. variables T_htf, m_dot, and T_amb", "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "sample_type",          "0 = uniform, 1 = random (rect. distr.)",                 "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
-    { SSC_INPUT,    SSC_NUMBER,     "load_interp_train_data", "Load interpolation training data set?",                "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "load_training_data",   "Load training data set from basis model?",               "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "htf",                  "Integer code for HTF used in PHX",                       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_MATRIX,     "htf_props",            "User defined HTF property data",                         "", "7 columns (T,Cp,dens,visc,kvisc,cond,h), at least 3 rows", "", "?=[[0]]", "", "" },
     { SSC_INPUT,    SSC_NUMBER,     "T_htf_hot_des",        "HTF design hot temperature (PHX inlet)",                 "C",          "",    "",      "*",     "",       "" },
@@ -73,10 +73,10 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "site_elevation",       "Site elevation",                                         "m",          "",    "",      "?=300.0","",      "" },
     { SSC_INPUT,    SSC_NUMBER,     "W_dot_net_des",        "Design cycle power output (no cooling parasitics)",      "MWe",        "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "design_method",        "1 = Specify efficiency, 2 = Specify total recup UA",     "",           "",    "",      "?=1",   "",       "" },
-    { SSC_INPUT,    SSC_NUMBER,     "eta_thermal_des",      "Power cycle thermal efficiency",                         "",           "",    "",      "?=-1.0","",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "eta_thermal_des",      "Power cycle thermal efficiency",                         "",           "",    "",      "?=-1.0","",       "" }, //
     { SSC_INPUT,    SSC_NUMBER,     "UA_recup_tot_des",     "Total recuperator conductance",                          "kW/K",       "",    "",      "?=-1.0","",       "" },
-    { SSC_INPUT,    SSC_NUMBER,     "is_recomp_ok",         "1 = Yes, 0 = simple cycle only",                         "",           "",    "",      "?=1",   "",       "" },
-    { SSC_INPUT,    SSC_NUMBER,     "is_PR_fixed",          "0 = No, >0 = fixed pressure ratio",                      "",           "",    "",      "?=0",   "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "is_recomp_ok",         "1 = Yes, 0 = simple cycle only",                         "",           "",    "",      "?=1",   "",       "" }, //
+    { SSC_INPUT,    SSC_NUMBER,     "is_PR_fixed",          "0 = No, >0 = fixed pressure ratio",                      "",           "",    "",      "?=0",   "",       "" }, //
     // Cycle Design
     { SSC_INPUT,    SSC_NUMBER,     "eta_isen_mc",          "Design main compressor isentropic efficiency",           "-",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "eta_isen_rc",          "Design re-compressor isentropic efficiency",             "-",          "",    "",      "*",     "",       "" },
@@ -90,8 +90,8 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "fan_power_frac",       "Fraction of net cycle power consumed by air cooler fan", "",           "",    "",      "?=0.01", "",      "" },
     { SSC_INPUT,    SSC_NUMBER,     "deltaP_cooler_frac",   "Fraction of cycle high pres. that is design point cooler CO2 pres. drop", "", "", "", "?=0.002", "",      "" },
     // Off Design UDPC Options
-    { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" },
-    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "", "",   "?=1",    "",      "" },
+    { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" }, //
+    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "", "",   "?=1",    "",      "" },     //
     // User Defined Power Cycle Table Inputs
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_low",        "Lower level of HTF hot temperature",					  "C",          "",    "",      "",       "",      "" },
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_high",	    "Upper level of HTF hot temperature",					  "C",		    "",    "",      "",       "",      "" },
@@ -117,14 +117,14 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_OUTPUT,   SSC_NUMBER,     "mc_tip_ratio_des",     "Compressor design tip speed ratio",                      "",           "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "mc_n_stages",          "Compressor stages",                                      "",           "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "mc_N_des",             "Compressor design shaft speed",                          "rpm",        "",    "",      "?=1.2345",     "",       "" },
-    { SSC_OUTPUT,   SSC_NUMBER,     "mc_D",                 "Compressor diameter",                                    "m",          "",    "",      "?=1.2345",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "mc_D",                 "Compressor diameter",                                    "m",          "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "mc_phi_surge",         "Compressor flow coefficient where surge occurs",         "",           "",    "",      "?=1.2345",     "",       "" },
     // Recompressor																															
     { SSC_OUTPUT,   SSC_NUMBER,     "rc_phi_des",           "Recompressor design flow coefficient",                   "",           "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "rc_tip_ratio_des",     "Recompressor 1st stage design tip speed ratio",          "",           "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "rc_n_stages",          "Recompressor stages",                                    "",           "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "rc_N_des",             "Recompressor design shaft speed",                        "rpm",        "",    "",      "?=1.2345",     "",       "" },
-    { SSC_OUTPUT,   SSC_NUMBER,     "rc_D",                 "Recompressor first stage diameter",                      "m",          "",    "",      "?=1.2345",     "",       "" },
+    { SSC_OUTPUT,   SSC_ARRAY,      "rc_D",                 "Recompressor first stage diameter",                      "m",          "",    "",      "?=1.2345",     "",       "" },
     { SSC_OUTPUT,   SSC_NUMBER,     "rc_phi_surge",         "Compressor flow coefficient where surge occurs",         "",           "",    "",      "?=1.2345",     "",       "" },
     // Turbine																																
     { SSC_OUTPUT,   SSC_NUMBER,     "t_nu_des",             "Turbine design velocity ratio",                          "",           "",    "",      "?=1.2345",     "",       "" },
@@ -150,16 +150,16 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_OUTPUT,   SSC_ARRAY,      "P_co2_des",            "Array of cycle CO2 state point pressures",              "MPa",        "",    "",      "?=[1.2,2.3,3,4]", "",     "" },
 
     // Power Cycle Tables
-    { SSC_INOUT,   SSC_MATRIX,      "T_htf_me",            "Main FX of HTF temperature w/ ND HTF mass flow rate levels", "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",            "Main FX of ambient temp w/ HTF temp levels",         "",     "",       "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",         "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_htf_me",             "Main FX of HTF temperature w/ ND HTF mass flow rate levels", "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",             "Main FX of ambient temp w/ HTF temp levels",         "",     "",       "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",          "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
 
     // Interpolation Training Data
-    { SSC_INOUT,   SSC_ARRAY,       "T_htf_interpT",       "Interpolation training data, T_htf",                         "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_interpT",    "Interpolation training data, m_dot",                         "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "T_amb_interpT",       "Interpolation training data, T_amb",                         "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_interpT", "Interpolation training data, Q_dot",                         "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_interpT", "Interpolation training data, W_dot",                         "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "T_htf_hot_ff",         "Training data from basis model, T_htf",                      "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_ff",          "Training data from basis model, m_dot",                      "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "T_amb_ff",             "Training data from basis model, T_amb",                      "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_ff",       "Training data from basis model, Q_dot",                      "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_ff",       "Training data from basis model, W_dot",                      "",       "",    "",               "",     "",       "" },
 
     // Regression vs. basis model comparison metrics
     { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
@@ -236,7 +236,61 @@ public:
         // Set design outputs and state points
         output_design_vals(mut);
 
-        // Get main effects tables
+        // Obtain training/validation data from basis model
+        std::vector<double> T_htf_hot_ff, m_dot_ND_ff, T_amb_ff;
+        std::vector<double> Q_dot_basis_ff, W_dot_basis_ff;
+        int n_ff;
+        if (as_boolean("load_training_data") && is_assigned("T_htf_hot_ff")
+            && is_assigned("m_dot_ND_ff") && is_assigned("T_amb_ff")
+            && is_assigned("Q_dot_basis_ff") && is_assigned("W_dot_basis_ff"))
+        {    
+            // Load training data
+            T_htf_hot_ff = as_vector_double("T_htf_hot_ff");
+            m_dot_ND_ff = as_vector_double("m_dot_ND_ff");
+            T_amb_ff = as_vector_double("T_amb_ff");
+            Q_dot_basis_ff = as_vector_double("Q_dot_basis_ff");
+            W_dot_basis_ff = as_vector_double("W_dot_basis_ff");
+            n_ff = T_htf_hot_ff.size();
+        }
+        else
+        {
+            // Generate sample set for running basis model
+            // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
+            std::vector<int> indep_levels = as_vector_integer("indep_levels");
+            assert(indep_levels.size() == 3);
+            int sample_type = as_integer("sample_type");
+            generate_ff_samples(indep_levels, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);
+            n_ff = T_htf_hot_ff.size();
+
+            // Run basis model with sample set
+            C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
+            int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
+            int off_design_code = -1;
+            Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
+            for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+                mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
+                mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
+                mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
+                off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
+                Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+            }
+
+            // Save basis model data set
+            ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
+            std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
+            ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
+            std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
+            ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", T_amb_ff.size());
+            std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+            ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
+            std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
+            ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
+            std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
+        }
+
+        // Calculate regression model heat and power from sample set and output to SSC
+        // Get main effects tables from basis model
         util::matrix_t<double> T_htf_me, T_amb_me, m_dot_ND_me;
         if (!as_boolean("load_me_tables") || !is_assigned("T_htf_me") || !is_assigned("T_amb_me") || !is_assigned("m_dot_ND_me")) {
             // Generate regression models, get and output main effect tables
@@ -251,7 +305,7 @@ public:
             T_amb_me = as_matrix("T_amb_me");
             m_dot_ND_me = as_matrix("m_dot_ND_me");
         }
-        
+
         // Generate interaction effects tables
         double
             T_htf_hot_des = as_double("T_htf_hot_des"),
@@ -269,20 +323,11 @@ public:
             T_amb_me, T_amb_des, T_amb_low, T_amb_high,
             m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
 
-        // Generate samples of independent parameters and output to SSC
-        // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
-        int nSamples = as_integer("samples_per_ind");
-        int sample_type = as_integer("sample_type");
-        std::vector<double> T_htf_hot_ff, m_dot_ND_ff, T_amb_ff;
-        std::vector<int> numSamples = { nSamples, nSamples, nSamples };
-        generate_ff_samples(numSamples, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);
-
-        // Calculate regression model heat and power from sample set and output to SSC
+        // Evaluate regression model
         double Q_dot_des, W_dot_des;
         W_dot_des = as_double("W_dot_net_des");
         Q_dot_des = W_dot_des / as_double("eta_thermal_des");
         std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
-        int n_ff = pow(nSamples, 3);
         Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
         for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
             Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
@@ -293,33 +338,11 @@ public:
         ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
         std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
 
-        // Calculate basis model heat and power from sample set and output to SSC
-        /*
-        C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
-        int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
-        int off_design_code = -1;
-        std::vector<double> Q_dot_basis_ff, W_dot_basis_ff;
-        Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
-        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
-            mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
-            mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
-            off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
-            Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
-            W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
-        }
-        ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
-        std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
-        ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
-        std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
-        */
-
 
         // Calculate interpolation model
         // TODO - add cooling parasitics and water use
         MatDoub IndepVars;
         VectDoub Q_dot_interpT, W_dot_interpT;
-        int nTrain;
 
         // Populate interpolation training data
         if (false) {
@@ -327,76 +350,26 @@ public:
             interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_interpT, W_dot_interpT);
         }
         else {
-            std::vector<double> T_htf_interpT, m_dot_ND_interpT, T_amb_interpT;
-            std::vector<double> Q_dot_basis_interpT, W_dot_basis_interpT;
-
-            if (as_boolean("load_interp_train_data") && is_assigned("T_htf_interpT")
-                && is_assigned("m_dot_ND_interpT") && is_assigned("T_amb_interpT")
-                && is_assigned("Q_dot_basis_interpT") && is_assigned("W_dot_basis_interpT")) {
-                T_htf_interpT = as_vector_double("T_htf_interpT");
-                m_dot_ND_interpT = as_vector_double("m_dot_ND_interpT");
-                T_amb_interpT = as_vector_double("T_amb_interpT");
-                Q_dot_basis_interpT = as_vector_double("Q_dot_basis_interpT");
-                W_dot_basis_interpT = as_vector_double("W_dot_basis_interpT");
-                nTrain = T_htf_interpT.size();
-            }
-            else {
-                // From basis model output:
-                // Generate full-factorial sample set to run basis model
-                std::vector<int> numSamples = { 5, 20, 20 };    // { T_htf, m_dot, T_amb }
-                //std::vector<int> numSamples = { 2, 2, 2 };        // { T_htf, m_dot, T_amb }
-                int sample_type = 0;                            // 0 = uniform, non-random
-                generate_ff_samples(numSamples, sample_type, T_htf_interpT, m_dot_ND_interpT, T_amb_interpT);
-
-                // Run basis model with sample set
-                C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
-                int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
-                int off_design_code = -1;
-                nTrain = T_htf_interpT.size();
-                Q_dot_basis_interpT.reserve(nTrain), W_dot_basis_interpT.reserve(nTrain);
-                for (std::vector<int>::size_type i = 0; i != nTrain; i++) {
-                    mut_od_par.m_T_htf_hot = T_htf_interpT.at(i) + 273.15;
-                    mut_od_par.m_m_dot_htf = m_dot_ND_interpT.at(i) * as_number("m_dot_des");  // ND -> kg/s
-                    mut_od_par.m_T_amb = T_amb_interpT.at(i) + 273.15;
-                    off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
-                    Q_dot_basis_interpT.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
-                    W_dot_basis_interpT.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
-                }
-
-                // Save interpolation training data set
-                ssc_number_t *T_htf_interpT_cm = allocate("T_htf_interpT", T_htf_interpT.size());
-                std::copy(T_htf_interpT.begin(), T_htf_interpT.end(), T_htf_interpT_cm);
-                ssc_number_t *m_dot_ND_interpT_cm = allocate("m_dot_ND_interpT", m_dot_ND_interpT.size());
-                std::copy(m_dot_ND_interpT.begin(), m_dot_ND_interpT.end(), m_dot_ND_interpT_cm);
-                ssc_number_t *T_amb_interpT_cm = allocate("T_amb_interpT", T_amb_interpT.size());
-                std::copy(T_amb_interpT.begin(), T_amb_interpT.end(), T_amb_interpT_cm);
-                ssc_number_t *Q_dot_basis_interpT_cm = allocate("Q_dot_basis_interpT", Q_dot_basis_interpT.size());
-                std::copy(Q_dot_basis_interpT.begin(), Q_dot_basis_interpT.end(), Q_dot_basis_interpT_cm);
-                ssc_number_t *W_dot_basis_interpT_cm = allocate("W_dot_basis_interpT", W_dot_basis_interpT.size());
-                std::copy(W_dot_basis_interpT.begin(), W_dot_basis_interpT.end(), W_dot_basis_interpT_cm);
-            }
-
-            // Populate interpolation training data with model outputs
-            IndepVars.reserve(nTrain), Q_dot_interpT.reserve(nTrain), W_dot_interpT.reserve(nTrain);
-            for (std::vector<int>::size_type i = 0; i != nTrain; i++) {
+            // From basis model training data set
+            IndepVars.reserve(n_ff);
+            for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
                 IndepVars.push_back(vector<double>(3, 0.));
-                IndepVars.back().at(0) = T_htf_interpT.at(i);
-                IndepVars.back().at(1) = m_dot_ND_interpT.at(i);
-                IndepVars.back().at(2) = T_amb_interpT.at(i);
+                IndepVars.back().at(0) = T_htf_hot_ff.at(i);
+                IndepVars.back().at(1) = m_dot_ND_ff.at(i);
+                IndepVars.back().at(2) = T_amb_ff.at(i);
             }
-            W_dot_interpT = W_dot_basis_interpT;
-            Q_dot_interpT = Q_dot_basis_interpT;
         }
 
         // Train interpolation model
         double interp_beta = 1.5;       // try 1.99 too
         double interp_nug = 0;
-        Powvargram W_dot_vgram(IndepVars, W_dot_interpT, interp_beta, interp_nug);                   // W_dot
-        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_interpT, W_dot_vgram);
-        Powvargram Q_dot_vgram(IndepVars, Q_dot_interpT, interp_beta, interp_nug);                   // Q_dot
-        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_interpT, Q_dot_vgram);
+        Powvargram W_dot_vgram(IndepVars, W_dot_basis_ff, interp_beta, interp_nug);                   // W_dot
+        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_basis_ff, W_dot_vgram);
+        Powvargram Q_dot_vgram(IndepVars, Q_dot_basis_ff, interp_beta, interp_nug);                   // Q_dot
+        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram);
 
-        // Run interpolation model using sample set and output values
+        // Evaluate interpolation model using sample set and output values
+        // TODO - THE SAME DATA SET IS BEING USED TO TRAIN **AND** EVALUATE -> change this
         std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
         Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
         std::vector<double> indep_vars_test(3, 0.);
