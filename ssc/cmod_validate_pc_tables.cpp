@@ -196,40 +196,40 @@ public:
     {
         // Select and initialize basis model
         string model_name = as_string("model_name");
-        C_sco2_rc_csp_template *mut;
-        C_sco2_recomp_csp sco2_recomp_csp_direct;
-        C_sco2_recomp_csp_10MWe_scale sco2_recomp_csp_scale;
-        if (model_name == "sco2_recomp_csp_direct") {
-            mut = &sco2_recomp_csp_direct;
-        }
-        else if (model_name == "sco2_recomp_csp_scale") {
-            mut = &sco2_recomp_csp_scale;
-        }
-        else {
-            throw exec_error("model_under_test", "model name not found");
-        }
+        C_sco2_recomp_csp mut;
+        //C_sco2_recomp_csp sco2_recomp_csp_direct;
+        //C_sco2_recomp_csp_10MWe_scale sco2_recomp_csp_scale;
+        //if (model_name == "sco2_recomp_csp_direct") {
+        //    mut = &sco2_recomp_csp_direct;
+        //}
+        //else if (model_name == "sco2_recomp_csp_scale") {
+        //    mut = &sco2_recomp_csp_scale;
+        //}
+        //else {
+        //    throw exec_error("model_under_test", "model name not found");
+        //}
         
         // Compile basis model parameters from SSC inputs
-        C_sco2_rc_csp_template::S_des_par mut_par;
+        C_sco2_recomp_csp::S_des_par mut_par;
         if (compile_params(mut_par)) {
             throw exec_error("model_under_test", "error in model parameters");
         };
 
         // Pass through callback function (with update percent) and pointer
-        mut->mf_callback_update = ssc_cmod_update;
-        mut->mp_mf_update = (void*)(this);
+        mut.mf_callback_update = ssc_cmod_update;
+        mut.mp_mf_update = (void*)(this);
 
         // Run design simulation of basis model to initialize it
         int out_type = -1;
         std::string out_msg = "";
         try
         {
-            mut->design(mut_par);
+            mut.design(mut_par);
         }
         catch (C_csp_exception &csp_exception)
         {
             // Report warning before exiting with error
-            while (mut->mc_messages.get_message(&out_type, &out_msg)) {
+            while (mut.mc_messages.get_message(&out_type, &out_msg)) {
                 log(out_msg);
             }
 
@@ -237,7 +237,7 @@ public:
         }
 
         // Set design outputs and state points
-        output_design_vals(mut);
+        output_design_vals(&mut);
 
         // Obtain training/validation data from basis model
         std::vector<double> T_htf_hot_ff, m_dot_ND_ff, T_amb_ff;
@@ -266,8 +266,8 @@ public:
             n_ff = T_htf_hot_ff.size();
 
             // Run basis model with sample set
-            C_sco2_rc_csp_template::S_od_par mut_od_par;                // TODO - populate member structure instead
-            int od_strategy = C_sco2_rc_csp_template::E_TARGET_POWER_ETA_MAX;
+            C_sco2_recomp_csp::S_od_par mut_od_par;                // TODO - populate member structure instead
+            int od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
             int off_design_code = -1;
             Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
 
@@ -287,9 +287,9 @@ public:
                 log.flush();
 
                 try {
-                    off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
-                    Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
-                    W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+                    off_design_code = mut.optimize_off_design(mut_od_par, od_strategy);
+                    Q_dot_basis_ff.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                    W_dot_basis_ff.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
 
                     // Log to file
                     log << Q_dot_basis_ff.at(i) << "\t" << W_dot_basis_ff.at(i) << "\n";
@@ -320,7 +320,7 @@ public:
         util::matrix_t<double> T_htf_me, T_amb_me, m_dot_ND_me;
         if (!as_boolean("load_me_tables") || !is_assigned("T_htf_me") || !is_assigned("T_amb_me") || !is_assigned("m_dot_ND_me")) {
             // Generate regression models, get and output main effect tables
-            if (create_regressions(mut, mut_par, T_htf_me, T_amb_me, m_dot_ND_me)) {
+            if (create_regressions(&mut, mut_par, T_htf_me, T_amb_me, m_dot_ND_me)) {
                 throw exec_error("model_under_test", "regressions failed");
             }
             output_regressions(T_htf_me, T_amb_me, m_dot_ND_me);  // output main effect tables
@@ -414,7 +414,7 @@ public:
 
     }
 
-    int compile_params(C_sco2_rc_csp_template::S_des_par &mut_params) {
+    int compile_params(C_sco2_recomp_csp::S_des_par mut_params) {
         mut_params.m_hot_fl_code = as_integer("htf");							//[-] Integer code for HTF
         mut_params.mc_hot_fl_props = as_matrix("htf_props");					//[-] Custom HTF properties
         mut_params.m_T_htf_hot_in = as_double("T_htf_hot_des") + 273.15;			//[K] Convert from C
@@ -476,18 +476,18 @@ public:
         // Cycle design parameters: hardcode pressure drops, for now
         // Define hardcoded sco2 design point parameters
         std::vector<double> DP_LT(2);
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
+        //(cold, hot) positive values are absolute [kPa], negative values are relative (-)
         DP_LT[0] = 0;
         DP_LT[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
+        //(cold, hot) positive values are absolute [kPa], negative values are relative (-)
         std::vector<double> DP_HT(2);
         DP_HT[0] = 0;
         DP_HT[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
+        //(cold, hot) positive values are absolute [kPa], negative values are relative (-)
         std::vector<double> DP_PC(2);
         DP_PC[0] = 0;
         DP_PC[1] = 0;
-        /*(cold, hot) positive values are absolute [kPa], negative values are relative (-)*/
+        //(cold, hot) positive values are absolute [kPa], negative values are relative (-)
         std::vector<double> DP_PHX(2);
         DP_PHX[0] = 0;
         DP_PHX[1] = 0;
@@ -522,7 +522,7 @@ public:
         return 0;
     }
 
-    int create_regressions(C_sco2_rc_csp_template *model, C_sco2_rc_csp_template::S_des_par &mut_params,
+    int create_regressions(C_sco2_recomp_csp *model, C_sco2_recomp_csp::S_des_par &mut_params,
         util::matrix_t<double> &T_htf_ptcs, util::matrix_t<double> &T_amb_ptcs, util::matrix_t<double> &m_dot_ptcs) {
 
         int out_type = -1;
@@ -650,31 +650,29 @@ public:
             }
         }
 
-        /*
         // Possible cleaner way
-        int ncols = (int)indep_1_w_3.ncols();
-        int n_indep_1_w_3 = (int)indep_1_w_3.nrows();
-        int n_indep_2_w_1 = (int)indep_2_w_1.nrows();
-        int n_indep_3_w_2 = (int)indep_3_w_2.nrows();
+        //int ncols = (int)indep_1_w_3.ncols();
+        //int n_indep_1_w_3 = (int)indep_1_w_3.nrows();
+        //int n_indep_2_w_1 = (int)indep_2_w_1.nrows();
+        //int n_indep_3_w_2 = (int)indep_3_w_2.nrows();
 
-        ssc_number_t *p_indep_1_w_3 = allocate("indep_1_w_3", n_indep_1_w_3, ncols);
-        std::copy(indep_1_w_3.data(), indep_1_w_3.data() + n_indep_1_w_3 * ncols, p_indep_1_w_3);
-        ssc_number_t *p_indep_2_w_1 = allocate("indep_2_w_1", n_indep_2_w_1, ncols);
-        std::copy(indep_2_w_1.data(), indep_2_w_1.data() + n_indep_2_w_1 * ncols, p_indep_2_w_1);
-        ssc_number_t *p_indep_3_w_2 = allocate("indep_3_w_2", n_indep_3_w_2, ncols);
-        std::copy(indep_3_w_2.data(), indep_3_w_2.data() + n_indep_3_w_2 * ncols, p_indep_3_w_2);
+        //ssc_number_t *p_indep_1_w_3 = allocate("indep_1_w_3", n_indep_1_w_3, ncols);
+        //std::copy(indep_1_w_3.data(), indep_1_w_3.data() + n_indep_1_w_3 * ncols, p_indep_1_w_3);
+        //ssc_number_t *p_indep_2_w_1 = allocate("indep_2_w_1", n_indep_2_w_1, ncols);
+        //std::copy(indep_2_w_1.data(), indep_2_w_1.data() + n_indep_2_w_1 * ncols, p_indep_2_w_1);
+        //ssc_number_t *p_indep_3_w_2 = allocate("indep_3_w_2", n_indep_3_w_2, ncols);
+        //std::copy(indep_3_w_2.data(), indep_3_w_2.data() + n_indep_3_w_2 * ncols, p_indep_3_w_2);
 
-        // If all calls were successful, log to SSC any messages from sco2_recomp_csp
-        while (mut->mc_messages.get_message(&out_type, &out_msg)) {
-        log(out_msg);
-        }
-        log("\n Tested model tables complete");
-        */
+        //// If all calls were successful, log to SSC any messages from sco2_recomp_csp
+        //while (mut->mc_messages.get_message(&out_type, &out_msg)) {
+        //log(out_msg);
+        //}
+        //log("\n Tested model tables complete");
 
         return 0;
     }
 
-    int output_design_vals(C_sco2_rc_csp_template *model) {
+    int output_design_vals(C_sco2_recomp_csp *model) {
         double m_dot_design = model->get_phx_des_par()->m_m_dot_hot_des;	//[kg/s]
         double T_htf_cold_calc = model->get_design_solved()->ms_phx_des_solved.m_T_h_out;		//[K]
         assign("T_htf_cold_des", (ssc_number_t)(T_htf_cold_calc - 273.15));		//[C] convert from K
@@ -1023,7 +1021,6 @@ public:
 
         return yL + dydx * (x - xL);                                              // linear interpolation
     }
-
 };
 
 DEFINE_MODULE_ENTRY(validate_pc_tables, "Regression model validation framework", 0)
