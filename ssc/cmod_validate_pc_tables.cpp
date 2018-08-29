@@ -286,13 +286,19 @@ public:
                 log << T_htf_hot_ff.at(i) << "\t" << m_dot_ND_ff.at(i) << "\t" << T_amb_ff.at(i) << "\t";
                 log.flush();
 
-                off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
-                Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
-                W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+                try {
+                    off_design_code = mut->optimize_off_design(mut_od_par, od_strategy);
+                    Q_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                    W_dot_basis_ff.push_back(mut->get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
 
-                // Log to file
-                log << Q_dot_basis_ff.at(i) << "\t" << W_dot_basis_ff.at(i) << "\n";
-                log.flush();
+                    // Log to file
+                    log << Q_dot_basis_ff.at(i) << "\t" << W_dot_basis_ff.at(i) << "\n";
+                    log.flush();
+                }
+                catch(...) {
+                    log << -999 << "\t" << -999 << "\n";
+                    log.flush();
+                }
             }
             log.close();
 
