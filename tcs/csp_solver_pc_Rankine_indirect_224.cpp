@@ -1235,14 +1235,14 @@ void C_pc_Rankine_indirect_224::RankineCycle(double T_db, double T_wb,
 		// ++++++++++++++++++++++++++++++++++++++++++++
 		// POWER
 		// Main effects
-		P_ND[0] = Interpolate(11, 1, T_htf_hot_ND) - 1.0;
-		P_ND[1] = Interpolate(12, 2, P_cond) - 1.0;
-		P_ND[2] = Interpolate(13, 3, m_dot_htf_ND) - 1.0;
+		P_ND[0] = Interpolate(11, 1, T_htf_hot_ND) - 1.0;       // PA vs. A             A = T_htf_hot_ND
+		P_ND[1] = Interpolate(12, 2, P_cond) - 1.0;             // PB vs. B             B = P_cond
+		P_ND[2] = Interpolate(13, 3, m_dot_htf_ND) - 1.0;       // PC vs. C             C = m_dot_htf_ND
 
 		// Interactions
-		P_CA = Interpolate(113, 13, T_htf_hot_ND);
-		P_AB = Interpolate(112, 12, P_cond);
-		P_BC = Interpolate(123, 23, m_dot_htf_ND);
+		P_CA = Interpolate(113, 13, T_htf_hot_ND);              // PAC vs. AC
+		P_AB = Interpolate(112, 12, P_cond);                    // PAB vs. AB
+		P_BC = Interpolate(123, 23, m_dot_htf_ND);              // PBC vs. BC
 
 		P_ND[0] = P_ND[0] * P_AB;
 		P_ND[1] = P_ND[1] * P_BC;
@@ -1250,14 +1250,14 @@ void C_pc_Rankine_indirect_224::RankineCycle(double T_db, double T_wb,
 
 		// HEAT
 		// Main effects
-		Q_ND[0] = Interpolate(21, 1, T_htf_hot_ND) - 1.0;
-		Q_ND[1] = Interpolate(22, 2, P_cond) - 1.0;
-		Q_ND[2] = Interpolate(23, 3, m_dot_htf_ND) - 1.0;
+		Q_ND[0] = Interpolate(21, 1, T_htf_hot_ND) - 1.0;       // QA vs. A             A = T_htf_hot_ND
+		Q_ND[1] = Interpolate(22, 2, P_cond) - 1.0;             // QB vs. B             B = P_cond
+		Q_ND[2] = Interpolate(23, 3, m_dot_htf_ND) - 1.0;       // QC vs. C             C = m_dot_htf_ND
 
 		// Interactions
-		Q_CA = Interpolate(213, 13, T_htf_hot_ND);
-		Q_AB = Interpolate(212, 12, P_cond);
-		Q_BC = Interpolate(223, 23, m_dot_htf_ND);
+		Q_CA = Interpolate(213, 13, T_htf_hot_ND);              // QAC vs. AC
+		Q_AB = Interpolate(212, 12, P_cond);                    // QAB vs. AB
+		Q_BC = Interpolate(223, 23, m_dot_htf_ND);              // QBC vs. BC
 
 		Q_ND[0] = Q_ND[0] * Q_AB;
 		Q_ND[1] = Q_ND[1] * Q_BC;
