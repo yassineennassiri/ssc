@@ -4,231 +4,9 @@
 #include <iostream>
 #include <vector>
 
-#include <lib_util.h>
-#include <6par_solve.h>
-#include <lib_iec61853.h>
-
-struct moduleMeasurements {
-	std::string name;
-	int type = -1;
-	double temp;
-	double irradiance;
-	int nSer;
-	double Isc;
-	double Voc;
-	double Imp;
-	double Vmp;
-	double Pm;
-	double Il_iec = 0.0;
-	double Io_iec = 0.0;
-	double Rs_iec = 0.0;
-	double Rsh_iec = 0.0;
-	double A_iec = 0.0;
-	double Il_cec = -1;
-	double Io_cec = -1;
-	double Rs_cec = -1;
-	double Rsh_cec = -1;
-	double A_cec = -1;
-	double Adj_cec = -1;
-	int solved = -1;
-
-	std::vector<std::vector<double>> currentAt10Voltages; // divided Voc by 10 for step size
-};
-
-class IEC61853UpdateSolver{
-public:
-	double Il, Io, Rs, Rsh, A;	// values of current iteration
-	double minIl, minIo, minRs, minRsh, minA;
-	int nSer;
-	double uncertainty;			// measured values uncertainty
-	double tolerance;			// error tolerance for single diode model equations
-
-	iec61853_module_t modIEC;
-	module6par mod6p;
-
-	void guessIEC(moduleMeasurements mm) {
-		double Rs_scale, Rsh_scale;
-		switch (mm.type)
-		{
-		case iec61853_module_t::Amorphous:
-			Rs_scale = 0.59;
-			Rsh_scale = 0.922;
-			break;
-		case iec61853_module_t::CdTe:
-			Rs_scale = 0.46;
-			Rsh_scale = 1.11;
-			break;
-		case iec61853_module_t::CIGS:
-			Rs_scale = 0.55;
-			Rsh_scale = 1.22;
-			break;
-		case iec61853_module_t::CIS:
-			Rs_scale = 0.61;
-			Rsh_scale = 1.07;
-			break;
-		case iec61853_module_t::monoSi:
-			Rs_scale = 0.32;
-			Rsh_scale = 4.92;
-			break;
-		case iec61853_module_t::multiSi:
-		default:
-			Rs_scale = 0.34;
-			Rsh_scale = 5.36;
-			break;
-		}
-
-		double Rs_ref0 = Rs_scale * (mm.Voc - mm.Vmp) / mm.Imp;
-
-		if (Rs_ref0 < 0.02) Rs_ref0 = 0.02;
-		if (Rs_ref0 > 60) Rs_ref0 = 60;
-
-		double Rsh_ref0 = Rsh_scale * mm.Voc / (mm.Isc - mm.Imp);
-
-		A = 3;
-		Il = 0.95*mm.Isc;
-		Rsh = Rsh_ref0;
-		Io = (Il - mm.Voc / Rsh) / (exp(mm.Voc / A) - 1);
-		Rs = Rs_ref0;
-
-	}
-
-	void setInitialValues(double Il0, double Io0, double Rs0, double Rsh0, double a0) {
-
-	}
-
-	void updateMinErrorSol(double error) {
-
-	}
-
-	double calculateError() {
-
-	}
-};
+#include "lib_iec61853_test.h"
 
 
-class IEC61853Test : public ::testing::Test {
-protected:
-	std::string moduleMeasurementsFile;
-	size_t nColsmoduleMeasurementsFile = 16;
-	std::vector<moduleMeasurements> mmVector;
-	IEC61853UpdateSolver solver;
-	double e = 0.01;
-public:
-	void mmCurrentToCSV() {
-		std::ofstream file;
-		file.open("C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleIVCurves.csv");
-		EXPECT_TRUE(file.is_open());
-
-		std::vector<std::string> colHeaders = { "Name", "Voc", "Temp", "Irradiance", "V", "I" };
-		for (size_t i = 0; i < colHeaders.size(); i++) {
-			file << colHeaders[i] << ",";
-		}
-		file << "\n";
-
-		for (size_t r = 0; r < mmVector.size(); r++) {
-			for (size_t i = 0; i < 10; i++) {
-				file << mmVector[r].name << "," << mmVector[r].Voc<< "," << mmVector[r].temp << "," << mmVector[r].irradiance << ", ";
-				file << mmVector[r].currentAt10Voltages[i][0] << ", " << mmVector[r].currentAt10Voltages[i][1] << ", ";
-				file << "\n";
-			}
-
-		}
-		file.close();
-	}
-	void mmVectorToCSV() {
-		std::ofstream file;
-		file.open(moduleMeasurementsFile);
-		EXPECT_TRUE(file.is_open());
-
-		std::vector<std::string> colHeaders = { "Name", "Temp", "Irradiance", "Isc", "Voc", "Imp", "Vmp", "Pm", "Nser",
-			"Il_iec",  "Io_iec", "Rs_iec", "Rsh_iec", "a_iec",
-			"Sanity err" };
-			//"Solved", "Il_cec", "Io_cec", "Rs_cec", "Rsh_cec", "a_cec", "Adj_cec"};
-		for (size_t i = 0; i < colHeaders.size(); i++) {
-			file << colHeaders[i] << ",";
-		}
-		file << "V step" << ",";
-		for (size_t i = 0; i < 10; i++) {
-			file << "I_" << i << ",";
-		}
-		file << "\n";
-
-
-		for (size_t r = 0; r < mmVector.size(); r++) {
-			file << mmVector[r].name << "," << mmVector[r].temp << "," << mmVector[r].irradiance << ", " ;
-			file << mmVector[r].Isc << "," << mmVector[r].Voc << "," << mmVector[r].Imp << "," << mmVector[r].Vmp << "," << mmVector[r].Pm << "," << mmVector[r].nSer << ", ";
-			file << mmVector[r].Il_iec << ", " << mmVector[r].Io_iec << ", " << mmVector[r].Rs_iec << ", " << mmVector[r].Rsh_iec << ", " << mmVector[r].A_iec << ", ";
-			file << mmVector[r].solved << ", ";
-			/*if (mmVector[r].solved == 0) {
-				file << mmVector[r].Il_cec << ", " << mmVector[r].Io_cec << ", " << mmVector[r].Rs_cec << ", " << mmVector[r].Rsh_cec << ", " << mmVector[r].A_cec << ", " << mmVector[r].Adj_cec << ",";
-			}*/
-			file << mmVector[r].currentAt10Voltages[1][0] << ", ";
-			for (size_t i = 0; i < 10; i++) {
-				file << mmVector[r].currentAt10Voltages[i][1] << ", ";
-			}
-			file << "\n";
-
-		}
-		file.close();
-	}
-	void SetUp() {
-		moduleMeasurementsFile = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleMeasurements.csv";
-		std::ifstream file;
-		file.open(moduleMeasurementsFile);
-		EXPECT_TRUE(file.is_open());
-		std::string str;
-		std::string delimiter = ",";
-		getline(file, str); // header row
-		while (getline(file, str)) {
-			moduleMeasurements mm;
-
-			size_t pos = str.find(delimiter);
-			mm.name = str.substr(0, pos);
-			std::string typeName = mm.name.substr(0, 3);
-
-			if (typeName == "xSi") {
-				mm.type = module6par::monoSi;
-			}
-			else if (typeName == "mSi") {
-				mm.type = module6par::multiSi;
-			}
-			else if (typeName == "CdT") {
-				mm.type = module6par::CdTe;
-			}
-			else if (typeName == "CIG") {
-				mm.type = module6par::CIGS;
-			}
-			else if (typeName == "HIT") {
-				mm.type = module6par::Amorphous;
-			}
-			else if (typeName == "aSi") {
-				mm.type = module6par::Amorphous;
-			}
-			else {
-				EXPECT_TRUE(mm.type != -1); //error
-			}
-			size_t start = pos+1;
-			std::vector<double> v;
-			for (size_t i = 0; i < 8; i++) {
-				size_t pos = str.find(delimiter, start);
-				std::string token = str.substr(start, pos-start);
-				double val = atof(token.c_str());
-				v.push_back(val);
-				start = pos+1;
-			}
-			mm.temp = v[0];
-			mm.irradiance = v[1];
-			mm.Isc = v[2];
-			mm.Voc = v[3];
-			mm.Imp = v[4];
-			mm.Vmp = v[5];
-			mm.Pm = v[6];
-			mm.nSer = (int)v[7];
-			mmVector.push_back(mm);
-		}
-		file.close();
-	}
-};
 
 
 TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
@@ -249,11 +27,11 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 		if (!solver.modIEC.calculate(testMatrix, mmVector[m*18].nSer, mmVector[m*18].type, par, true)) continue;
 
 		for (size_t n = 0; n < 18; n++) {
-			mmVector[m * 18 + n].Il_iec = par.at(n, 0);
-			mmVector[m * 18 + n].Io_iec = par.at(n, 1);
-			mmVector[m * 18 + n].Rs_iec = par.at(n, 2);
-			mmVector[m * 18 + n].Rsh_iec = par.at(n, 3);
-			mmVector[m * 18 + n].A_iec = par.at(n, 4);
+			mmVector[m * 18 + n].Il = par.at(n, 0);
+			mmVector[m * 18 + n].Io = par.at(n, 1);
+			mmVector[m * 18 + n].Rs = par.at(n, 2);
+			mmVector[m * 18 + n].Rsh = par.at(n, 3);
+			mmVector[m * 18 + n].A = par.at(n, 4);
 		}
 
 	}
@@ -274,11 +52,11 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 		m.setUncertaintyPmp(5);
 		//std::cout << "module " << i << ": ";
 	
-		m.Io = mm->Io_iec;
-		m.Il = mm->Il_iec;
-		m.Rs = mm->Rs_iec;
-		m.Rsh = mm->Rsh_iec;
-		m.a = mm->A_iec;
+		m.Io = mm->Io;
+		m.Il = mm->Il;
+		m.Rs = mm->Rs;
+		m.Rsh = mm->Rsh;
+		m.a = mm->A;
 		m.Adj = 0;
 
 		mm->solved = m.sanity();
@@ -304,29 +82,269 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	}
 
 	mmVectorToCSV();
-
 }
 
-TEST_F(IEC61853Test, DISABLED_ParameterEstimationTest_lib_iec61853) {
+void mychoice_switch(int choice) {
+	switch (choice) {
+	case -10:
+		printf("You are being very negative!");
+	case 0:
+		printf("The invention of zero was brilliant!");
+	default:
+		printf("Meh!");
+	}
+}
+
+TEST_F(IEC61215Test, unsolvedModules) {
+	// Uncertainty for crystalline silicon modules: 
+	// Pm = ± 2.8%,  Isc = ± 2.3%, Imp = ± 2.3%, Voc = ± 0.3%, Vmp = ± 0.7%
+	std::ofstream file;
+	file.open("C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/loopcheck.csv");
+	EXPECT_TRUE(file.is_open());
+	for (size_t i = 0; i < mmVector.size(); i++) {
+		if (mmVector[i].solved == 0) continue;
+
+		double Io_best = mmVector[i].Io;
+		double Il_best = mmVector[i].Il;
+		double Rs_best = mmVector[i].Rs;
+		double Rsh_best = mmVector[i].Rsh;
+		double Adj_best = mmVector[i].Adj;
+		double a_best = mmVector[i].A;
+		double solved_best = mmVector[i].solved;
+		double pmpCalc = mmVector[i].Vmp* module6par::current(mmVector[i].Vmp, Il_best,
+			Io_best, Rs_best, a_best, Rsh_best, mmVector[i].Imp);
+		double pmpError = (pmpCalc - mmVector[i].Pm)/mmVector[i].Pm;
+		double iocError = module6par::current(mmVector[i].Voc, Il_best,
+			Io_best, Rs_best, a_best, Rsh_best, mmVector[i].Imp);
+		double bestError = abs(pmpError) + abs(iocError);
+
+		int intervals = 10;
+		double dPm = mmVector[i].Pm * .05 / (double)(intervals/2.);
+		double dIsc = mmVector[i].Isc * 0.05 / (double)(intervals / 2.);
+		double dImp = mmVector[i].Imp * 0.05 / (double)(intervals / 2.);
+		double dVoc = mmVector[i].Voc * 0.05 / (double)(intervals/2);
+		double dVmp = mmVector[i].Vmp * 0.05 / (double)(intervals/2);
+		double Pm0 = mmVector[i].Pm;
+		double Isc0 = mmVector[i].Isc;
+		double Voc0 = mmVector[i].Voc;
+		double Vmp0 = mmVector[i].Vmp;
+		double Imp0 = mmVector[i].Imp;
+		mmVector[i].Isc -= mmVector[i].Isc * 0.05;
+		mmVector[i].Imp -= mmVector[i].Imp * 0.05;
+		mmVector[i].Voc -= mmVector[i].Voc * 0.05;
+		mmVector[i].Vmp -= mmVector[i].Vmp * 0.05;
+		for (size_t q = 0; q < intervals + 1; q++) {
+			if (q>0) mmVector[i].Isc += dIsc;
+			for (size_t r = 0; r < intervals + 1; r++) {
+				if (r>0) mmVector[i].Imp += dImp;
+				if (mmVector[i].Imp > mmVector[i].Isc) continue;
+				for (size_t s = 0; s < intervals+1; s++) {
+					if (s>0) mmVector[i].Voc += dVoc;
+					for (size_t t = 0; t < intervals + 1; t++) {
+						if (t>0 )mmVector[i].Vmp += dVmp;
+						mmVector[i].Pm = mmVector[i].Vmp * mmVector[i].Imp;
+						if (abs((mmVector[i].Pm - Pm0) / Pm0) > 0.05) continue;
+						if (mmVector[i].Vmp > mmVector[i].Voc) continue;
+						int tech_id = mmVector[i].type;
+						double Vmp = mmVector[i].Vmp;
+						double Imp = mmVector[i].Imp;
+						double Voc = mmVector[i].Voc;
+						double Isc = mmVector[i].Isc;
+						int nser = mmVector[i].nSer;
+						double alpha = mmVector[i].alphaIsc;
+						double beta = mmVector[i].betaVoc;
+						double gamma = mmVector[i].gammaPmp;
+
+						// monoSi, multiSi, CdTe, CIS, CIGS, Amorphous 
+						module6par m(tech_id, Vmp, Imp, Voc, Isc, beta, alpha, gamma, nser, 298.15);
+						m.setUncertaintyPmp(5);
+						int attempts = 0;
+						double tol = 1e-10;
+						while (attempts < 8 && mmVector[i].solved != 0) {
+							//mmVector[i].solved = m.solve_with_sanity_and_heuristics<double>(300, tol);
+							tol *= 10;
+							attempts++;
+
+							mmVector[i].Il = m.Il;
+							mmVector[i].Io = m.Io;
+							mmVector[i].Rs = m.Rs;
+							mmVector[i].Rsh = m.Rsh;
+							mmVector[i].A = m.a;
+							mmVector[i].Adj = m.Adj;
+
+
+							double pmpCal = mmVector[i].Vmp* module6par::current(mmVector[i].Vmp, Il_best,
+								Io_best, Rs_best, a_best, Rsh_best, mmVector[i].Imp);
+							double pmpErr = (pmpCal - mmVector[i].Pm) / mmVector[i].Pm;
+							double iocErr = module6par::current(mmVector[i].Voc, Il_best,
+								Io_best, Rs_best, a_best, Rsh_best, mmVector[i].Imp);
+							double error = abs(pmpErr) + abs(iocErr);
+
+							if (error < bestError) {
+								Io_best = mmVector[i].Io;
+								Il_best = mmVector[i].Il;
+								Rs_best = mmVector[i].Rs;
+								Rsh_best = mmVector[i].Rsh;
+								Adj_best = mmVector[i].Adj;
+								a_best = mmVector[i].A;
+								solved_best = mmVector[i].solved;
+								bestError = error;
+							}
+							if (mmVector[i].solved == 0) break;
+							std::cout << ", " << q <<", " << r << ", " << s << ", " << t << "\n";
+						}
+						file << mmVector[i].Imp << ", " << mmVector[i].Vmp << ", ";
+						file << mmVector[i].Isc << ", " << mmVector[i].Voc << "," << std::endl;
+					
+						if (mmVector[i].solved == 0) break;	
+					}
+					if (mmVector[i].solved == 0) break;
+					mmVector[i].Vmp = Vmp0 - Vmp0 * 0.05;
+					
+				}
+				if (mmVector[i].solved == 0) break;
+				mmVector[i].Voc = Voc0 - Voc0 * 0.05;
+			}
+			mmVector[i].Imp = Imp0 - Imp0 * 0.05;
+			if (mmVector[i].solved == 0) break;
+		}
+		if (mmVector[i].solved != 0) {
+			mmVector[i].Io = Io_best;
+			mmVector[i].Il = Il_best;
+			mmVector[i].Rs = Rs_best;
+			mmVector[i].Rsh = Rsh_best;
+			mmVector[i].Adj = Adj_best;
+			mmVector[i].A = a_best;
+			mmVector[i].solved = solved_best;
+		}
+	}
+	//mmVectorToCSV();
+	file.close();
+}
+
+TEST_F(IEC61215Test, IVCurves) {
+	std::ofstream file;
+	file.open("C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleIVCurves.csv");
+	EXPECT_TRUE(file.is_open());
+
+	for (size_t i = 0; i < mmVector.size(); i++) {
+		if (mmVector[i].solved == 0) continue;
+
+		file << "Name," << mmVector[i].name << ", Imp," << mmVector[i].Imp << ", Vmp,";
+		file << mmVector[i].Vmp << ", Pmp" << mmVector[i].gammaPmp << ", Voc,";
+		file << mmVector[i].Voc << ", Imp, " << mmVector[i].Imp << "\n";
+
+		double vStep = mmVector[i].Voc / 100.;
+
+		std::vector<double> V;
+		std::vector<double> I;
+		for (size_t s = 0; s < 100; s++) {
+			double v = vStep * (double)s;
+			V.push_back(v);
+			I.push_back(module6par::current(v, mmVector[i].Il, mmVector[i].Io, mmVector[i].Rs, 
+				mmVector[i].A, mmVector[i].Rsh, mmVector[i].Imp));
+		}
+		for (size_t s = 0; s < 100; s++) {
+			file << V[s] << ",";
+		}
+		file << "\n";
+		for (size_t s = 0; s < 100; s++) {
+			file << I[s] << ",";
+		}
+		file << "\n\n";
+	}
+	file.close();
+}
+
+TEST_F(IEC61215Test, solveCoefs) {
 	for (size_t i = 0; i < mmVector.size(); i++) {
 		int tech_id = mmVector[i].type;
 		double Vmp = mmVector[i].Vmp;
 		double Imp = mmVector[i].Imp;
 		double Voc = mmVector[i].Voc;
 		double Isc = mmVector[i].Isc;
-		double alpha = 0;
-		double beta = 0;
-		double gamma = 0;
 		int nser = mmVector[i].nSer;
+		double alpha = mmVector[i].alphaIsc;
+		double beta = mmVector[i].betaVoc;
+		double gamma = mmVector[i].gammaPmp;
 
 		// monoSi, multiSi, CdTe, CIS, CIGS, Amorphous 
 		module6par m(tech_id, Vmp, Imp, Voc, Isc, beta, alpha, gamma, nser, 298.15);
 		m.setUncertaintyPmp(5);
-		//std::cout << "module " << i << ": ";
-		mmVector[i].solved = m.solve_with_sanity_and_heuristics<double>(300, 1e-4);
-		//std::cout << mmVector[i].solved << "\n";
-	}
+		int attempts = 0;
+		double tol = 1e-8;
+		while (attempts < 10 && mmVector[i].solved != 0) {
+			mmVector[i].solved = m.solve_with_sanity_and_heuristics<double>(300, tol);
+			tol *= 10;
+			attempts++;
+		}
 
+		mmVector[i].Il = m.Il;
+		mmVector[i].Io = m.Io;
+		mmVector[i].Rs = m.Rs;
+		mmVector[i].Rsh = m.Rsh;
+		mmVector[i].A = m.a;
+		mmVector[i].Adj = m.Adj;
+	}
 	mmVectorToCSV();
+}
+
+TEST_F(IEC61215Test, testMeasurements) {
+	
+	getTestMeasurementData();
+
+	std::string outputFileName = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\singleDiodeResults.csv";
+	std::ofstream outputFile;
+	outputFile.open(outputFileName);
+
+	moduleMeasurements currentModule;
+	std::vector<double> powerPredicted;
+	for (size_t i = 0; i < testMeasurements.size(); i++) {
+		std::string name = testMeasurements[i][0].c_str();
+		double Geff = atof(testMeasurements[i][2].c_str());
+		double T_cell = atof(testMeasurements[i][4].c_str());
+
+		double a, rs, rsh, io, il, adj;
+		bool solved = false;
+		if (currentModule.name != name) {
+			for (size_t n = 0; n < mmVector.size(); n++) {
+				if (mmVector[n].name == name) currentModule = mmVector[n];
+			}
+		}
+		a = currentModule.A;
+		rs = currentModule.Rs;
+		rsh = currentModule.Rsh;
+		io = currentModule.Io;
+		il = currentModule.Il;
+		adj = currentModule.Adj;
+
+		if (!solved) continue;
+		
+		double eg0 = 1.12;
+		double Tc_ref = (25 + 273.15);
+		double KB = 8.618e-5;
+
+		T_cell = T_cell + 273.15; // want cell temp in kelvin
+		double muIsc = currentModule.alphaIsc * (1 - currentModule.Adj / 100);
+		// calculation of IL and IO at operating conditions
+		double IL_oper = Geff / 1000. * (il + muIsc * (T_cell - 298.15));
+		if (IL_oper < 0.0) IL_oper = 0.0;
+
+		double EG = eg0 * (1 - 0.0002677*(T_cell - (25 + 273.15)));
+		double IO_oper = currentModule.Io * pow(T_cell / Tc_ref, 3) * exp(1 / KB * (eg0 / Tc_ref - EG / T_cell));
+		double A_oper = a * T_cell / Tc_ref;
+		double Rsh_oper = currentModule.Rsh * (1000. / Geff);
+
+		double V_oc = openvoltage_5par(currentModule.Voc, A_oper, IL_oper, IO_oper, Rsh_oper);
+		double I_sc = IL_oper / (1 + currentModule.Rs / Rsh_oper);
+
+
+		double V, I;
+		maxpower_5par(100, a, il, io, rs, rsh, &V, &I);
+		powerPredicted.push_back(V*I);
+		outputFile << V * I << "\n";
+	}
+	outputFile.close();
 
 }
+
