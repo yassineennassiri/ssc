@@ -98,9 +98,6 @@ void mychoice_switch(int choice) {
 TEST_F(IEC61215Test, unsolvedModules) {
 	// Uncertainty for crystalline silicon modules: 
 	// Pm = ± 2.8%,  Isc = ± 2.3%, Imp = ± 2.3%, Voc = ± 0.3%, Vmp = ± 0.7%
-	std::ofstream file;
-	file.open("C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/loopcheck.csv");
-	EXPECT_TRUE(file.is_open());
 	for (size_t i = 0; i < mmVector.size(); i++) {
 		if (mmVector[i].solved == 0) continue;
 
@@ -118,21 +115,22 @@ TEST_F(IEC61215Test, unsolvedModules) {
 			Io_best, Rs_best, a_best, Rsh_best, mmVector[i].Imp);
 		double bestError = abs(pmpError) + abs(iocError);
 
-		int intervals = 10;
-		double dPm = mmVector[i].Pm * .05 / (double)(intervals/2.);
-		double dIsc = mmVector[i].Isc * 0.05 / (double)(intervals / 2.);
-		double dImp = mmVector[i].Imp * 0.05 / (double)(intervals / 2.);
-		double dVoc = mmVector[i].Voc * 0.05 / (double)(intervals/2);
-		double dVmp = mmVector[i].Vmp * 0.05 / (double)(intervals/2);
+		int intervals = 4;
+		double uncertainty = 0.025;
+		double dPm = mmVector[i].Pm * uncertainty / (double)(intervals/2.);
+		double dIsc = mmVector[i].Isc * uncertainty / (double)(intervals / 2.);
+		double dImp = mmVector[i].Imp * uncertainty / (double)(intervals / 2.);
+		double dVoc = mmVector[i].Voc * uncertainty / (double)(intervals/2);
+		double dVmp = mmVector[i].Vmp * uncertainty / (double)(intervals/2);
 		double Pm0 = mmVector[i].Pm;
 		double Isc0 = mmVector[i].Isc;
 		double Voc0 = mmVector[i].Voc;
 		double Vmp0 = mmVector[i].Vmp;
 		double Imp0 = mmVector[i].Imp;
-		mmVector[i].Isc -= mmVector[i].Isc * 0.05;
-		mmVector[i].Imp -= mmVector[i].Imp * 0.05;
-		mmVector[i].Voc -= mmVector[i].Voc * 0.05;
-		mmVector[i].Vmp -= mmVector[i].Vmp * 0.05;
+		mmVector[i].Isc -= mmVector[i].Isc * uncertainty;
+		mmVector[i].Imp -= mmVector[i].Imp * uncertainty;
+		mmVector[i].Voc -= mmVector[i].Voc * uncertainty;
+		mmVector[i].Vmp -= mmVector[i].Vmp * uncertainty;
 		for (size_t q = 0; q < intervals + 1; q++) {
 			if (q>0) mmVector[i].Isc += dIsc;
 			for (size_t r = 0; r < intervals + 1; r++) {
@@ -143,9 +141,9 @@ TEST_F(IEC61215Test, unsolvedModules) {
 					for (size_t t = 0; t < intervals + 1; t++) {
 						if (t>0 )mmVector[i].Vmp += dVmp;
 						mmVector[i].Pm = mmVector[i].Vmp * mmVector[i].Imp;
-						if (abs((mmVector[i].Pm - Pm0) / Pm0) > 0.05) continue;
+						if (abs((mmVector[i].Pm - Pm0) / Pm0) > uncertainty) continue;
 						if (mmVector[i].Vmp > mmVector[i].Voc) continue;
-						int tech_id = mmVector[i].type;
+						int tech_id = 2;
 						double Vmp = mmVector[i].Vmp;
 						double Imp = mmVector[i].Imp;
 						double Voc = mmVector[i].Voc;
@@ -157,11 +155,13 @@ TEST_F(IEC61215Test, unsolvedModules) {
 
 						// monoSi, multiSi, CdTe, CIS, CIGS, Amorphous 
 						module6par m(tech_id, Vmp, Imp, Voc, Isc, beta, alpha, gamma, nser, 298.15);
-						m.setUncertaintyPmp(5);
+						m.setUncertaintyPmp(uncertainty*100);
 						int attempts = 0;
-						double tol = 1e-10;
-						while (attempts < 8 && mmVector[i].solved != 0) {
-							//mmVector[i].solved = m.solve_with_sanity_and_heuristics<double>(300, tol);
+						double tol = 1e-8;
+						std::cout << mmVector[i].Imp << ", " << mmVector[i].Vmp << ", ";
+						std::cout << mmVector[i].Isc << ", " << mmVector[i].Voc << "," << std::endl;
+						while (attempts < 4 && mmVector[i].solved != 0) {
+							mmVector[i].solved = m.solve_with_sanity_and_heuristics<double>(150, tol);
 							tol *= 10;
 							attempts++;
 
@@ -193,19 +193,17 @@ TEST_F(IEC61215Test, unsolvedModules) {
 							if (mmVector[i].solved == 0) break;
 							std::cout << ", " << q <<", " << r << ", " << s << ", " << t << "\n";
 						}
-						file << mmVector[i].Imp << ", " << mmVector[i].Vmp << ", ";
-						file << mmVector[i].Isc << ", " << mmVector[i].Voc << "," << std::endl;
 					
 						if (mmVector[i].solved == 0) break;	
 					}
 					if (mmVector[i].solved == 0) break;
-					mmVector[i].Vmp = Vmp0 - Vmp0 * 0.05;
+					mmVector[i].Vmp = Vmp0 - Vmp0 * uncertainty;
 					
 				}
 				if (mmVector[i].solved == 0) break;
-				mmVector[i].Voc = Voc0 - Voc0 * 0.05;
+				mmVector[i].Voc = Voc0 - Voc0 * uncertainty;
 			}
-			mmVector[i].Imp = Imp0 - Imp0 * 0.05;
+			mmVector[i].Imp = Imp0 - Imp0 * uncertainty;
 			if (mmVector[i].solved == 0) break;
 		}
 		if (mmVector[i].solved != 0) {
@@ -218,8 +216,7 @@ TEST_F(IEC61215Test, unsolvedModules) {
 			mmVector[i].solved = solved_best;
 		}
 	}
-	//mmVectorToCSV();
-	file.close();
+	mmVectorToCSV();
 }
 
 TEST_F(IEC61215Test, IVCurves) {
