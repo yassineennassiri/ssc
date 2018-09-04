@@ -262,11 +262,11 @@ public:
             std::vector<int> indep_levels = as_vector_integer("indep_levels");
             assert(indep_levels.size() == 3);
             int sample_type = as_integer("sample_type");
-            generate_ff_samples(indep_levels, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);
+            generate_ff_samples(indep_levels, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);    // TODO - Fix starting value of m_dot_ND. Is 0.5, should be 0.45
             n_ff = T_htf_hot_ff.size();
 
             // Run basis model with sample set
-            C_sco2_recomp_csp::S_od_par mut_od_par;                // TODO - populate member structure instead
+            C_sco2_recomp_csp::S_od_par mut_od_par;
             int od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
             int off_design_code = -1;
             Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
@@ -783,13 +783,13 @@ public:
 
         if (sample_type == 0) {             // uniform sample
             double d, inc;
-            inc = (T_htf_hot_high - T_htf_hot_low) / (n_T_htf_hot - 1);        // fill T_htf_hot
+            inc = (T_htf_hot_high - T_htf_hot_low) / max(1, (n_T_htf_hot - 1));        // fill T_htf_hot
             d = T_htf_hot_low - inc;      // subtract inc so first value equals T_htf_hot_low
             generate(T_htf_hot.begin(), T_htf_hot.end(), [&d, inc] { return d += inc; });
-            inc = (m_dot_ND_high - m_dot_ND_low) / (n_m_dot_ND - 1);          // fill m_dot_ND_low
+            inc = (m_dot_ND_high - m_dot_ND_low) / max(1, (n_m_dot_ND - 1));           // fill m_dot_ND_low
             d = m_dot_ND_low - inc;
             generate(m_dot_ND.begin(), m_dot_ND.end(), [&d, inc] { return d += inc; });
-            inc = (T_amb_high - T_amb_low) / (n_T_amb - 1);                // fill T_amb
+            inc = (T_amb_high - T_amb_low) / max(1, (n_T_amb - 1));                    // fill T_amb
             d = T_amb_low - inc;
             generate(T_amb.begin(), T_amb.end(), [&d, inc] { return d += inc; });
         }
