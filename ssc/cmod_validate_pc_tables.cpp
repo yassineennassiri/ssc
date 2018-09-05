@@ -81,6 +81,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "is_recomp_ok",         "1 = Yes, 0 = simple cycle only",                         "",           "",    "",      "?=1",   "",       "" }, //
     { SSC_INPUT,    SSC_NUMBER,     "is_PR_fixed",          "0 = No, >0 = fixed pressure ratio",                      "",           "",    "",      "?=0",   "",       "" }, //
     // Cycle Design
+    { SSC_INPUT,    SSC_NUMBER,     "cycle_config",         "Cycle configuration, 1=recompression, 2=partial cooling", "-",         "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "eta_isen_mc",          "Design main compressor isentropic efficiency",           "-",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "eta_isen_rc",          "Design re-compressor isentropic efficiency",             "-",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "eta_isen_t",           "Design turbine isentropic efficiency",                   "-",          "",    "",      "*",     "",       "" },
@@ -93,7 +94,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "fan_power_frac",       "Fraction of net cycle power consumed by air cooler fan", "",           "",    "",      "?=0.01", "",      "" },
     { SSC_INPUT,    SSC_NUMBER,     "deltaP_cooler_frac",   "Fraction of cycle high pres. that is design point cooler CO2 pres. drop", "", "", "", "?=0.002", "",      "" },
     // Off Design UDPC Options
-    { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" }, //
+//    { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" }, //
     { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "", "",   "?=1",    "",      "" },     //
     // User Defined Power Cycle Table Inputs
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_low",        "Lower level of HTF hot temperature",					  "C",          "",    "",      "",       "",      "" },
@@ -414,7 +415,7 @@ public:
 
     }
 
-    int compile_params(C_sco2_recomp_csp::S_des_par mut_params) {
+    int compile_params(C_sco2_recomp_csp::S_des_par &mut_params) {
         mut_params.m_hot_fl_code = as_integer("htf");							//[-] Integer code for HTF
         mut_params.mc_hot_fl_props = as_matrix("htf_props");					//[-] Custom HTF properties
         mut_params.m_T_htf_hot_in = as_double("T_htf_hot_des") + 273.15;			//[K] Convert from C
@@ -474,6 +475,7 @@ public:
         }
 
         // Cycle design parameters: hardcode pressure drops, for now
+        mut_params.m_cycle_config = as_integer("cycle_config");     // cycle configuration, 1=recompression, 2=partial cooling
         // Define hardcoded sco2 design point parameters
         std::vector<double> DP_LT(2);
         //(cold, hot) positive values are absolute [kPa], negative values are relative (-)
