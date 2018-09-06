@@ -59,6 +59,7 @@
 #include "csp_solver_util.h"
 #include "sco2_pc_csp_int.h"
 #include "interpolation_routines.h"
+//#include "stochastic.h"
 
 static var_info _cm_vtab_validate_pc_tables[] = {
 //   VARTYPE        DATATYPE        NAME                    LABEL                                                   UNITS          META  GROUP   REQUIRED_IF  CONSTRAINTS  UI_HINTS*/
@@ -297,6 +298,8 @@ public:
                     log.flush();
                 }
                 catch(...) {
+                    Q_dot_basis_ff.push_back(-999);
+                    W_dot_basis_ff.push_back(-999);
                     log << -999 << "\t" << -999 << "\n";
                     log.flush();
                 }
@@ -315,6 +318,23 @@ public:
             ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
             std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         }
+        // Remove training data where model did not complete (= -999)
+        //for (int i = 0; i != T_htf_hot_ff.size(); i++) {
+        int i = 0;
+        while(i < Q_dot_basis_ff.size()) {
+            if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
+                T_htf_hot_ff.erase(T_htf_hot_ff.begin() + i);
+                m_dot_ND_ff.erase(m_dot_ND_ff.begin() + i);
+                T_amb_ff.erase(T_amb_ff.begin() + i);
+                Q_dot_basis_ff.erase(Q_dot_basis_ff.begin() + i);
+                W_dot_basis_ff.erase(W_dot_basis_ff.begin() + i);
+            }
+            else {
+                i++;
+            }
+        }
+        n_ff = T_htf_hot_ff.size();
+
 
         // Calculate regression model heat and power from sample set and output to SSC
         // Get main effects tables from basis model
