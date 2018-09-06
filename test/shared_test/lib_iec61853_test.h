@@ -258,8 +258,9 @@ public:
 		file.close();
 	}
 
-	void getTestMeasurementData() {
-		testMeasurementsFiles = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\testMeasurements.csv";
+	std::vector<std::string> getTestMeasurementData(std::string testMeasurementsFiles) {
+		//testMeasurementsFiles = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\testMeasurements.csv";
+		testMeasurements.clear();
 		std::ifstream file;
 		file.open(testMeasurementsFiles);
 		EXPECT_TRUE(file.is_open());
@@ -267,7 +268,10 @@ public:
 		std::string delimiter = ",";
 		getline(file, str); // header row
 		std::vector<double> powerPredicted;
+		std::vector<std::string> fileLines;
+		fileLines.push_back(str);
 		while (getline(file, str)) {
+			fileLines.push_back(str);
 			size_t pos = str.find(delimiter, 0);
 			std::string token = str.substr(0, pos);
 			size_t start = pos + 1;
@@ -282,6 +286,7 @@ public:
 			testMeasurements.push_back(v);
 		}
 		file.close();
+		return fileLines;
 	}
 
 	void SetUp() {

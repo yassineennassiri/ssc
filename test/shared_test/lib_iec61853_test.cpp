@@ -84,16 +84,6 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	mmVectorToCSV();
 }
 
-void mychoice_switch(int choice) {
-	switch (choice) {
-	case -10:
-		printf("You are being very negative!");
-	case 0:
-		printf("The invention of zero was brilliant!");
-	default:
-		printf("Meh!");
-	}
-}
 
 TEST_F(IEC61215Test, unsolvedModules) {
 	// Uncertainty for crystalline silicon modules: 
@@ -116,7 +106,7 @@ TEST_F(IEC61215Test, unsolvedModules) {
 		double bestError = abs(pmpError) + abs(iocError);
 
 		int intervals = 4;
-		double uncertainty = 0.025;
+		double uncertainty = 0.030;
 		double dPm = mmVector[i].Pm * uncertainty / (double)(intervals/2.);
 		double dIsc = mmVector[i].Isc * uncertainty / (double)(intervals / 2.);
 		double dImp = mmVector[i].Imp * uncertainty / (double)(intervals / 2.);
@@ -255,7 +245,7 @@ TEST_F(IEC61215Test, IVCurves) {
 
 TEST_F(IEC61215Test, solveCoefs) {
 	for (size_t i = 0; i < mmVector.size(); i++) {
-		int tech_id = mmVector[i].type;
+		int tech_id = 2;
 		double Vmp = mmVector[i].Vmp;
 		double Imp = mmVector[i].Imp;
 		double Voc = mmVector[i].Voc;
@@ -287,61 +277,67 @@ TEST_F(IEC61215Test, solveCoefs) {
 }
 
 TEST_F(IEC61215Test, testMeasurements) {
-	
-	getTestMeasurementData();
+	for (size_t m = 0; m < 20; m++) {
+		std::string modulename[20] = { "aSiTandem72-46", "aSiTandem90-31", "aSiTriple28324", "aSiTriple28325", "CdTe75638", "CdTe75669",
+			"CIGS1-001", "CIGS8-001", "CIGS39013", "CIGS39017", "HIT05662", "HIT05667", "mSi0166", "mSi0188", "mSi0247",
+			"mSi0251", "mSi460A8", "mSi460BB", "xSi11246", "xSi12922" };
+		std::string filename = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\ResultsComparingModels\\" 
+			+ modulename[m] +".csv";
+		std::vector<std::string> fileLines = getTestMeasurementData(filename);
 
-	std::string outputFileName = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\singleDiodeResults.csv";
-	std::ofstream outputFile;
-	outputFile.open(outputFileName);
+		std::string outputFileName = filename;
+		std::ofstream outputFile;
+		outputFile.open(outputFileName);
+		EXPECT_TRUE(outputFile.is_open());
+		outputFile << fileLines[0] << ",IEC61215\n";
 
-	moduleMeasurements currentModule;
-	std::vector<double> powerPredicted;
-	for (size_t i = 0; i < testMeasurements.size(); i++) {
-		std::string name = testMeasurements[i][0].c_str();
-		double Geff = atof(testMeasurements[i][2].c_str());
-		double T_cell = atof(testMeasurements[i][4].c_str());
+		moduleMeasurements currentModule;
+		std::vector<double> powerPredicted;
+		for (size_t i = 0; i < testMeasurements.size(); i++) {
+			std::string name = testMeasurements[i][0].c_str();
+			double Geff = atof(testMeasurements[i][2].c_str());
+			double T_cell = atof(testMeasurements[i][4].c_str());
 
-		double a, rs, rsh, io, il, adj;
-		bool solved = false;
-		if (currentModule.name != name) {
-			for (size_t n = 0; n < mmVector.size(); n++) {
-				if (mmVector[n].name == name) currentModule = mmVector[n];
+			double a, rs, rsh, io, il, adj;
+			if (currentModule.name != name) {
+				for (size_t n = 0; n < mmVector.size(); n++) {
+					if (mmVector[n].name == name) currentModule = mmVector[n];
+				}
 			}
+			a = currentModule.A;
+			rs = currentModule.Rs;
+			rsh = currentModule.Rsh;
+			io = currentModule.Io;
+			il = currentModule.Il;
+			adj = currentModule.Adj;
+
+			double eg0 = 1.12;
+			double Tc_ref = (25 + 273.15);
+			double KB = 8.618e-5;
+
+			T_cell = T_cell + 273.15; // want cell temp in kelvin
+			double muIsc = currentModule.alphaIsc * (1 - currentModule.Adj / 100);
+			// calculation of IL and IO at operating conditions
+			double IL_oper = Geff / 1000. * (il + muIsc * (T_cell - 298.15));
+			if (IL_oper < 0.0) IL_oper = 0.0;
+
+			double EG = eg0 * (1 - 0.0002677*(T_cell - (25 + 273.15)));
+			double IO_oper = currentModule.Io * pow(T_cell / Tc_ref, 3) * exp(1 / KB * (eg0 / Tc_ref - EG / T_cell));
+			double A_oper = a * T_cell / Tc_ref;
+			double Rsh_oper = currentModule.Rsh * (1000. / Geff);
+
+			double V_oc = openvoltage_5par(currentModule.Voc, A_oper, IL_oper, IO_oper, Rsh_oper);
+			double I_sc = IL_oper / (1 + currentModule.Rs / Rsh_oper);
+
+
+			double V, I;
+			double P = maxpower_5par(V_oc, A_oper, IL_oper, IO_oper, rs, Rsh_oper, &V, &I);
+			//maxpower_5par(100, a, il, io, rs, rsh, &V, &I);
+			powerPredicted.push_back(P);
+			outputFile << fileLines[i+1] << "," << P << "\n";
 		}
-		a = currentModule.A;
-		rs = currentModule.Rs;
-		rsh = currentModule.Rsh;
-		io = currentModule.Io;
-		il = currentModule.Il;
-		adj = currentModule.Adj;
-
-		if (!solved) continue;
-		
-		double eg0 = 1.12;
-		double Tc_ref = (25 + 273.15);
-		double KB = 8.618e-5;
-
-		T_cell = T_cell + 273.15; // want cell temp in kelvin
-		double muIsc = currentModule.alphaIsc * (1 - currentModule.Adj / 100);
-		// calculation of IL and IO at operating conditions
-		double IL_oper = Geff / 1000. * (il + muIsc * (T_cell - 298.15));
-		if (IL_oper < 0.0) IL_oper = 0.0;
-
-		double EG = eg0 * (1 - 0.0002677*(T_cell - (25 + 273.15)));
-		double IO_oper = currentModule.Io * pow(T_cell / Tc_ref, 3) * exp(1 / KB * (eg0 / Tc_ref - EG / T_cell));
-		double A_oper = a * T_cell / Tc_ref;
-		double Rsh_oper = currentModule.Rsh * (1000. / Geff);
-
-		double V_oc = openvoltage_5par(currentModule.Voc, A_oper, IL_oper, IO_oper, Rsh_oper);
-		double I_sc = IL_oper / (1 + currentModule.Rs / Rsh_oper);
-
-
-		double V, I;
-		maxpower_5par(100, a, il, io, rs, rsh, &V, &I);
-		powerPredicted.push_back(V*I);
-		outputFile << V * I << "\n";
+		outputFile.close();
 	}
-	outputFile.close();
 
 }
 
