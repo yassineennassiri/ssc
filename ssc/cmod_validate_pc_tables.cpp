@@ -264,7 +264,7 @@ public:
             std::vector<int> indep_levels = as_vector_integer("indep_levels");
             assert(indep_levels.size() == 3);
             int sample_type = as_integer("sample_type");
-            generate_ff_samples(indep_levels, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);    // TODO - Fix starting value of m_dot_ND. Is 0.5, should be 0.45
+            generate_ff_samples(indep_levels, sample_type, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff);
             n_ff = T_htf_hot_ff.size();
 
             // Run basis model with sample set
@@ -319,7 +319,6 @@ public:
             std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         }
         // Remove training data where model did not complete (= -999)
-        //for (int i = 0; i != T_htf_hot_ff.size(); i++) {
         int i = 0;
         while(i < Q_dot_basis_ff.size()) {
             if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
@@ -365,12 +364,21 @@ public:
             m_dot_ND_low = as_double("m_dot_ND_low"),
             m_dot_ND_high = as_double("m_dot_ND_high");
         C_ud_power_cycle custom_pc;
-        custom_pc.init(                 // the temperature parameters are in C
-            T_htf_me, T_htf_hot_des, T_htf_hot_low, T_htf_hot_high,
-            T_amb_me, T_amb_des, T_amb_low, T_amb_high,
-            m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
+        try {
+            custom_pc.init(                 // the temperature parameters are in C
+                T_htf_me, T_htf_hot_des, T_htf_hot_low, T_htf_hot_high,
+                T_amb_me, T_amb_des, T_amb_low, T_amb_high,
+                m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
+        }
+        catch(C_csp_exception csp_e) {
+            cout << "Exception " << csp_e.m_error_code << " in " << csp_e.m_code_location << ": " << csp_e.m_error_message;
+        }
+        catch (...) {
+            cout << "Unknown exception initializing custom power cycle for generating interaction effect tables.";
+        }
 
         // Evaluate regression model
+        // TODO - change evaluation to use LHS
         double Q_dot_des, W_dot_des;
         W_dot_des = as_double("W_dot_net_des");
         Q_dot_des = W_dot_des / as_double("eta_thermal_des");
