@@ -459,7 +459,7 @@ bool iec61853_module_t::calculate( util::matrix_t<double> &input, int nseries, i
 		PRINTF( "insufficient number of test conditions, %d minimum", NCONDITIONS_MIN );
 		return false;
 	}
-
+	NcellSer = nseries;
 	// get STC module conditions (1000 W/m2, 25 deg C)
 	// assume these are the 'official' STC ratings
 	double Pmp0=-1;

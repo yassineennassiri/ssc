@@ -101,6 +101,8 @@ protected:
 	std::string moduleMeasurementsFile;
 	IEC61853UpdateSolver solver;
 	std::vector<moduleMeasurements> mmVector;
+	std::vector<moduleMeasurements> mmSTCVector;
+	std::vector<std::vector<std::string>> testMeasurements;
 	double e = 0.01;
 public:
 	void mmCurrentToCSV() {
@@ -160,8 +162,39 @@ public:
 		}
 		file.close();
 	}
+	std::vector<std::string> getTestMeasurementData(std::string testMeasurementsFiles) {
+		//testMeasurementsFiles = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\testMeasurements.csv";
+		testMeasurements.clear();
+		std::ifstream file;
+		file.open(testMeasurementsFiles);
+		EXPECT_TRUE(file.is_open());
+		std::string str;
+		std::string delimiter = ",";
+		getline(file, str); // header row
+		std::vector<double> powerPredicted;
+		std::vector<std::string> fileLines;
+		fileLines.push_back(str);
+		while (getline(file, str)) {
+			fileLines.push_back(str);
+			size_t pos = str.find(delimiter, 0);
+			std::string token = str.substr(0, pos);
+			size_t start = pos + 1;
+			std::vector<std::string> v;
+			v.push_back(token);
+			for (size_t i = 0; i < 8; i++) {
+				size_t pos = str.find(delimiter, start);
+				std::string token = str.substr(start, pos - start);
+				v.push_back(token);
+				start = pos + 1;
+			}
+			testMeasurements.push_back(v);
+		}
+		file.close();
+		return fileLines;
+	}
+
 	void SetUp() {
-		moduleMeasurementsFile = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleMeasurements.csv";
+		moduleMeasurementsFile = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleMeasurementsIEC61853.csv";
 		std::ifstream file;
 		file.open(moduleMeasurementsFile);
 		EXPECT_TRUE(file.is_open());
@@ -193,6 +226,9 @@ public:
 			else if (typeName == "aSi") {
 				mm.type = module6par::Amorphous;
 			}
+			else if (typeName == "aTa") {
+				mm.type = module6par::Amorphous;
+			}
 			else {
 				EXPECT_TRUE(mm.type != -1); //error
 			}
@@ -220,6 +256,7 @@ public:
 			mm.A = v[12];
 			mm.solved = v[13];
 
+			if (v[0] == 25. && v[1] == 1000.) mmSTCVector.push_back(mm);
 			mmVector.push_back(mm);
 		}
 		file.close();
@@ -320,6 +357,9 @@ public:
 				mm.type = module6par::Amorphous;
 			}
 			else if (typeName == "aSi") {
+				mm.type = module6par::Amorphous;
+			}
+			else if (typeName == "aTa") {
 				mm.type = module6par::Amorphous;
 			}
 			else {

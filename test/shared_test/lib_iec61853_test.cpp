@@ -7,7 +7,49 @@
 #include "lib_iec61853_test.h"
 
 
+TEST_F(IEC61853Test, InitialGuessesFrom61215) {
+	std::vector<std::vector<double>> params6parvs5Par = { {1.10871,7.10E-13,10.3568,264.923,2.14945, 1.09209,1.47E-08,7.72842,307.62,3.33896},
+		{1.18283, 4.35E-13, 10.0181, 237.744, 2.13429, 1.16457, 9.60E-09, 7.5535, 272.796, 3.2926},
+		{4.81852, 1.83E-11, 1.13416, 22.1686, 0.883573 , 4.71262, 9.00E-07, 0.841604, 27.8294, 1.50673},
+		{4.63934, 2.52E-11, 1.10212, 23.4403, 0.902403 , 4.55162, 4.16E-07, 0.830463, 28.283, 1.44845},
+		{1.23955, 6.58E-15, 15.8526, 445.972, 2.68498, 1.22599, 3.66E-11, 13.8399, 505.96, 3.64539},
+		{1.23692, 6.28E-15, 16.1935, 429.746, 2.63714, 1.22275, 3.83E-11, 14.1845, 489.786, 3.59246},
+		{2.53002, 8.37E-12, 1.95798, 196.028, 1.6052, 2.51614, 3.11E-08, 1.32404, 274.564, 2.33069},
+		{6.41606, 3.20E-10, 1.7364, 23.1282, 1.73843, 6.13996, 0.00014549, 1.0163, 33.7909, 3.89953},
+		{6.6911, 4.98E-10, 1.63197, 25.8665, 1.79502, 6.44946, 9.01E-05, 1.03099, 39.2835, 3.76087},
+		{2.57861, 6.46E-12, 2.2845, 118.89, 1.58976, 2.55333, 9.57E-08, 1.48713, 150.951, 2.48656},
+		{5.59693, 5.66E-12, 0.586141, 253.221, 1.84825, 5.59379, 4.24E-11, 0.525622, 281.032, 1.99359},
+		{5.5408, 8.32E-12, 0.591446, 371.726, 1.84598, 5.53771, 1.08E-10, 0.51189, 468.647, 2.03747},
+		{2.74615, 6.43E-11, 0.427333, 227.482, 0.902943 , 2.74256, 2.69E-09, 0.296496, 313.895, 1.06531},
+		{2.75661, 5.53E-11, 0.479298, 199.524, 0.897479 , 2.75197, 1.59E-09, 0.365917, 251.726, 1.03902},
+		{2.74581, 5.66E-11, 0.478258, 225.685, 0.896246 , 2.74137, 2.73E-09, 0.344366, 316.114, 1.06367},
+		{2.74589, 6.08E-11, 0.507344, 235.96, 0.898401 , 2.7407, 2.15E-09, 0.386535, 329.595, 1.05097},
+		{5.07577, 1.38E-10, 0.369558, 158.954, 0.891735 , 5.05389, 1.58E-08, 0.281059, 347.676, 1.10732},
+		{5.11485, 1.08E-10, 0.400293, 121.093, 0.883824 , 5.10101, 6.45E-09, 0.325849, 186.931, 1.0598},
+		{5.13103, 8.15E-12, 0.528116, 46.9893, 0.813009 , 5.10682, 4.32E-09, 0.416537, 57.5364, 1.05757},
+		{5.13834, 1.13E-10, 0.37723, 86.4036, 0.900452 , 5.12876, 1.73E-09, 0.327821, 101.194, 1.01296} };
 
+	iec61853_module_t solver;
+	for (size_t i = 0; i < mmSTCVector.size(); i++) {
+		moduleMeasurements mm = mmSTCVector[i];
+		/*initial guesses */
+		double Il = params6parvs5Par[i][0];
+		double Io = params6parvs5Par[i][1];
+		double Rs = params6parvs5Par[i][2];
+		double Rsh = params6parvs5Par[i][3];
+		double a = params6parvs5Par[i][4];
+
+		bool solved = solver.solve(mm.Voc, mm.Isc, mm.Vmp, mm.Imp, a, &Il, &Io, &Rs, &Rsh);
+		double RMSError = pow( 
+			pow(Il - params6parvs5Par[i][0],2) +
+			pow(Io - params6parvs5Par[i][1], 2) +
+			pow(Rs - params6parvs5Par[i][2], 2) +
+			pow(Rsh - params6parvs5Par[i][3], 2)
+			,.5);
+
+		printf("module: %s\tsolved? %d \t error: %f \n", mm.name, solved, RMSError);
+	}
+}
 
 TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	for (size_t m = 0; m < 20; m++) {
@@ -274,6 +316,54 @@ TEST_F(IEC61215Test, solveCoefs) {
 		mmVector[i].Adj = m.Adj;
 	}
 	mmVectorToCSV();
+}
+
+TEST_F(IEC61853Test, testMeasurements) {
+	for (size_t m = 0; m < 20; m++) {
+		std::string modulename[20] = { "aSiTandem72-46", "aSiTandem90-31", "aSiTriple28324", "aSiTriple28325", "CdTe75638", "CdTe75669",
+			"CIGS1-001", "CIGS8-001", "CIGS39013", "CIGS39017", "HIT05662", "HIT05667", "mSi0166", "mSi0188", "mSi0247",
+			"mSi0251", "mSi460A8", "mSi460BB", "xSi11246", "xSi12922" };
+		std::string filename = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\ResultsComparingModels\\"
+			+ modulename[m] + ".csv";
+		std::vector<std::string> fileLines = getTestMeasurementData(filename);
+
+		std::string outputFileName = filename;
+		std::ofstream outputFile;
+		outputFile.open(outputFileName);
+		EXPECT_TRUE(outputFile.is_open());
+
+		util::matrix_t<double> input(18,6);
+		for (int c = 0; c < 18; c++) {
+			input.set_value(mmVector[m * 18 + c].irradiance, c, 0);
+			input.set_value(mmVector[m * 18 + c].temp, c, 1);
+			input.set_value(mmVector[m * 18 + c].Pm, c, 2);
+			input.set_value(mmVector[m * 18 + c].Vmp, c, 3);
+			input.set_value(mmVector[m * 18 + c].Voc, c, 4);
+			input.set_value(mmVector[m * 18 + c].Isc, c, 5);
+		}
+		int nser = mmVector[m * 18].nSer;
+		int type = mmVector[m * 18].type;
+		util::matrix_t<double> par;
+
+		iec61853_module_t solver;
+		if (!solver.calculate(input, nser, type, par, false)) continue;
+
+		outputFile << fileLines[0] << ",11par\n";
+		moduleMeasurements currentModule;
+		std::vector<double> powerPredicted;
+		for (size_t i = 0; i < testMeasurements.size(); i++) {
+			std::string name = testMeasurements[i][0].c_str();
+			double Geff = atof(testMeasurements[i][2].c_str());
+			double T_cell = atof(testMeasurements[i][4].c_str());
+
+			pvinput_t in(0., 0., 0., 0, Geff,
+				T_cell, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,	3, true);
+			pvoutput_t output;
+			solver(in, T_cell, -1, output);
+			outputFile << fileLines[i + 1] << "," << output.Power << "\n";
+		}
+		outputFile.close();
+	}
 }
 
 TEST_F(IEC61215Test, testMeasurements) {
