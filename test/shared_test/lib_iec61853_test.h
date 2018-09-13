@@ -327,7 +327,7 @@ public:
 	}
 
 	void SetUp() {
-		moduleMeasurementsFile = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleMeasurementsLDRD.csv";
+		moduleMeasurementsFile = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/moduleMeasurementsIEC61215.csv";
 		std::ifstream file;
 		file.open(moduleMeasurementsFile);
 		EXPECT_TRUE(file.is_open());
