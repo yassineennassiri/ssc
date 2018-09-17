@@ -157,12 +157,13 @@ public:
         //    throw exec_error("model_under_test", "model name not found");
         //}
         
-        // Compile basis model parameters from SSC inputs
+        // Compile non-standard basis model parameters from SSC inputs
         C_sco2_recomp_csp::S_des_par mut_par;
         if (compile_params(mut_par)) {
             throw exec_error("model_under_test", "error in model parameters");
         };
 
+		// Compile standard basis model parameters and run design simulation
 		int sco2_des_err;
         try
         {
@@ -271,8 +272,8 @@ public:
         n_ff = T_htf_hot_ff.size();
 
 
-        // Calculate regression model heat and power from sample set and output to SSC
-        // Get main effects tables from basis model
+        // Regression model //
+        // Get regression model main effects tables from basis model
         util::matrix_t<double> T_htf_me, T_amb_me, m_dot_ND_me;
         if (!as_boolean("load_me_tables") || !is_assigned("T_htf_me") || !is_assigned("T_amb_me") || !is_assigned("m_dot_ND_me")) {
             // Generate regression models, get and output main effect tables
@@ -288,94 +289,94 @@ public:
             m_dot_ND_me = as_matrix("m_dot_ND_me");
         }
 
-        //// Generate interaction effects tables
-        //double
-        //    T_htf_hot_des = as_double("T_htf_hot_des"),
-        //    T_htf_hot_low = as_double("T_htf_hot_low"),
-        //    T_htf_hot_high = as_double("T_htf_hot_high"),
-        //    T_amb_des = as_double("T_amb_des"),
-        //    T_amb_low = as_double("T_amb_low"),
-        //    T_amb_high = as_double("T_amb_high"),
-        //    m_dot_ND_des = 1.0,
-        //    m_dot_ND_low = as_double("m_dot_ND_low"),
-        //    m_dot_ND_high = as_double("m_dot_ND_high");
-        //C_ud_power_cycle custom_pc;
-        //try {
-        //    custom_pc.init(                 // the temperature parameters are in C
-        //        T_htf_me, T_htf_hot_des, T_htf_hot_low, T_htf_hot_high,
-        //        T_amb_me, T_amb_des, T_amb_low, T_amb_high,
-        //        m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
-        //}
-        //catch(C_csp_exception csp_e) {
-        //    cout << "Exception " << csp_e.m_error_code << " in " << csp_e.m_code_location << ": " << csp_e.m_error_message;
-        //}
-        //catch (...) {
-        //    cout << "Unknown exception initializing custom power cycle for generating interaction effect tables.";
-        //}
+        // Generate regression model interaction effects tables
+        double
+            T_htf_hot_des = as_double("T_htf_hot_des"),
+            T_htf_hot_low = as_double("T_htf_hot_low"),
+            T_htf_hot_high = as_double("T_htf_hot_high"),
+            T_amb_des = as_double("T_amb_des"),
+            T_amb_low = as_double("T_amb_low"),
+            T_amb_high = as_double("T_amb_high"),
+            m_dot_ND_des = 1.0,
+            m_dot_ND_low = as_double("m_dot_ND_low"),
+            m_dot_ND_high = as_double("m_dot_ND_high");
+        C_ud_power_cycle custom_pc;
+        try {
+            custom_pc.init(                 // the temperature parameters are in C
+                T_htf_me, T_htf_hot_des, T_htf_hot_low, T_htf_hot_high,
+                T_amb_me, T_amb_des, T_amb_low, T_amb_high,
+                m_dot_ND_me, m_dot_ND_des, m_dot_ND_low, m_dot_ND_high);
+        }
+        catch(C_csp_exception csp_e) {
+            cout << "Exception " << csp_e.m_error_code << " in " << csp_e.m_code_location << ": " << csp_e.m_error_message;
+        }
+        catch (...) {
+            cout << "Unknown exception initializing custom power cycle for generating interaction effect tables.";
+        }
 
-        //// Evaluate regression model
-        //// TODO - change evaluation to use LHS
-        //double Q_dot_des, W_dot_des;
-        //W_dot_des = as_double("W_dot_net_des");
-        //Q_dot_des = W_dot_des / as_double("eta_thermal_des");
-        //std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
-        //Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
-        //for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-        //    Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
-        //    W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * W_dot_des);   // MWe
-        //}
-        //ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
-        //std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
-        //ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
-        //std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
+        // Evaluate regression model
+        // TODO - change evaluation to use LHS
+        double Q_dot_des, W_dot_des;
+        W_dot_des = as_double("W_dot_net_des");
+        Q_dot_des = W_dot_des / as_double("eta_thermal_des");
+        std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
+        Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
+        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
+            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * W_dot_des);   // MWe
+        }
+        ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
+        std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
+        ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
+        std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
 
 
-        //// Calculate interpolation model
-        //// TODO - add cooling parasitics and water use
-        //MatDoub IndepVars;
-        //VectDoub Q_dot_interpT, W_dot_interpT;
+        // Interpolation model //
+        // TODO - add cooling parasitics and water use
+        MatDoub IndepVars;
+        VectDoub Q_dot_interpT, W_dot_interpT;
 
-        //// Populate interpolation training data
-        //if (false) {
-        //    // From main effect tables:
-        //    interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_interpT, W_dot_interpT);
-        //}
-        //else {
-        //    // From basis model training data set
-        //    IndepVars.reserve(n_ff);
-        //    for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
-        //        IndepVars.push_back(vector<double>(3, 0.));
-        //        IndepVars.back().at(0) = T_htf_hot_ff.at(i);
-        //        IndepVars.back().at(1) = m_dot_ND_ff.at(i);
-        //        IndepVars.back().at(2) = T_amb_ff.at(i);
-        //    }
-        //}
+        // Populate interpolation training data
+        if (false) {
+            // From main effect tables:
+            interp_inputs_from_maineffects(T_htf_me, m_dot_ND_me, T_amb_me, IndepVars, Q_dot_interpT, W_dot_interpT);
+        }
+        else {
+            // From basis model training data set
+            IndepVars.reserve(n_ff);
+            for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
+                IndepVars.push_back(vector<double>(3, 0.));
+                IndepVars.back().at(0) = T_htf_hot_ff.at(i);
+                IndepVars.back().at(1) = m_dot_ND_ff.at(i);
+                IndepVars.back().at(2) = T_amb_ff.at(i);
+            }
+        }
 
-        //// Train interpolation model
-        //double interp_beta = 1.5;       // try 1.99 too
-        //double interp_nug = 0;
-        //Powvargram W_dot_vgram(IndepVars, W_dot_basis_ff, interp_beta, interp_nug);                   // W_dot
-        //GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_basis_ff, W_dot_vgram);
-        //Powvargram Q_dot_vgram(IndepVars, Q_dot_basis_ff, interp_beta, interp_nug);                   // Q_dot
-        //GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram);
+        // Train interpolation model
+        double interp_beta = 1.5;       // try 1.99 too
+        double interp_nug = 0;
+        Powvargram W_dot_vgram(IndepVars, W_dot_basis_ff, interp_beta, interp_nug);                   // W_dot
+        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_basis_ff, W_dot_vgram);
+        Powvargram Q_dot_vgram(IndepVars, Q_dot_basis_ff, interp_beta, interp_nug);                   // Q_dot
+        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram);
 
-        //// Evaluate interpolation model using sample set and output values
-        //// TODO - THE SAME DATA SET IS BEING USED TO TRAIN **AND** EVALUATE -> change this
-        //std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
-        //Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
-        //std::vector<double> indep_vars_test(3, 0.);
-        //for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-        //    indep_vars_test.at(0) = T_htf_hot_ff.at(i);
-        //    indep_vars_test.at(1) = m_dot_ND_ff.at(i);
-        //    indep_vars_test.at(2) = T_amb_ff.at(i);
+        // Evaluate interpolation model using sample set and output values
+        // TODO - THE SAME DATA SET IS BEING USED TO TRAIN **AND** EVALUATE -> change this
+        std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
+        Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
+        std::vector<double> indep_vars_test(3, 0.);
+        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+            indep_vars_test.at(0) = T_htf_hot_ff.at(i);
+            indep_vars_test.at(1) = m_dot_ND_ff.at(i);
+            indep_vars_test.at(2) = T_amb_ff.at(i);
 
-        //    Q_dot_interp_ff.push_back( Q_dot_interp_table->interp(indep_vars_test) ); // MWt
-        //    W_dot_interp_ff.push_back( W_dot_interp_table->interp(indep_vars_test) ); // MWe
-        //}
-        //ssc_number_t *Q_dot_interp_ff_cm = allocate("Q_dot_interp_ff", n_ff);
-        //std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
-        //ssc_number_t *W_dot_interp_ff_cm = allocate("W_dot_interp_ff", n_ff);
-        //std::copy(W_dot_interp_ff.begin(), W_dot_interp_ff.end(), W_dot_interp_ff_cm);
+            Q_dot_interp_ff.push_back( Q_dot_interp_table->interp(indep_vars_test) ); // MWt
+            W_dot_interp_ff.push_back( W_dot_interp_table->interp(indep_vars_test) ); // MWe
+        }
+        ssc_number_t *Q_dot_interp_ff_cm = allocate("Q_dot_interp_ff", n_ff);
+        std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
+        ssc_number_t *W_dot_interp_ff_cm = allocate("W_dot_interp_ff", n_ff);
+        std::copy(W_dot_interp_ff.begin(), W_dot_interp_ff.end(), W_dot_interp_ff_cm);
 
     }
 
