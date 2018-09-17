@@ -597,7 +597,7 @@ var_info vtab_sco2_design[] = {
 		// Cycle Design
 	{ SSC_INPUT,  SSC_NUMBER,  "eta_isen_mc",          "Design main compressor isentropic efficiency",           "-",          "",    "",      "*",     "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "eta_isen_rc",          "Design re-compressor isentropic efficiency",             "-",          "",    "",      "*",     "",       "" },
-	{ SSC_INPUT,  SSC_NUMBER,  "eta_isen_pc",          "Design precompressor isentropic efficiency",             "-",          "",    "",      "*",     "",       "" },
+	{ SSC_INPUT,  SSC_NUMBER,  "eta_isen_pc",          "Design precompressor isentropic efficiency",             "-",          "",    "",      "cycle_config=2",     "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "eta_isen_t",           "Design turbine isentropic efficiency",                   "-",          "",    "",      "*",     "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "LT_recup_eff_max",     "Maximum allowable effectiveness in LT recuperator",      "-",          "",    "",      "*",     "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "HT_recup_eff_max",     "Maximum allowable effectiveness in LT recuperator",      "-",          "",    "",      "*",     "",       "" },
@@ -835,7 +835,10 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	sco2_rc_des_par.m_HT_eff_max = cm->as_double("HT_recup_eff_max");  //[-]
 	sco2_rc_des_par.m_eta_mc = cm->as_double("eta_isen_mc");		   //[-]
 	sco2_rc_des_par.m_eta_rc = cm->as_double("eta_isen_rc");		   //[-]
-	sco2_rc_des_par.m_eta_pc = cm->as_double("eta_isen_pc");		   //[-]
+	if (sco2_rc_des_par.m_cycle_config == 2)
+		sco2_rc_des_par.m_eta_pc = cm->as_double("eta_isen_pc");		   //[-]
+	else
+		sco2_rc_des_par.m_eta_pc = sco2_rc_des_par.m_eta_mc;
 	sco2_rc_des_par.m_eta_t = cm->as_double("eta_isen_t");			   //[-]
 
 	// PHX design parameters
@@ -1122,9 +1125,6 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 		p_rc_eta_stages_des[0] = ssc_nan;
 		cm->assign("rc_phi_surge", ssc_nan);
 		cm->assign("rc_cost", ssc_nan);
-
-		// Set number of RC stages = 1 so nan array allocations work
-		n_rc_stages = 1;
 	}
 
 	// Precompressor		
@@ -1175,8 +1175,6 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 
 		cm->assign("pc_phi_surge", ssc_nan);
 		cm->assign("pc_cost", ssc_nan);
-
-		n_pc_stages = 1;
 	}
 	// Turbine
 	cm->assign("t_W_dot", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t*1.E-3));	//[MWe] convert from kWe
