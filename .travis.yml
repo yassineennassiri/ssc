@@ -58,6 +58,6 @@ install:
 branches:
   only:
   - master
-  - develop
-#  - weather_forecast
-  
+  - develop 
+  - bifacial
+  - pvyield
