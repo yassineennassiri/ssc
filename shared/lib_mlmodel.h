@@ -48,6 +48,9 @@
 *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
+#ifndef __mlmodel_h
+#define __mlmodel_h
+
 
 #include "lib_pvmodel.h"
 #include "mlm_spline.h"
@@ -126,3 +129,5 @@ class mock_celltemp_t : public pvcelltemp_t
 public:
 	virtual bool operator() (pvinput_t &input, pvmodule_t &module, double opvoltage, double &Tcell);
 };
+
+#endif
