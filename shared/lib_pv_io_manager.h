@@ -10,6 +10,7 @@
 #include "lib_cec6par.h"
 #include "lib_iec61853.h"
 #include "lib_mlmodel.h"
+#include "lib_ondinv.h"
 #include "lib_pvinv.h"
 #include "lib_pv_incidence_modifier.h"
 #include "lib_pvshade.h"
@@ -487,6 +488,7 @@ public:
 
 	::sandia_inverter_t sandiaInverter;
 	::partload_inverter_t partloadInverter;
+	::ond_inverter ondInverter;
 
 	SharedInverter * sharedInverter;
 };

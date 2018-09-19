@@ -401,7 +401,7 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	enableACLifetimeLosses = cm->as_boolean("en_ac_lifetime_losses");
 
 	// The shared inverter of the PV array and a tightly-coupled DC connected battery
-	std::unique_ptr<SharedInverter> tmpSharedInverter(new SharedInverter(Inverter->inverterType, numberOfInverters, &Inverter->sandiaInverter, &Inverter->partloadInverter));
+	std::unique_ptr<SharedInverter> tmpSharedInverter(new SharedInverter(Inverter->inverterType, numberOfInverters, &Inverter->sandiaInverter, &Inverter->partloadInverter, &Inverter->ondInverter));
 	m_sharedInverter = std::move(tmpSharedInverter);
 	
 	// Register shared inverter with inverter_IO
@@ -447,8 +447,18 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	transformerNoLoadLossFraction = cm->as_number("transformer_no_load_loss") *(ssc_number_t)(util::percent_to_fraction);
 
 	// MPPT
-	voltageMpptLow1Module = cm->as_double("mppt_low_inverter") / modulesPerString;
-	voltageMpptHi1Module = cm->as_double("mppt_hi_inverter") / modulesPerString;
+	int inverterType = cm->as_integer("inverter_model");
+	if (inverterType == 4)
+	{
+		voltageMpptLow1Module = cm->as_double("ond_VMppMin") / modulesPerString;
+		voltageMpptHi1Module = cm->as_double("ond_VMppMax") / modulesPerString;
+	}
+	else 
+	{
+		voltageMpptLow1Module = cm->as_double("mppt_low_inverter") / modulesPerString;
+		voltageMpptHi1Module = cm->as_double("mppt_hi_inverter") / modulesPerString;
+	}
+
 	clipMpptWindow = false;
 
 	if (voltageMpptLow1Module > 0 && voltageMpptHi1Module > voltageMpptLow1Module)
@@ -456,7 +466,8 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 		int moduleType = Subarrays[0]->Module->moduleType;
 		if (moduleType == 1     // cec with database
 			|| moduleType == 2   // cec with user specs
-			|| moduleType == 4) // iec61853 single diode
+			|| moduleType == 4 // iec61853 single diode
+			|| moduleType == 5) // PVYield single diode
 		{
 			clipMpptWindow = true;
 		}
@@ -1105,6 +1116,68 @@ Inverter_IO::Inverter_IO(compute_module *cm, std::string cmName)
 		sandiaInverter.C2 = cm->as_double("inv_cec_cg_c2");
 		sandiaInverter.C3 = cm->as_double("inv_cec_cg_c3");
 		ratedACOutput = sandiaInverter.Paco;
+	}
+	else if (inverterType == 4) // PVYield (ondInverter)
+	{
+		size_t elementCount = 0;
+		size_t rows = 0;
+		size_t cols = 0;
+		ssc_number_t *VNomEffArray;
+		ssc_number_t *effCurve_PdcArray;
+		ssc_number_t *effCurve_PacArray;
+		ssc_number_t *effCurve_etaArray;
+
+		ondInverter.PNomConv = cm->as_double("ond_PNomConv");
+		ondInverter.PMaxOUT = cm->as_double("ond_PMaxOUT");
+		ondInverter.VOutConv = cm->as_double("ond_VOutConv");
+		ondInverter.VMppMin = cm->as_double("ond_VMppMin");
+		ondInverter.VMPPMax = cm->as_double("ond_VMPPMax");
+		ondInverter.VAbsMax = cm->as_double("ond_VAbsMax");
+		ondInverter.PSeuil = cm->as_double("ond_PSeuil");
+		ondInverter.ModeOper = cm->as_string("ond_ModeOper");
+		ondInverter.CompPMax = cm->as_string("ond_CompPMax");
+		ondInverter.CompVMax = cm->as_string("ond_CompVMax");
+		ondInverter.ModeAffEnum = cm->as_string("ond_ModeAffEnum");
+		ondInverter.PNomDC = cm->as_double("ond_PNomDC");
+		ondInverter.PMaxDC = cm->as_double("ond_PMaxDC");
+		ondInverter.IMaxDC = cm->as_double("ond_IMaxDC");
+		ondInverter.INomDC = cm->as_double("ond_INomDC");
+		ondInverter.INomAC = cm->as_double("ond_INomAC");
+		ondInverter.IMaxAC = cm->as_double("ond_IMaxAC");
+		ondInverter.TPNom = cm->as_double("ond_TPNom");
+		ondInverter.TPMax = cm->as_double("ond_TPMax");
+		ondInverter.TPLim1 = cm->as_double("ond_TPLim1");
+		ondInverter.TPLimAbs = cm->as_double("ond_TPLimAbs");
+		ondInverter.PLim1 = cm->as_double("ond_PLim1");
+		ondInverter.PLimAbs = cm->as_double("ond_PLimAbs");
+		VNomEffArray = cm->as_array("ond_VNomEff", &elementCount);
+		ondInverter.NbInputs = cm->as_integer("ond_NbInputs");
+		ondInverter.NbMPPT = cm->as_integer("ond_NbMPPT");
+		ondInverter.Aux_Loss = cm->as_double("ond_Aux_Loss");
+		ondInverter.Night_Loss = cm->as_double("ond_Night_Loss");
+		ondInverter.lossRDc = cm->as_double("ond_lossRDc");
+		ondInverter.lossRAc = cm->as_double("ond_lossRAc");
+		ondInverter.effCurve_elements = cm->as_integer("ond_effCurve_elements");
+		effCurve_PdcArray = cm->as_matrix("ond_effCurve_Pdc", &rows, &cols);
+		effCurve_PacArray = cm->as_matrix("ond_effCurve_Pac", &rows, &cols);
+		effCurve_etaArray = cm->as_matrix("ond_effCurve_eta", &rows, &cols);
+		ondInverter.doAllowOverpower = cm->as_integer("ond_doAllowOverpower");
+		ondInverter.doUseTemperatureLimit = cm->as_integer("ond_doUseTemperatureLimit");
+		int matrixIndex;
+		const int MAX_ELEMENTS = 100;
+		for (int i = 0; i <= 2; i = i + 1) {
+			ondInverter.VNomEff[i] = VNomEffArray[i];
+			for (int j = 0; j <= MAX_ELEMENTS - 1; j = j + 1) {
+				matrixIndex = i * MAX_ELEMENTS + j;
+				ondInverter.effCurve_Pdc[i][j] = effCurve_PdcArray[matrixIndex];
+				ondInverter.effCurve_Pac[i][j] = effCurve_PacArray[matrixIndex];
+				ondInverter.effCurve_eta[i][j] = effCurve_etaArray[matrixIndex];
+			}
+		}
+
+		ondInverter.initializeManual();
+		ratedACOutput = ondInverter.PNomConv;
+
 	}
 	else
 	{

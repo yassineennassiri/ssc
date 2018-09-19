@@ -2541,6 +2541,9 @@ void cm_pvsamv1::inverter_vdcmax_check()
 		case 3: // coefficient generator
 			vdcmax = as_double("inv_cec_cg_vdcmax");
 			break;
+		case 4: // ondInverter (PVYield)
+			vdcmax = as_double("ond_VAbsMax");
+			break;
 		default:
 			// message
 			return;
@@ -2610,6 +2613,10 @@ void cm_pvsamv1::inverter_size_check()
 		case 3: // coefficient generator
 			ratedACOutput = as_double("inv_cec_cg_paco");
 			ratedDCOutput = as_double("inv_cec_cg_pdco");
+			break;
+		case 4: // ond inverter (PVYield) 
+			ratedACOutput = as_double("ond_PMaxOUT");
+			ratedDCOutput = as_double("ond_PMaxDC");
 			break;
 		default:
 			// message
