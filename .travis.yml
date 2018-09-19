@@ -58,6 +58,9 @@ install:
 branches:
   only:
   - master
-  - develop 
-  - bifacial
-  - pvyield
+  - develop
+  - PVYield
+  - mppt
+  - geothermal_costs
+#  - weather_forecast
+  
