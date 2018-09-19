@@ -50,11 +50,11 @@ namespace tk
 		int dim() const;                             // matrix dimension
 		int num_upper() const
 		{
-			return m_upper.size() - 1;
+			return (int)m_upper.size() - 1;
 		}
 		int num_lower() const
 		{
-			return m_lower.size() - 1;
+			return (int)m_lower.size() - 1;
 		}
 		// access operator
 		double & operator () (int i, int j);            // write
