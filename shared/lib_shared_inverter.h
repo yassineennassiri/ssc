@@ -51,6 +51,8 @@ public:
 	double powerNightLoss_kW;
 	double powerTempLoss_kW;
 	double powerLossTotal_kW;
+	double dcWiringLoss_ond_kW;
+	double acWiringLoss_ond_kW;
 
 protected:
 

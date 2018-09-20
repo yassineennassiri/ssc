@@ -1917,6 +1917,11 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 	idx = 0; ireport = 0; ireplast = 0; percent_baseline = percent_complete;
 	double annual_battery_loss = 0;
 	wdprov->rewind();
+
+	double annual_dc_loss_ond = 0, annual_ac_loss_ond = 0; // (TR)
+	double dc_loss_ond = 0, ac_loss_ond = 0; // (TR)
+
+
 	for (size_t iyear = 0; iyear < nyears; iyear++)
 	{
 		for (hour = 0; hour < 8760; hour++)
@@ -1974,6 +1979,10 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 				if (iyear == 0)
 				{ 
 					annual_ac_gross += acpwr_gross * ts_hour;
+
+					annual_dc_loss_ond += sharedInverter->dcWiringLoss_ond_kW * ts_hour; // (TR)
+					annual_ac_loss_ond += sharedInverter->dcWiringLoss_ond_kW *  ts_hour; // (TR)
+
 					PVSystem->p_inverterEfficiency[idx] = (ssc_number_t)(sharedInverter->efficiencyAC);
 					PVSystem->p_inverterClipLoss[idx] = (ssc_number_t)(sharedInverter->powerClipLoss_kW);
 					PVSystem->p_inverterPowerConsumptionLoss[idx] = (ssc_number_t)(sharedInverter->powerConsumptionLoss_kW);
@@ -1984,7 +1993,7 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 					PVSystem->p_inverterTotalLoss[idx] = (ssc_number_t)(sharedInverter->powerLossTotal_kW);
 				}
 				PVSystem->p_systemDCPower[idx] = (ssc_number_t)(sharedInverter->powerDC_kW);
-					
+
 				//ac losses should always be subtracted, this means you can't just multiply by the derate because at nighttime it will add power
 				PVSystem->p_systemACPower[idx] = (ssc_number_t)(acpwr_gross - ac_wiringloss);
 
@@ -2217,6 +2226,10 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 
 	assign("annual_dc_gross", var_data((ssc_number_t)annual_dc_gross));
 	assign("annual_ac_gross", var_data((ssc_number_t)annual_ac_gross));
+
+	// AC/DC loss reporting OND model
+	assign("annual_dc_loss_ond", var_data((ssc_number_t)annual_dc_loss_ond));
+	assign("annual_ac_loss_ond", var_data((ssc_number_t)annual_ac_loss_ond));
 
 	assign("xfmr_nll_year1", (ssc_number_t)annual_xfmr_nll);
 	assign("xfmr_ll_year1", (ssc_number_t)annual_xfmr_ll);

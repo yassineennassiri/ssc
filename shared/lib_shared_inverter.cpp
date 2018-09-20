@@ -139,8 +139,12 @@ void SharedInverter::calculateTempDerate(double V, double T, double& pAC, double
 
 void SharedInverter::calculateACPower(const double powerDC_Watts, const double DCStringVoltage, double T)
 {
-	double P_par, P_lr, dc_loss, ac_loss;
+	double P_par, P_lr;
 	bool negativePower = powerDC_Watts < 0 ? true : false;
+
+
+	dcWiringLoss_ond_kW = 0.0;
+	acWiringLoss_ond_kW = 0.0;
 
 	// Power quantities go in and come out in units of W
 	if (m_inverterType == SANDIA_INVERTER || m_inverterType == DATASHEET_INVERTER || m_inverterType == COEFFICIENT_GENERATOR)
@@ -148,26 +152,7 @@ void SharedInverter::calculateACPower(const double powerDC_Watts, const double D
 	else if (m_inverterType == PARTLOAD_INVERTER)
 		m_partloadInverter->acpower(std::fabs(powerDC_Watts) / m_numInverters, &powerAC_kW, &P_lr, &P_par, &efficiencyAC, &powerClipLoss_kW, &powerNightLoss_kW);
 	else if (m_inverterType == OND_INVERTER)
-		m_ondInverter->acpower(std::fabs(powerDC_Watts) / m_numInverters,DCStringVoltage, T, &powerAC_kW, &P_par, &P_lr, &efficiencyAC, &powerClipLoss_kW, &powerConsumptionLoss_kW, &powerNightLoss_kW, &dc_loss, &ac_loss);
-
-	/*
-	
-						else if (inv_type == 4) // ond
-					{
-						double _par, _plr;
-						ondinv.acpower(dcpwr_net / num_inverters, dc_string_voltage, p_tdry[idx],
-							&acpwr_gross, &_par, &_plr, &aceff, &cliploss, &psoloss, &pntloss, &dc_wiringloss, &ac_wiringloss);
-						acpwr_gross *= num_inverters;
-						cliploss *= num_inverters;
-						psoloss *= num_inverters;
-						pntloss *= num_inverters;
-						dc_wiringloss *= num_inverters;
-						ac_wiringloss *= num_inverters;
-						aceff *= 100;
-					}
-
-	
-	*/
+		m_ondInverter->acpower(std::fabs(powerDC_Watts) / m_numInverters,DCStringVoltage, T, &powerAC_kW, &P_par, &P_lr, &efficiencyAC, &powerClipLoss_kW, &powerConsumptionLoss_kW, &powerNightLoss_kW, &dcWiringLoss_ond_kW, &acWiringLoss_ond_kW);
 
 
 	double tempLoss = 0.0;
@@ -184,6 +169,8 @@ void SharedInverter::calculateACPower(const double powerDC_Watts, const double D
 	powerTempLoss_kW = tempLoss * m_numInverters * util::watt_to_kilowatt;
 	powerLossTotal_kW = powerDC_kW - powerAC_kW;
 	efficiencyAC *= 100;
+	dcWiringLoss_ond_kW *= m_numInverters * util::watt_to_kilowatt;
+	acWiringLoss_ond_kW *= m_numInverters * util::watt_to_kilowatt;
 
 	// In event shared inverter is charging a battery only, need to re-convert to negative power
 	if (negativePower) {
