@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "lib_iec61853_test.h"
+#include "lib_irradproc.h"
 
 
 TEST_F(IEC61853Test, InitialGuessesFrom61215) {
@@ -51,18 +52,11 @@ TEST_F(IEC61853Test, InitialGuessesFrom61215) {
 	}
 }
 
+
+
 TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	for (size_t m = 0; m < 20; m++) {
-		//[IRR, TC, PMP, VMP, VOC, ISC]
-		std::vector<double> testData(108);
-		for (size_t n = 0; n < 18; n++) {
-			testData[6 * n] = mmVector[m * 18 + n].irradiance;
-			testData[6 * n + 1] = mmVector[m * 18 + n].temp;
-			testData[6 * n + 2] = mmVector[m * 18 + n].Pm;
-			testData[6 * n + 3] = mmVector[m * 18 + n].Vmp;
-			testData[6 * n + 4] = mmVector[m * 18 + n].Voc;
-			testData[6 * n + 5] = mmVector[m * 18 + n].Isc;
-		}
+		std::vector<double> testData = groupByModule(m);
 		util::matrix_t<double> testMatrix(18, 6, &testData);
 		util::matrix_t<double> par;
 
@@ -126,6 +120,42 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	mmVectorToCSV();
 }
 
+TEST_F(IEC61853Test, CheckTempCoeffs) {
+	std::string outputFileName = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/tempCoeffsIEC61853.csv";
+	std::ofstream outputFile;
+	outputFile.open(outputFileName);
+	EXPECT_TRUE(outputFile.is_open());
+
+	for (size_t m = 0; m < 20; m++) {
+		std::vector<double> testData = groupByModule(m);
+		util::matrix_t<double> testMatrix(18, 6, &testData);
+		util::matrix_t<double> par;
+
+		double Pmp0;
+		for (size_t i = 0; i < testMatrix.nrows(); i++) {
+			if (testMatrix(i, iec61853_module_t::COL_TC) == 25. && testMatrix(i, iec61853_module_t::COL_IRR) == 1000.) {
+				Pmp0 = testMatrix(i, iec61853_module_t::COL_PMP);
+			}
+		}
+
+		double betaVoc, alphaIsc, gammaPmp;
+		// estimate beta VOC at STC irradiance (1000 W/m2)
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 4, 1000.0, &betaVoc, false));
+			
+
+		// estimate the alpha ISC at STC conditions
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 5, 1000.0, &alphaIsc, false));
+
+		// estimate the gamma PMP at STC conditions
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 2, 1000.0, &gammaPmp, false));
+
+		gammaPmp *= 100.0 / (Pmp0);
+
+		outputFile << alphaIsc << ", " << betaVoc << ", " << gammaPmp << "\n";
+
+	}
+	outputFile.close();
+}
 
 TEST_F(IEC61215Test, unsolvedModules) {
 	// Uncertainty for crystalline silicon modules: 
@@ -318,7 +348,62 @@ TEST_F(IEC61215Test, solveCoefs) {
 	mmVectorToCSV();
 }
 
+TEST_F(IEC61853Test, testMeasurementsAbsorbedIrradiance) {
+	// cocoa, eugene, golden
+	double tilt[3] = { 28.5, 44, 40};
+	double lon[3] = { -80.46, -123.07, -105.18};
+	double lat[3] = { 28.39, 44.05, 39.74};
+	double tz[3] = { -5, -8, -7 };
+	for (size_t m = 0; m < 20; m++) {
+		std::string modulename[20] = { "aSiTandem72-46", "aSiTandem90-31", "aSiTriple28324", "aSiTriple28325", "CdTe75638", "CdTe75669",
+			"CIGS1-001", "CIGS8-001", "CIGS39013", "CIGS39017", "HIT05662", "HIT05667", "mSi0166", "mSi0188", "mSi0247",
+			"mSi0251", "mSi460A8", "mSi460BB", "xSi11246", "xSi12922" };
+		std::string filename = "C:\\Users\\dguittet\\Documents\\IEC 61853 Modeling\\Data For Validating Models\\ResultsComparingModels\\"
+			+ modulename[m] + ".csv";
+		std::vector<std::string> fileLines = getTestMeasurementData(filename);
+
+		std::string outputFileName = filename;
+		std::ofstream outputFile;
+		outputFile.open(outputFileName);
+		EXPECT_TRUE(outputFile.is_open());
+		outputFile << fileLines[0] << "POA_calc";
+
+		for (size_t i = 0; i < testMeasurements.size(); i++) {
+			std::string name = testMeasurements[i][0].c_str();
+			std::string loc = testMeasurements[i][1].c_str();
+			double month = atof(testMeasurements[i][2].c_str());
+			double day = atof(testMeasurements[i][3].c_str());
+			double hour = atof(testMeasurements[i][4].c_str());
+			double minute = atof(testMeasurements[i][5].c_str());
+			double POA_meas = atof(testMeasurements[i][6].c_str());
+			double T = atof(testMeasurements[i][7].c_str());
+			double dn = atof(testMeasurements[i][11].c_str());
+			double gh = atof(testMeasurements[i][12].c_str());
+			double dh = atof(testMeasurements[i][13].c_str());
+			size_t locIndex = 2;
+			if (loc == "Cocoa") locIndex = 0;
+			else if (loc == "Eugene") locIndex = 1;
+
+			irrad irr;
+			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
+
+			irr.set_sky_model(1, 0.2);
+			irr.set_beam_diffuse(dn, dh);
+		
+			EXPECT_FALSE(irr.calc());
+		}
+
+	}
+}
+
 TEST_F(IEC61853Test, testMeasurements) {
+	// cocoa, eugene, golden
+	double tilt[3] = { 28.5, 44, 40 };
+	double lon[3] = { -80.46, -123.07, -105.18 };
+	double lat[3] = { 28.39, 44.05, 39.74 };
+	double tz[3] = { -5, -8, -7 };
+	double elev[3] = { 12, 145, 1798};
 	for (size_t m = 0; m < 20; m++) {
 		std::string modulename[20] = { "aSiTandem72-46", "aSiTandem90-31", "aSiTriple28324", "aSiTriple28325", "CdTe75638", "CdTe75669",
 			"CIGS1-001", "CIGS8-001", "CIGS39013", "CIGS39017", "HIT05662", "HIT05667", "mSi0166", "mSi0188", "mSi0247",
@@ -348,19 +433,59 @@ TEST_F(IEC61853Test, testMeasurements) {
 		iec61853_module_t solver;
 		if (!solver.calculate(input, nser, type, par, false)) continue;
 
-		outputFile << fileLines[0] << ",11par\n";
+		outputFile << fileLines[0] << ",11parIrr,11parPOA\n";
 		moduleMeasurements currentModule;
 		std::vector<double> powerPredicted;
 		for (size_t i = 0; i < testMeasurements.size(); i++) {
 			std::string name = testMeasurements[i][0].c_str();
-			double Geff = atof(testMeasurements[i][2].c_str());
-			double T_cell = atof(testMeasurements[i][4].c_str());
+			std::string loc = testMeasurements[i][1].c_str();
+			double month = atof(testMeasurements[i][2].c_str());
+			double day = atof(testMeasurements[i][3].c_str());
+			double hour = atof(testMeasurements[i][4].c_str());
+			double minute = atof(testMeasurements[i][5].c_str());
+			double POA_meas = atof(testMeasurements[i][6].c_str());
+			double T = atof(testMeasurements[i][7].c_str());
+			double dn = atof(testMeasurements[i][11].c_str());
+			double gh = atof(testMeasurements[i][12].c_str());
+			double dh = atof(testMeasurements[i][13].c_str());
+			size_t locIndex = 2;
+			if (loc == "Cocoa") locIndex = 0;
+			else if (loc == "Eugene") locIndex = 1;
 
-			pvinput_t in(0., 0., 0., 0, Geff,
-				T_cell, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,	3, true);
+			irrad irr;
+			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
+
+			irr.set_sky_model(1, 0.2);
+			irr.set_beam_diffuse(dn, dh);
+
+			EXPECT_FALSE(irr.calc());
+
+			// using HDKR model
+			int sunup = 0;
+			double solazi = 0, solzen = 0, solalt = 0;
+			double ibeam, iskydiff, ignddiff;
+			double aoi, stilt, sazi, rot, btd;
+
+			irr.get_sun(&solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0);
+			irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
+			irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
+
+			pvinput_t in(ibeam, iskydiff, ignddiff, 0, 0,
+				T, 0.0, 0.0, 0.0, 0.0,
+				solzen, aoi, elev[locIndex],
+				stilt, sazi,
+				((double)hour) + minute / 60.0,
+				DN_DF, false);
 			pvoutput_t output;
-			solver(in, T_cell, -1, output);
-			outputFile << fileLines[i + 1] << "," << output.Power << "\n";
+			solver(in, T, -1, output);
+			outputFile << fileLines[i + 1] << "," << output.Power << ",";
+
+			// using measured POA
+			pvinput_t in2(0., 0., 0., 0, POA_meas,
+				T, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,	3, true);
+			solver(in, T, -1, output);
+			outputFile <<  output.Power << "\n";
 		}
 		outputFile.close();
 	}
@@ -430,4 +555,3 @@ TEST_F(IEC61215Test, testMeasurements) {
 	}
 
 }
-

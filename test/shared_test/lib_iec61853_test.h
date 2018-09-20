@@ -181,7 +181,7 @@ public:
 			size_t start = pos + 1;
 			std::vector<std::string> v;
 			v.push_back(token);
-			for (size_t i = 0; i < 8; i++) {
+			for (size_t i = 0; i < 14; i++) {
 				size_t pos = str.find(delimiter, start);
 				std::string token = str.substr(start, pos - start);
 				v.push_back(token);
@@ -260,6 +260,19 @@ public:
 			mmVector.push_back(mm);
 		}
 		file.close();
+	}
+	std::vector<double> groupByModule(size_t moduleIndex) {
+		//[IRR, TC, PMP, VMP, VOC, ISC]
+		std::vector<double> testData(108);
+		for (size_t n = 0; n < 18; n++) {
+			testData[6 * n] = mmVector[moduleIndex * 18 + n].irradiance;
+			testData[6 * n + 1] = mmVector[moduleIndex * 18 + n].temp;
+			testData[6 * n + 2] = mmVector[moduleIndex * 18 + n].Pm;
+			testData[6 * n + 3] = mmVector[moduleIndex * 18 + n].Vmp;
+			testData[6 * n + 4] = mmVector[moduleIndex * 18 + n].Voc;
+			testData[6 * n + 5] = mmVector[moduleIndex * 18 + n].Isc;
+		}
+		return testData;
 	}
 };
 
