@@ -174,6 +174,7 @@ bool iec61853_module_t::tcoeff( util::matrix_t<double> &input, size_t icol, doub
 	*tempc = std::numeric_limits<double>::quiet_NaN();
 	
 	// obtain list of Voc/Isc/Pmp values at 1000 W/2 for all given temperatures
+	double pmpSTC = 0.0;
 	std::vector<double> Val_stc;
 	std::vector<double> Tc_stc;
 	for( size_t i=0;i<input.nrows();i++ )
@@ -182,6 +183,7 @@ bool iec61853_module_t::tcoeff( util::matrix_t<double> &input, size_t icol, doub
 		{
 			Val_stc.push_back( input(i, icol ) );
 			Tc_stc.push_back( input(i, COL_TC ) );
+			if (input(i, COL_TC) == 25.0) pmpSTC = input(i, COL_PMP);
 		}
 	}
 
@@ -206,6 +208,15 @@ bool iec61853_module_t::tcoeff( util::matrix_t<double> &input, size_t icol, doub
 	{
 		PRINTF("linear regression failed for temperature coefficient of %s calculation", col_names[icol]);
 		return false;
+	}
+
+	// if calculating gammaPmp, need to convert m so that units are %/C
+	if (icol == COL_PMP) {
+		if (pmpSTC > 0.0) m *= 100. / pmpSTC;
+		else {
+			PRINTF("Pmp at STC not found.");
+			return false;
+		}
 	}
 
 	*tempc = m;

@@ -51,18 +51,11 @@ TEST_F(IEC61853Test, InitialGuessesFrom61215) {
 	}
 }
 
+
+
 TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	for (size_t m = 0; m < 20; m++) {
-		//[IRR, TC, PMP, VMP, VOC, ISC]
-		std::vector<double> testData(108);
-		for (size_t n = 0; n < 18; n++) {
-			testData[6 * n] = mmVector[m * 18 + n].irradiance;
-			testData[6 * n + 1] = mmVector[m * 18 + n].temp;
-			testData[6 * n + 2] = mmVector[m * 18 + n].Pm;
-			testData[6 * n + 3] = mmVector[m * 18 + n].Vmp;
-			testData[6 * n + 4] = mmVector[m * 18 + n].Voc;
-			testData[6 * n + 5] = mmVector[m * 18 + n].Isc;
-		}
+		std::vector<double> testData = groupByModule(m);
 		util::matrix_t<double> testMatrix(18, 6, &testData);
 		util::matrix_t<double> par;
 
@@ -126,6 +119,32 @@ TEST_F(IEC61853Test, ParameterEstimateWithIECSolverTest) {
 	mmVectorToCSV();
 }
 
+TEST_F(IEC61853Test, CheckTempCoeffs) {
+	std::string outputFileName = "C:/Users/dguittet/Documents/IEC 61853 Modeling/Data For Validating Models/tempCoeffsIEC61853.csv";
+	std::ofstream outputFile;
+	outputFile.open(outputFileName);
+	EXPECT_TRUE(outputFile.is_open());
+
+	for (size_t m = 0; m < 20; m++) {
+		std::vector<double> testData = groupByModule(m);
+		util::matrix_t<double> testMatrix(18, 6, &testData);
+		util::matrix_t<double> par;
+
+		double betaVoc, alphaIsc, gammaPmp;
+		// estimate beta VOC at STC irradiance (1000 W/m2)
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 4, 1000.0, &betaVoc, false));
+			
+
+		// estimate the alpha ISC at STC conditions
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 5, 1000.0, &alphaIsc, false));
+
+		// estimate the gamma PMP at STC conditions
+		EXPECT_FALSE(!solver.modIEC.tcoeff(testMatrix, 2, 1000.0, &gammaPmp, false));
+		outputFile << alphaIsc << ", " << betaVoc << ", " << gammaPmp << "\n";
+
+	}
+	outputFile.close();
+}
 
 TEST_F(IEC61215Test, unsolvedModules) {
 	// Uncertainty for crystalline silicon modules: 

@@ -261,6 +261,19 @@ public:
 		}
 		file.close();
 	}
+	std::vector<double> groupByModule(size_t moduleIndex) {
+		//[IRR, TC, PMP, VMP, VOC, ISC]
+		std::vector<double> testData(108);
+		for (size_t n = 0; n < 18; n++) {
+			testData[6 * n] = mmVector[moduleIndex * 18 + n].irradiance;
+			testData[6 * n + 1] = mmVector[moduleIndex * 18 + n].temp;
+			testData[6 * n + 2] = mmVector[moduleIndex * 18 + n].Pm;
+			testData[6 * n + 3] = mmVector[moduleIndex * 18 + n].Vmp;
+			testData[6 * n + 4] = mmVector[moduleIndex * 18 + n].Voc;
+			testData[6 * n + 5] = mmVector[moduleIndex * 18 + n].Isc;
+		}
+		return testData;
+	}
 };
 
 class IEC61215Test : public ::testing::Test {
