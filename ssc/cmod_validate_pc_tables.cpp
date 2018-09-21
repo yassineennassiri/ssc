@@ -70,13 +70,13 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "sample_type",          "0 = uniform, 1 = random (rect. distr.)",                 "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_training_data",   "Load training data set from basis model?",               "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "load_validation_data", "Load validation data set from basis model?",             "",           "",    "",      "*",     "",       "" },
     // Cycle Design
     { SSC_INPUT,    SSC_NUMBER,     "cycle_config",         "Cycle configuration, 1=recompression, 2=partial cooling", "-",         "",    "",      "*",     "",       "" },
     // PHX Design
     // Air Cooler Design
     // Off Design UDPC Options
-//    { SSC_INPUT,    SSC_NUMBER,     "is_generate_udpc",     "1 = generate udpc tables, 0 = only calculate design point cyle", "",   "",    "",      "?=1",    "",      "" }, //
-    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "", "",   "?=1",    "",      "" },     //
+    { SSC_INPUT,    SSC_NUMBER,     "is_apply_default_htf_mins", "1 = yes (0.5 rc, 0.7 simple), 0 = no, only use 'm_dot_ND_low'", "", "",  "",      "",       "",      "" },
     // User Defined Power Cycle Table Inputs
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_low",        "Lower level of HTF hot temperature",					  "C",          "",    "",      "",       "",      "" },
     { SSC_INOUT,    SSC_NUMBER,     "T_htf_hot_high",	    "Upper level of HTF hot temperature",					  "C",		    "",    "",      "",       "",      "" },
@@ -99,34 +99,33 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     // ?????
     // State Points
 
-    // Power Cycle Tables
-    { SSC_INOUT,   SSC_MATRIX,      "T_htf_me",             "Main FX of HTF temperature w/ ND HTF mass flow rate levels", "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",             "Main FX of ambient temp w/ HTF temp levels",         "",     "",       "",             "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
-    { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",          "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",      "?=[[0,1,2,3,4,5,6,7,8,9,10,11,12][0,1,2,3,4,5,6,7,8,9,10,11,12]]",     "",       "" },
+    // DoE Regression Main Effects Tables
+    { SSC_INOUT,   SSC_MATRIX,      "T_htf_me",             "Main FX of HTF temperature w/ ND HTF mass flow rate levels", "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "T_amb_me",             "Main FX of ambient temp w/ HTF temp levels",                 "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_MATRIX,      "m_dot_ND_me",          "Main FX of ND HTF mass flow rate w/ ambient temp levels",    "",       "",    "",               "",     "",       "" },
 
-    // Interpolation Training Data
-    { SSC_INOUT,   SSC_ARRAY,       "T_htf_hot_ff",         "Training data from basis model, T_htf",                      "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_ff",          "Training data from basis model, m_dot",                      "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "T_amb_ff",             "Training data from basis model, T_amb",                      "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_ff",       "Training data from basis model, Q_dot",                      "",       "",    "",               "",     "",       "" },
-    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_ff",       "Training data from basis model, W_dot",                      "",       "",    "",               "",     "",       "" },
+    // Training Data (from basis model)
+    { SSC_INOUT,   SSC_ARRAY,       "T_htf_hot_ff",         "Training data from basis model, T_htf",                     "C",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_ff",          "Training data from basis model, m_dot",                     "-",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "T_amb_ff",             "Training data from basis model, T_amb",                     "C",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_ff",       "Training data from basis model, Q_dot",                   "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_ff",       "Training data from basis model, W_dot",                   "MWe",       "",    "",               "",     "",       "" },
 
-    // Regression vs. basis model comparison metrics
-    { SSC_OUTPUT,   SSC_ARRAY,      "T_htf_hot_ff",         "Sample of HTF temp. for full-factorial model runs",         "C",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "m_dot_ND_ff",          "Sample of mass flow used for full-factorial model runs",     "",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "T_amb_ff",             "Sample of ambient temp. for full-factorial model runs",     "C",       "",    "",              "",     "",       "" },
+    // Validation Data Inputs (from LHS)
+    { SSC_INOUT,   SSC_ARRAY,       "T_htf_hot_vset",       "Validation data, T_htf",                                     "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "m_dot_ND_vset",        "Validation data, m_dot",                                     "",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "T_amb_vset",           "Validation data, T_amb",                                     "",       "",    "",               "",     "",       "" },
 
-    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_basis_ff",       "Basis model cycle input heat",                            "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_regr_ff",        "Regression model cycle input heat",                       "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "Q_dot_interp_ff",      "Interpolation model cycle input heat",                    "MWt",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_basis_ff",       "Basis model cycle output power",                          "MWe",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_regr_ff",        "Regression model cycle output power",                     "MWe",       "",    "",              "",     "",       "" },
-    { SSC_OUTPUT,   SSC_ARRAY,      "W_dot_interp_ff",      "Interpolation model cycle output power",                  "MWe",       "",    "",              "",     "",       "" },
+    // Validation Data Outputs
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_vset",     "Basis model cycle input heat for validation",             "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_regr_vset",      "Regression model cycle input heat for validation",        "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_interp_vset",    "Interpolation model cycle input heat for validation",     "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_vset",     "Basis model cycle output power for validation",           "MWe",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_regr_vset",      "Regression model cycle output power for validation",      "MWe",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_interp_vset",    "Interpolation model cycle output power for validation",   "MWe",       "",    "",               "",     "",       "" },
 
-    //{ SSC_OUTPUT,   SSC_ARRAY,      "dQ_dot_regr_mns_basis",   "Regression model - basis model cycle input heat",      "MWt",       "",    "",              "",     "",       "" },
-    //{ SSC_OUTPUT,   SSC_ARRAY,      "dW_dot_regr_mns_basis",   "Regression model - basis model cycle output power",    "MWe",       "",    "",              "",     "",       "" },
-    //{ SSC_OUTPUT,   SSC_ARRAY,      "pcdQ_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle input heat",   "MWt",       "",    "",              "",     "",       "" },
-    //{ SSC_OUTPUT,   SSC_ARRAY,      "pcdW_dot_regr_mns_basis", "Perc. diff. regr. vs. basis model cycle output power", "MWe",       "",    "",              "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_interp_ff",      "Interp. model Q validated with training data",            "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_interp_ff",      "Interp. model W validated with training data",            "MWe",       "",    "",               "",     "",       "" },
 
 var_info_invalid };
 
@@ -145,6 +144,9 @@ public:
         // Select and initialize basis model
         string model_name = as_string("model_name");
         C_sco2_recomp_csp mut;
+        C_sco2_recomp_csp::S_od_par mut_od_par;
+        int od_strategy;
+        int off_design_code;
         //C_sco2_recomp_csp sco2_recomp_csp_direct;
         //C_sco2_recomp_csp_10MWe_scale sco2_recomp_csp_scale;
         //if (model_name == "sco2_recomp_csp_direct") {
@@ -175,10 +177,10 @@ public:
         }
 		if (sco2_des_err != 0) { return; }
 
-        // Set design outputs and state points
+        // Set non-standard design outputs and state points
         output_design_vals(&mut);
 
-        // Obtain training/validation data from basis model
+        // Obtain training data from basis model
         std::vector<double> T_htf_hot_ff, m_dot_ND_ff, T_amb_ff;
         std::vector<double> Q_dot_basis_ff, W_dot_basis_ff;
         int n_ff;
@@ -196,7 +198,7 @@ public:
         }
         else
         {
-            // Generate sample set for running basis model
+            // Generate training data
             // TODO - add option for orthogonal samples (e.g., Latin Hypercubes)
             std::vector<int> indep_levels = as_vector_integer("indep_levels");
             assert(indep_levels.size() == 3);
@@ -205,9 +207,8 @@ public:
             n_ff = T_htf_hot_ff.size();
 
             // Run basis model with sample set
-            C_sco2_recomp_csp::S_od_par mut_od_par;
-            int od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
-            int off_design_code = -1;
+            od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
+            off_design_code = -1;
             Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
 
             // Log to file
@@ -216,7 +217,7 @@ public:
             log.open("validate_pc_tables_log.dat");
             log << "T_htf_hot [K]" << "\t" << "m_dot_ND [-]" << "\t" << "T_amb [K]" << "\t" << "Q_dot [MWt]" << "\t" << "W_dot [MWe]" << "\n";
 
-            for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+            for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
                 mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
                 mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
                 mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
@@ -243,7 +244,7 @@ public:
             }
             log.close();
 
-            // Save basis model data set
+            // Save training data
             ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
             std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
             ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
@@ -270,6 +271,81 @@ public:
             }
         }
         n_ff = T_htf_hot_ff.size();
+
+
+        // Obtain validation data from basis model
+        std::vector<double> T_htf_hot_vset, m_dot_ND_vset, T_amb_vset;
+        std::vector<double> Q_dot_basis_vset, W_dot_basis_vset;
+        int n_vset;
+        if (as_boolean("load_validation_data") && is_assigned("T_htf_hot_vset")
+            && is_assigned("m_dot_ND_vset") && is_assigned("T_amb_vset")
+            && is_assigned("Q_dot_basis_vset") && is_assigned("W_dot_basis_vset"))
+        {
+            // Load validation data
+            T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
+            m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
+            T_amb_vset = as_vector_double("T_amb_vset");
+            Q_dot_basis_vset = as_vector_double("Q_dot_basis_vset");
+            W_dot_basis_vset = as_vector_double("W_dot_basis_vset");
+            n_vset = T_htf_hot_vset.size();
+
+        }
+        else
+        {
+            // Generate validation data
+            // (for now, assume validation input data is always available)
+            T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
+            m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
+            T_amb_vset = as_vector_double("T_amb_vset");
+            n_vset = T_htf_hot_vset.size();
+
+            // Run basis model with sample set
+            od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
+            Q_dot_basis_vset.reserve(n_vset), W_dot_basis_vset.reserve(n_vset);
+
+            for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
+                mut_od_par.m_T_htf_hot = T_htf_hot_vset.at(i) + 273.15;
+                mut_od_par.m_m_dot_htf = m_dot_ND_vset.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
+                mut_od_par.m_T_amb = T_amb_vset.at(i) + 273.15;
+
+                try {
+                    off_design_code = mut.optimize_off_design(mut_od_par, od_strategy);
+                    Q_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                    W_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+                }
+                catch (...) {
+                    Q_dot_basis_vset.push_back(-999);
+                    W_dot_basis_vset.push_back(-999);
+                }
+            }
+            // Remove validation data where model did not complete (= -999)
+            int j = 0;
+            while (j < Q_dot_basis_vset.size()) {
+                if (Q_dot_basis_vset.at(j) == -999 || W_dot_basis_vset.at(j) == -999) {
+                    T_htf_hot_vset.erase(T_htf_hot_vset.begin() + j);
+                    m_dot_ND_vset.erase(m_dot_ND_vset.begin() + j);
+                    T_amb_vset.erase(T_amb_vset.begin() + j);
+                    Q_dot_basis_vset.erase(Q_dot_basis_vset.begin() + j);
+                    W_dot_basis_vset.erase(W_dot_basis_vset.begin() + j);
+                }
+                else {
+                    j++;
+                }
+            }
+            n_vset = T_htf_hot_vset.size();
+
+            // Save validation data
+            ssc_number_t *T_htf_hot_vset_cm = allocate("T_htf_hot_vset", T_htf_hot_vset.size());
+            std::copy(T_htf_hot_vset.begin(), T_htf_hot_vset.end(), T_htf_hot_vset_cm);
+            ssc_number_t *m_dot_ND_vset_cm = allocate("m_dot_ND_vset", m_dot_ND_vset.size());
+            std::copy(m_dot_ND_vset.begin(), m_dot_ND_vset.end(), m_dot_ND_vset_cm);
+            ssc_number_t *T_amb_vset_cm = allocate("T_amb_vset", T_amb_vset.size());
+            std::copy(T_amb_vset.begin(), T_amb_vset.end(), T_amb_vset_cm);
+            ssc_number_t *Q_dot_basis_vset_cm = allocate("Q_dot_basis_vset", n_vset);
+            std::copy(Q_dot_basis_vset.begin(), Q_dot_basis_vset.end(), Q_dot_basis_vset_cm);
+            ssc_number_t *W_dot_basis_vset_cm = allocate("W_dot_basis_vset", n_vset);
+            std::copy(W_dot_basis_vset.begin(), W_dot_basis_vset.end(), W_dot_basis_vset_cm);
+        }
 
 
         // Regression model //
@@ -314,21 +390,20 @@ public:
             cout << "Unknown exception initializing custom power cycle for generating interaction effect tables.";
         }
 
-        // Evaluate regression model
-        // TODO - change evaluation to use LHS
+        // Validate regression model
         double Q_dot_des, W_dot_des;
         W_dot_des = as_double("W_dot_net_des");
         Q_dot_des = W_dot_des / as_double("eta_thermal_des");
-        std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
-        Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
-        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
-            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
-            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * W_dot_des);   // MWe
+        std::vector<double> Q_dot_regr_vset, W_dot_regr_vset;
+        Q_dot_regr_vset.reserve(n_vset), W_dot_regr_vset.reserve(n_vset);
+        for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
+            Q_dot_regr_vset.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_vset.at(i), T_amb_vset.at(i), m_dot_ND_vset.at(i)) * Q_dot_des);     // MWt
+            W_dot_regr_vset.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_vset.at(i), T_amb_vset.at(i), m_dot_ND_vset.at(i)) * W_dot_des);   // MWe
         }
-        ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
-        std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
-        ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
-        std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
+        ssc_number_t *Q_dot_regr_vset_cm = allocate("Q_dot_regr_vset", n_vset);
+        std::copy(Q_dot_regr_vset.begin(), Q_dot_regr_vset.end(), Q_dot_regr_vset_cm);
+        ssc_number_t *W_dot_regr_vset_cm = allocate("W_dot_regr_vset", n_vset);
+        std::copy(W_dot_regr_vset.begin(), W_dot_regr_vset.end(), W_dot_regr_vset_cm);
 
 
         // Interpolation model //
@@ -360,18 +435,33 @@ public:
         Powvargram Q_dot_vgram(IndepVars, Q_dot_basis_ff, interp_beta, interp_nug);                   // Q_dot
         GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram);
 
-        // Evaluate interpolation model using sample set and output values
-        // TODO - THE SAME DATA SET IS BEING USED TO TRAIN **AND** EVALUATE -> change this
+        // Validate interpolation model
+        std::vector<double> Q_dot_interp_vset, W_dot_interp_vset;
+        Q_dot_interp_vset.reserve(n_vset), W_dot_interp_vset.reserve(n_vset);
+        std::vector<double> indep_vars_test(3, 0.);
+        for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
+            indep_vars_test.at(0) = T_htf_hot_vset.at(i);
+            indep_vars_test.at(1) = m_dot_ND_vset.at(i);
+            indep_vars_test.at(2) = T_amb_vset.at(i);
+
+            Q_dot_interp_vset.push_back( Q_dot_interp_table->interp(indep_vars_test) ); // MWt
+            W_dot_interp_vset.push_back( W_dot_interp_table->interp(indep_vars_test) ); // MWe
+        }
+        ssc_number_t *Q_dot_interp_vset_cm = allocate("Q_dot_interp_vset", n_vset);
+        std::copy(Q_dot_interp_vset.begin(), Q_dot_interp_vset.end(), Q_dot_interp_vset_cm);
+        ssc_number_t *W_dot_interp_vset_cm = allocate("W_dot_interp_vset", n_vset);
+        std::copy(W_dot_interp_vset.begin(), W_dot_interp_vset.end(), W_dot_interp_vset_cm);
+
+        // For comparison, also run interpolation model using training data
         std::vector<double> Q_dot_interp_ff, W_dot_interp_ff;
         Q_dot_interp_ff.reserve(n_ff), W_dot_interp_ff.reserve(n_ff);
-        std::vector<double> indep_vars_test(3, 0.);
-        for (std::vector<int>::size_type i = 0; i != T_htf_hot_ff.size(); i++) {
+        for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
             indep_vars_test.at(0) = T_htf_hot_ff.at(i);
             indep_vars_test.at(1) = m_dot_ND_ff.at(i);
             indep_vars_test.at(2) = T_amb_ff.at(i);
 
-            Q_dot_interp_ff.push_back( Q_dot_interp_table->interp(indep_vars_test) ); // MWt
-            W_dot_interp_ff.push_back( W_dot_interp_table->interp(indep_vars_test) ); // MWe
+            Q_dot_interp_ff.push_back(Q_dot_interp_table->interp(indep_vars_test)); // MWt
+            W_dot_interp_ff.push_back(W_dot_interp_table->interp(indep_vars_test)); // MWe
         }
         ssc_number_t *Q_dot_interp_ff_cm = allocate("Q_dot_interp_ff", n_ff);
         std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
