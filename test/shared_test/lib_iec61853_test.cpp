@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "lib_iec61853_test.h"
-#include "lib_irradproc.h"
+#include <lib_irradproc.h>
 
 
 TEST_F(IEC61853Test, InitialGuessesFrom61215) {
@@ -48,7 +48,7 @@ TEST_F(IEC61853Test, InitialGuessesFrom61215) {
 			pow(Rsh - params6parvs5Par[i][3], 2)
 			,.5);
 
-		printf("module: %s\tsolved? %d \t error: %f \n", mm.name, solved, RMSError);
+		printf("module: %s\tsolved? %d \t error: %f \n", mm.name.c_str(), solved, RMSError);
 	}
 }
 
@@ -275,7 +275,7 @@ TEST_F(IEC61215Test, unsolvedModules) {
 			mmVector[i].Rsh = Rsh_best;
 			mmVector[i].Adj = Adj_best;
 			mmVector[i].A = a_best;
-			mmVector[i].solved = solved_best;
+			mmVector[i].solved = (int)solved_best;
 		}
 	}
 	mmVectorToCSV();
@@ -385,7 +385,7 @@ TEST_F(IEC61853Test, testMeasurementsAbsorbedIrradiance) {
 			else if (loc == "Eugene") locIndex = 1;
 
 			irrad irr;
-			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_time(2011, (int)month, (int)day, (int)hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
 			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
 
 			irr.set_sky_model(1, 0.2);
@@ -457,7 +457,7 @@ TEST_F(IEC61853Test, testMeasurements) {
 			else if (loc == "Eugene") locIndex = 1;
 
 			irrad irr;
-			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_time(2011, (int)month, (int)day, (int)hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
 			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
 
 			irr.set_sky_model(1, 0.2);
@@ -483,7 +483,7 @@ TEST_F(IEC61853Test, testMeasurements) {
 				solzen, aoi, elev[locIndex],
 				stilt, sazi,
 				((double)hour) + minute / 60.0,
-				DN_DF, false);
+				Irradiance_IO::DN_DF, false);
 
 			pvoutput_t output;
 			solver(in, T, -1, output);
@@ -543,7 +543,7 @@ TEST_F(IEC61215Test, testMeasurements) {
 			else if (loc == "Eugene") locIndex = 1;
 
 			irrad irr;
-			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_time(2011, (int)month, (int)day, (int)hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
 			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
 			
 			irr.set_sky_model(1, 0.2);
@@ -568,7 +568,7 @@ TEST_F(IEC61215Test, testMeasurements) {
 				solzen, aoi, elev[locIndex],
 				stilt, sazi,
 				((double)hour) + minute / 60.0,
-				DN_DF, false);
+				Irradiance_IO::DN_DF, false);
 			pvoutput_t out;
 
 

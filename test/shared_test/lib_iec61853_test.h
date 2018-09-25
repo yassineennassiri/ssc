@@ -254,7 +254,7 @@ public:
 			mm.Rs = v[10];
 			mm.Rsh = v[11];
 			mm.A = v[12];
-			mm.solved = v[13];
+			mm.solved = (int)v[13];
 
 			if (v[0] == 25. && v[1] == 1000.) mmSTCVector.push_back(mm);
 			mmVector.push_back(mm);
@@ -404,7 +404,7 @@ public:
 			mm.Rsh = v[14];
 			mm.A = v[15];
 			mm.Adj = v[16];
-			mm.solved = v[17];
+			mm.solved = (int)v[17];
 
 
 			mmVector.push_back(mm);
