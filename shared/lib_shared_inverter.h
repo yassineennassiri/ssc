@@ -34,6 +34,9 @@ public:
 	/// Return the nominal DC voltage input
 	double getInverterDCNominalVoltage();
 
+	/// Return the efficiency at max power (Paco, Vdco);
+	double getMaxPowerEfficiency();
+
 	enum { SANDIA_INVERTER, DATASHEET_INVERTER, PARTLOAD_INVERTER, COEFFICIENT_GENERATOR, NONE };
 
 public:
@@ -46,6 +49,7 @@ public:
 	double powerConsumptionLoss_kW;
 	double powerNightLoss_kW;
 	double powerTempLoss_kW;
+	double powerLossTotal_kW;
 
 protected:
 

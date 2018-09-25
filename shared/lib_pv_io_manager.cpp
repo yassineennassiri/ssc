@@ -125,13 +125,96 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
 	stepsPerHour = numberOfWeatherFileRecords / 8760;
 	dtHour = 1.0 / stepsPerHour;
 
-	if (stepsPerHour < 1 || stepsPerHour > 60 || stepsPerHour * 8760 != numberOfWeatherFileRecords)
+	if ( numberOfWeatherFileRecords % 8760 != 0 )
 		throw compute_module::exec_error(cmName, util::format("invalid number of data records (%zu): must be an integer multiple of 8760", numberOfWeatherFileRecords));
+	if (stepsPerHour < 1 || stepsPerHour > 60)
+		throw compute_module::exec_error(cmName, util::format("%d timesteps per hour found. Weather data should be single year.", stepsPerHour));
 
 	useWeatherFileAlbedo = cm->as_boolean("use_wf_albedo");
 	userSpecifiedMonthlyAlbedo = cm->as_vector_double("albedo");
-
+	
+	checkWeatherFile(cm, cmName);
 	AllocateOutputs(cm);
+}
+
+void Irradiance_IO::checkWeatherFile(compute_module * cm, std::string cmName)
+{
+	for (size_t idx = 0; idx < numberOfWeatherFileRecords; idx++)
+	{
+		if (!weatherDataProvider->read(&weatherRecord))
+			throw compute_module::exec_error(cmName, "could not read data line " + util::to_string((int)(idx + 1)) + " in weather file");
+
+		// Check for missing data
+		if ((weatherRecord.gh != weatherRecord.gh) && (radiationMode == DN_GH || radiationMode == GH_DF)) {
+			cm->log(util::format("missing global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.gh, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+		if ((weatherRecord.dn != weatherRecord.dn) && (radiationMode == DN_DF || radiationMode == DN_GH)) {
+			cm->log(util::format("missing beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.dn, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+		if ((weatherRecord.df != weatherRecord.df) && (radiationMode == DN_DF || radiationMode == GH_DF)) {
+			cm->log(util::format("missing diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.df, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+		if ((weatherRecord.poa != weatherRecord.poa) && (radiationMode == POA_R || radiationMode == POA_P)) {
+			cm->log(util::format("missing POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.poa, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+		if (weatherRecord.tdry != weatherRecord.tdry) {
+			cm->log(util::format("missing temperature %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.tdry, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+		if (weatherRecord.wspd != weatherRecord.wspd) {
+			cm->log(util::format("missing wind speed %lg W/m2 at time [y:%d m:%d d:%d h:%d], exiting",
+				weatherRecord.wspd, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_ERROR, (float)idx);
+			return;
+		}
+
+		// Check for bad data
+		if ((weatherRecord.gh < 0 || weatherRecord.gh > irradiationMax) && (radiationMode == DN_GH || radiationMode == GH_DF))
+		{
+			cm->log(util::format("out of range global irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], set to zero",
+				weatherRecord.gh, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_WARNING, (float)idx);
+			weatherRecord.gh = 0;
+		}
+		if ((weatherRecord.dn < 0 || weatherRecord.dn > irradiationMax) && (radiationMode == DN_DF || radiationMode == DN_GH))
+		{
+			cm->log(util::format("out of range beam irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], set to zero",
+				weatherRecord.dn, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_WARNING, (float)idx);
+			weatherRecord.dn = 0;
+		}
+		if ((weatherRecord.df < 0 || weatherRecord.df > irradiationMax) && (radiationMode == DN_DF || radiationMode == GH_DF))
+		{
+			cm->log(util::format("out of range diffuse irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], set to zero",
+				weatherRecord.df, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_WARNING, (float)idx);
+			weatherRecord.df = 0;
+		}
+		if ((weatherRecord.poa < 0 || weatherRecord.poa > irradiationMax) && (radiationMode == POA_R || radiationMode == POA_P))
+		{
+			cm->log(util::format("out of range POA irradiance %lg W/m2 at time [y:%d m:%d d:%d h:%d], set to zero",
+				weatherRecord.poa, weatherRecord.year, weatherRecord.month, weatherRecord.day, weatherRecord.hour), SSC_WARNING, (float)idx);
+			weatherRecord.poa = 0;
+		}
+		int month_idx = weatherRecord.month - 1;
+		bool albedoError = false;
+		if (useWeatherFileAlbedo && (!std::isfinite(weatherRecord.alb) || weatherRecord.alb < 0 || weatherRecord.alb > 1)) {
+			albedoError = true;
+		}
+		else if ((month_idx >= 0 && month_idx < 12) && (userSpecifiedMonthlyAlbedo[month_idx] < 0 || userSpecifiedMonthlyAlbedo[month_idx] > 1)) {
+			albedoError = true;
+		}
+		if (albedoError) {
+			throw compute_module::exec_error(cmName,
+				util::format("Error retrieving albedo value: Invalid month in weather file or invalid albedo value in weather file"));
+		}
+	}
+	weatherDataProvider->rewind();
 }
 
 void Irradiance_IO::AllocateOutputs(compute_module* cm)
@@ -192,12 +275,23 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		backtrackingEnabled = cm->as_boolean(prefix + "backtrack");
 		moduleAspectRatio = cm->as_double("module_aspect_ratio");
 		usePOAFromWeatherFile = false;
-		dcLoss = (1 - cm->as_double(prefix + "mismatch_loss") / 100) *
-			(1 - cm->as_double(prefix + "diodeconn_loss") / 100) *
-			(1 - cm->as_double(prefix + "dcwiring_loss") / 100) *
-			(1 - cm->as_double(prefix + "tracking_loss") / 100) *
-			(1 - cm->as_double(prefix + "nameplate_loss") / 100) *
-			(1 - cm->as_double("dcoptimizer_loss") / 100);
+
+		// losses
+		rearIrradianceLossPercent = cm->as_double(prefix + "rear_irradiance_loss") / 100;
+		dcOptimizerLossPercent = cm->as_double("dcoptimizer_loss")/100;
+		mismatchLossPercent = cm->as_double(prefix + "mismatch_loss") / 100;
+		diodesLossPercent = cm->as_double(prefix + "diodeconn_loss") / 100;
+		dcWiringLossPercent = cm->as_double(prefix + "dcwiring_loss") / 100;
+		trackingLossPercent = cm->as_double(prefix + "tracking_loss") / 100;
+		nameplateLossPercent = cm->as_double(prefix + "nameplate_loss") / 100;
+
+		dcLossTotalPercent = 1 - (
+			(1 - dcOptimizerLossPercent) * 
+			(1 - mismatchLossPercent) * 
+			(1 - diodesLossPercent) * 
+			(1 - dcWiringLossPercent) * 
+			(1 - trackingLossPercent) * 
+			(1 - nameplateLossPercent));
 
 		if (groundCoverageRatio < 0.01)
 			throw compute_module::exec_error(cmName, "array ground coverage ratio must obey 0.01 < gcr");
@@ -218,7 +312,6 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		
 		shadeMode = cm->as_integer(prefix + "shade_mode");
 		
-
 		selfShadingInputs.mod_orient = cm->as_integer(prefix + "mod_orient");
 		selfShadingInputs.nmody = cm->as_integer(prefix + "nmody");
 		selfShadingInputs.nmodx = cm->as_integer(prefix + "nmodx");
@@ -267,7 +360,7 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		}
 
 		// Initialize module model
-		std::unique_ptr<Module_IO> tmp(new Module_IO(cm, cmName, dcLoss));
+		std::unique_ptr<Module_IO> tmp(new Module_IO(cm, cmName, 1- dcLossTotalPercent));
 		Module = std::move(tmp);
 
 	}
@@ -275,7 +368,7 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 void Subarray_IO::AssignOutputs(compute_module* cm)
 {
 	//assign output dc loss
-	double tmp = (1 - dcLoss) * 100;
+	double tmp = dcLossTotalPercent * 100;
 	cm->assign(prefix + "dcloss", var_data((ssc_number_t)tmp));
 
 	Module->AssignOutputs(cm);
@@ -290,11 +383,13 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	Inverter = InverterIO;
 
 	numberOfSubarrays = Subarrays.size();
-
+	stringsInParallel = 0;
+	for (size_t s = 0; s < numberOfSubarrays; s++) {
+		stringsInParallel += static_cast<int>(Subarrays[s]->nStrings);
+	}
 	AllocateOutputs(cm);
 
 	modulesPerString = cm->as_integer("modules_per_string");
-	stringsInParallel = cm->as_integer("strings_in_parallel");
 	numberOfInverters = cm->as_integer("inverter_count");
 	ratedACOutput = Inverter->ratedACOutput * numberOfInverters;
 	acDerate = 1 - cm->as_double("acwiring_loss") / 100;	
@@ -323,7 +418,7 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 
 		if (dc_degrad.size() == 1)
 		{
-			for (size_t i = 1; i < Simulation->numberOfYears + 1; i++)
+			for (size_t i = 1; i < Simulation->numberOfYears ; i++)
 				p_dcDegradationFactor[i + 1] = (ssc_number_t)pow((1.0 - dc_degrad[0] / 100.0), i);
 		}
 		else if (dc_degrad.size() > 0)
@@ -456,6 +551,7 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 	p_inverterPowerConsumptionLoss = cm->allocate("inv_psoloss", numberOfWeatherFileRecords);
 	p_inverterNightTimeLoss = cm->allocate("inv_pntloss", numberOfWeatherFileRecords);
 	p_inverterThermalLoss = cm->allocate("inv_tdcloss", numberOfWeatherFileRecords);
+	p_inverterTotalLoss = cm->allocate("inv_total_loss", numberOfWeatherFileRecords);
 
 	p_acWiringLoss = cm->allocate("ac_wiring_loss", numberOfWeatherFileRecords);
 	p_transmissionLoss = cm->allocate("ac_transmission_loss", numberOfWeatherFileRecords);
