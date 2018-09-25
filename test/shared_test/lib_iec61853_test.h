@@ -327,7 +327,7 @@ public:
 			size_t start = pos + 1;
 			std::vector<std::string> v;
 			v.push_back(token);
-			for (size_t i = 0; i < 8; i++) {
+			for (size_t i = 0; i < 14; i++) {
 				size_t pos = str.find(delimiter, start);
 				std::string token = str.substr(start, pos - start);
 				v.push_back(token);

@@ -431,11 +431,15 @@ TEST_F(IEC61853Test, testMeasurements) {
 		util::matrix_t<double> par;
 
 		iec61853_module_t solver;
+		solver.AMA[0] = 0.9417;
+		solver.AMA[1] = 0.06516;
+		solver.AMA[2] = -0.02022;
+		solver.AMA[3] = 0.00219;
+		solver.AMA[4] = -9.1e-05;
+		solver.GlassAR = 0;
 		if (!solver.calculate(input, nser, type, par, false)) continue;
 
 		outputFile << fileLines[0] << ",11parIrr,11parPOA\n";
-		moduleMeasurements currentModule;
-		std::vector<double> powerPredicted;
 		for (size_t i = 0; i < testMeasurements.size(); i++) {
 			std::string name = testMeasurements[i][0].c_str();
 			std::string loc = testMeasurements[i][1].c_str();
@@ -444,7 +448,7 @@ TEST_F(IEC61853Test, testMeasurements) {
 			double hour = atof(testMeasurements[i][4].c_str());
 			double minute = atof(testMeasurements[i][5].c_str());
 			double POA_meas = atof(testMeasurements[i][6].c_str());
-			double T = atof(testMeasurements[i][7].c_str());
+			double T = atof(testMeasurements[i][7].c_str());	// pv back-surface temp
 			double dn = atof(testMeasurements[i][11].c_str());
 			double gh = atof(testMeasurements[i][12].c_str());
 			double dh = atof(testMeasurements[i][13].c_str());
@@ -459,6 +463,8 @@ TEST_F(IEC61853Test, testMeasurements) {
 			irr.set_sky_model(1, 0.2);
 			irr.set_beam_diffuse(dn, dh);
 
+			irr.set_surface(0, tilt[locIndex], 180., 0., 0, 0.3);
+
 			EXPECT_FALSE(irr.calc());
 
 			// using HDKR model
@@ -471,20 +477,26 @@ TEST_F(IEC61853Test, testMeasurements) {
 			irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
 			irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
 
+
 			pvinput_t in(ibeam, iskydiff, ignddiff, 0, 0,
 				T, 0.0, 0.0, 0.0, 0.0,
 				solzen, aoi, elev[locIndex],
 				stilt, sazi,
 				((double)hour) + minute / 60.0,
 				DN_DF, false);
+
 			pvoutput_t output;
 			solver(in, T, -1, output);
 			outputFile << fileLines[i + 1] << "," << output.Power << ",";
 
 			// using measured POA
 			pvinput_t in2(0., 0., 0., 0, POA_meas,
-				T, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,	3, true);
-			solver(in, T, -1, output);
+				T, 0.0, 0.0, 0.0, 0.0,
+				solzen, aoi, elev[locIndex],
+				stilt, sazi,
+				((double)hour) + minute / 60.0,
+				3, true);
+			solver(in2, T, -1, output);
 			outputFile <<  output.Power << "\n";
 		}
 		outputFile.close();
@@ -492,6 +504,12 @@ TEST_F(IEC61853Test, testMeasurements) {
 }
 
 TEST_F(IEC61215Test, testMeasurements) {
+	// cocoa, eugene, golden
+	double tilt[3] = { 28.5, 44, 40 };
+	double lon[3] = { -80.46, -123.07, -105.18 };
+	double lat[3] = { 28.39, 44.05, 39.74 };
+	double tz[3] = { -5, -8, -7 };
+	double elev[3] = { 12, 145, 1798 };
 	for (size_t m = 0; m < 20; m++) {
 		std::string modulename[20] = { "aSiTandem72-46", "aSiTandem90-31", "aSiTriple28324", "aSiTriple28325", "CdTe75638", "CdTe75669",
 			"CIGS1-001", "CIGS8-001", "CIGS39013", "CIGS39017", "HIT05662", "HIT05667", "mSi0166", "mSi0188", "mSi0247",
@@ -504,52 +522,90 @@ TEST_F(IEC61215Test, testMeasurements) {
 		std::ofstream outputFile;
 		outputFile.open(outputFileName);
 		EXPECT_TRUE(outputFile.is_open());
-		outputFile << fileLines[0] << ",IEC61215\n";
+		outputFile << fileLines[0] << ",6parIrr, 6parPOA\n";
 
 		moduleMeasurements currentModule;
 		std::vector<double> powerPredicted;
 		for (size_t i = 0; i < testMeasurements.size(); i++) {
 			std::string name = testMeasurements[i][0].c_str();
-			double Geff = atof(testMeasurements[i][2].c_str());
-			double T_cell = atof(testMeasurements[i][4].c_str());
+			std::string loc = testMeasurements[i][1].c_str();
+			double month = atof(testMeasurements[i][2].c_str());
+			double day = atof(testMeasurements[i][3].c_str());
+			double hour = atof(testMeasurements[i][4].c_str());
+			double minute = atof(testMeasurements[i][5].c_str());
+			double POA_meas = atof(testMeasurements[i][6].c_str());
+			double T_cell = atof(testMeasurements[i][7].c_str());	// pv back-surface temp
+			double dn = atof(testMeasurements[i][11].c_str());
+			double gh = atof(testMeasurements[i][12].c_str());
+			double dh = atof(testMeasurements[i][13].c_str());
+			size_t locIndex = 2;
+			if (loc == "Cocoa") locIndex = 0;
+			else if (loc == "Eugene") locIndex = 1;
 
-			double a, rs, rsh, io, il, adj;
+			irrad irr;
+			irr.set_time(2011, month, day, hour, minute, IRRADPROC_NO_INTERPOLATE_SUNRISE_SUNSET);
+			irr.set_location(lat[locIndex], lon[locIndex], tz[locIndex]);
+			
+			irr.set_sky_model(1, 0.2);
+			irr.set_beam_diffuse(dn, dh);
+			irr.set_surface(0, tilt[locIndex], 180., 0., 0, 0.3);
+
+			EXPECT_FALSE(irr.calc());
+
+			// using HDKR model
+			int sunup = 0;
+			double solazi = 0, solzen = 0, solalt = 0;
+			double ibeam, iskydiff, ignddiff;
+			double aoi, stilt, sazi, rot, btd;
+
+			irr.get_sun(&solazi, &solzen, &solalt, 0, 0, 0, &sunup, 0, 0, 0);
+			irr.get_angles(&aoi, &stilt, &sazi, &rot, &btd);
+			irr.get_poa(&ibeam, &iskydiff, &ignddiff, 0, 0, 0);
+
+
+			pvinput_t in(ibeam, iskydiff, ignddiff, 0, 0,
+				T_cell, 0.0, 0.0, 0.0, 0.0,
+				solzen, aoi, elev[locIndex],
+				stilt, sazi,
+				((double)hour) + minute / 60.0,
+				DN_DF, false);
+			pvoutput_t out;
+
+
 			if (currentModule.name != name) {
 				for (size_t n = 0; n < mmVector.size(); n++) {
 					if (mmVector[n].name == name) currentModule = mmVector[n];
 				}
 			}
-			a = currentModule.A;
-			rs = currentModule.Rs;
-			rsh = currentModule.Rsh;
-			io = currentModule.Io;
-			il = currentModule.Il;
-			adj = currentModule.Adj;
+			cec6par_module_t solver;
 
-			double eg0 = 1.12;
-			double Tc_ref = (25 + 273.15);
-			double KB = 8.618e-5;
+			solver.a = currentModule.A;
+			solver.Rs = currentModule.Rs;
+			solver.Rsh = currentModule.Rsh;
+			solver.Io = currentModule.Io;
+			solver.Il = currentModule.Il;
+			solver.Adj = currentModule.Adj;
+			solver.alpha_isc = currentModule.alphaIsc;
+			solver.beta_voc = currentModule.betaVoc;
+			solver.Voc = currentModule.Voc;
+			solver.Imp = currentModule.Imp;
+			solver.Isc = currentModule.Isc;
+			
 
-			T_cell = T_cell + 273.15; // want cell temp in kelvin
-			double muIsc = currentModule.alphaIsc * (1 - currentModule.Adj / 100);
-			// calculation of IL and IO at operating conditions
-			double IL_oper = Geff / 1000. * (il + muIsc * (T_cell - 298.15));
-			if (IL_oper < 0.0) IL_oper = 0.0;
+			double voltage = -1;
+			solver(in, T_cell, voltage, out);
 
-			double EG = eg0 * (1 - 0.0002677*(T_cell - (25 + 273.15)));
-			double IO_oper = currentModule.Io * pow(T_cell / Tc_ref, 3) * exp(1 / KB * (eg0 / Tc_ref - EG / T_cell));
-			double A_oper = a * T_cell / Tc_ref;
-			double Rsh_oper = currentModule.Rsh * (1000. / Geff);
+			outputFile << fileLines[i+1] << "," << out.Power << ",";
 
-			double V_oc = openvoltage_5par(currentModule.Voc, A_oper, IL_oper, IO_oper, Rsh_oper);
-			double I_sc = IL_oper / (1 + currentModule.Rs / Rsh_oper);
-
-
-			double V, I;
-			double P = maxpower_5par(V_oc, A_oper, IL_oper, IO_oper, rs, Rsh_oper, &V, &I);
-			//maxpower_5par(100, a, il, io, rs, rsh, &V, &I);
-			powerPredicted.push_back(P);
-			outputFile << fileLines[i+1] << "," << P << "\n";
+			// using measured POA
+			pvinput_t in2(0., 0., 0., 0, POA_meas,
+				T_cell, 0.0, 0.0, 0.0, 0.0,
+				solzen, aoi, elev[locIndex],
+				stilt, sazi,
+				((double)hour) + minute / 60.0,
+				3, true);
+			solver(in2, T_cell, -1, out);
+			outputFile << out.Power << "\n";
 		}
 		outputFile.close();
 	}
