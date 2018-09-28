@@ -60,6 +60,7 @@
 #include "csp_common.h"
 #include "sco2_pc_csp_int.h"
 #include "interpolation_routines.h"
+#include <set>
 //#include "stochastic.h"
 
 static var_info _cm_vtab_validate_pc_tables[] = {
@@ -71,6 +72,8 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_training_data",   "Load training data set from basis model?",               "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_validation_data", "Load validation data set from basis model?",             "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "interp_beta",          "The interp. parameter beta, between [1, 1.99] def. 1.5", "%",          "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "interp_perc_err",      "The percent error of the interpolation points",         "%",           "",    "",      "*",     "",       "" },
     // Cycle Design
     { SSC_INPUT,    SSC_NUMBER,     "cycle_config",         "Cycle configuration, 1=recompression, 2=partial cooling", "-",         "",    "",      "*",     "",       "" },
     // PHX Design
@@ -120,12 +123,18 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INOUT,   SSC_ARRAY,       "Q_dot_basis_vset",     "Basis model cycle input heat for validation",             "MWt",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "Q_dot_regr_vset",      "Regression model cycle input heat for validation",        "MWt",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "Q_dot_interp_vset",    "Interpolation model cycle input heat for validation",     "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_3interp_vset",   "Trilinear interp model cycle input heat for validation",  "MWt",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "W_dot_basis_vset",     "Basis model cycle output power for validation",           "MWe",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "W_dot_regr_vset",      "Regression model cycle output power for validation",      "MWe",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "W_dot_interp_vset",    "Interpolation model cycle output power for validation",   "MWe",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_3interp_vset",   "Trilinear interp model cycle output power for validation", "MWe",      "",    "",               "",     "",       "" },
 
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_regr_ff",        "Regression model Q validated with training data",         "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_regr_ff",        "Regression model W validated with training data",         "MWe",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "Q_dot_interp_ff",      "Interp. model Q validated with training data",            "MWt",       "",    "",               "",     "",       "" },
     { SSC_INOUT,   SSC_ARRAY,       "W_dot_interp_ff",      "Interp. model W validated with training data",            "MWe",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "Q_dot_3interp_ff",     "Trilinear interp. model Q validated with training data",  "MWt",       "",    "",               "",     "",       "" },
+    { SSC_INOUT,   SSC_ARRAY,       "W_dot_3interp_ff",     "Trilinear interp. model W validated with training data",  "MWe",       "",    "",               "",     "",       "" },
 
 var_info_invalid };
 
@@ -158,7 +167,7 @@ public:
         //else {
         //    throw exec_error("model_under_test", "model name not found");
         //}
-        
+ 
         // Compile non-standard basis model parameters from SSC inputs
         C_sco2_recomp_csp::S_des_par mut_par;
         if (compile_params(mut_par)) {
@@ -219,7 +228,7 @@ public:
 
             for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
                 mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
-                mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_des");  // ND -> kg/s
+                mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
                 mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
 
                 // Log to file
@@ -405,6 +414,18 @@ public:
         ssc_number_t *W_dot_regr_vset_cm = allocate("W_dot_regr_vset", n_vset);
         std::copy(W_dot_regr_vset.begin(), W_dot_regr_vset.end(), W_dot_regr_vset_cm);
 
+        // For comparison, also run regression model using training data
+        std::vector<double> Q_dot_regr_ff, W_dot_regr_ff;
+        Q_dot_regr_ff.reserve(n_ff), W_dot_regr_ff.reserve(n_ff);
+        for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
+            Q_dot_regr_ff.push_back(custom_pc.get_Q_dot_HTF_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * Q_dot_des);     // MWt
+            W_dot_regr_ff.push_back(custom_pc.get_W_dot_gross_ND(T_htf_hot_ff.at(i), T_amb_ff.at(i), m_dot_ND_ff.at(i)) * W_dot_des);   // MWe
+        }
+        ssc_number_t *Q_dot_regr_ff_cm = allocate("Q_dot_regr_ff", n_ff);
+        std::copy(Q_dot_regr_ff.begin(), Q_dot_regr_ff.end(), Q_dot_regr_ff_cm);
+        ssc_number_t *W_dot_regr_ff_cm = allocate("W_dot_regr_ff", n_ff);
+        std::copy(W_dot_regr_ff.begin(), W_dot_regr_ff.end(), W_dot_regr_ff_cm);
+
 
         // Interpolation model //
         // TODO - add cooling parasitics and water use
@@ -428,12 +449,25 @@ public:
         }
 
         // Train interpolation model
-        double interp_beta = 1.5;       // try 1.99 too
+        //  see sections 3.7.4 and 15.9 in Numerical Recipes, 3rd Ed.
+        double interp_beta = as_double("interp_beta");       // try 1.99 too
         double interp_nug = 0;
+        std::vector<double> interp_err_W(n_ff), interp_err_Q(n_ff);           // vector of standard deviations of each response value
+        if (is_assigned("interp_perc_err")) {
+            double interp_perc_err = as_double("interp_perc_err");
+            for (int i = 0; i < n_ff; i++) {
+                interp_err_W.at(i) = W_dot_basis_ff.at(i) * interp_perc_err / 100.;
+                interp_err_Q.at(i) = Q_dot_basis_ff.at(i) * interp_perc_err / 100.;
+            }
+        }
+        else {
+            interp_err_W.assign(n_ff, 0.);
+            interp_err_Q.assign(n_ff, 0.);
+        }
         Powvargram W_dot_vgram(IndepVars, W_dot_basis_ff, interp_beta, interp_nug);                   // W_dot
-        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_basis_ff, W_dot_vgram);
+        GaussMarkov *W_dot_interp_table = new GaussMarkov(IndepVars, W_dot_basis_ff, W_dot_vgram, &interp_err_W[0]);
         Powvargram Q_dot_vgram(IndepVars, Q_dot_basis_ff, interp_beta, interp_nug);                   // Q_dot
-        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram);
+        GaussMarkov *Q_dot_interp_table = new GaussMarkov(IndepVars, Q_dot_basis_ff, Q_dot_vgram, &interp_err_Q[0]);
 
         // Validate interpolation model
         std::vector<double> Q_dot_interp_vset, W_dot_interp_vset;
@@ -467,6 +501,48 @@ public:
         std::copy(Q_dot_interp_ff.begin(), Q_dot_interp_ff.end(), Q_dot_interp_ff_cm);
         ssc_number_t *W_dot_interp_ff_cm = allocate("W_dot_interp_ff", n_ff);
         std::copy(W_dot_interp_ff.begin(), W_dot_interp_ff.end(), W_dot_interp_ff_cm);
+
+
+        // Trilinear Interpolation Model //
+        Trilinear_Interp W_resp_table;
+        Trilinear_Interp Q_resp_table;
+
+        // Populate training set and train model
+        try {
+            trilinear_setup(W_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, W_dot_basis_ff);
+            trilinear_setup(Q_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, Q_dot_basis_ff);
+        }
+        catch (exec_error err) {
+            throw err;
+        }
+
+        // Validate tri_interp model
+        std::vector<double> Q_dot_3interp_vset, W_dot_3interp_vset;
+        Q_dot_3interp_vset.reserve(n_vset), W_dot_3interp_vset.reserve(n_vset);
+        for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
+            Q_dot_3interp_vset.push_back(trilineate(Q_resp_table, T_htf_hot_vset.at(i),
+                m_dot_ND_vset.at(i), T_amb_vset.at(i)));   // MWt
+            W_dot_3interp_vset.push_back(trilineate(W_resp_table, T_htf_hot_vset.at(i),
+                m_dot_ND_vset.at(i), T_amb_vset.at(i)));   // MWe
+        }
+        ssc_number_t *Q_dot_3interp_vset_cm = allocate("Q_dot_3interp_vset", n_vset);
+        std::copy(Q_dot_3interp_vset.begin(), Q_dot_3interp_vset.end(), Q_dot_3interp_vset_cm);
+        ssc_number_t *W_dot_3interp_vset_cm = allocate("W_dot_3interp_vset", n_vset);
+        std::copy(W_dot_3interp_vset.begin(), W_dot_3interp_vset.end(), W_dot_3interp_vset_cm);
+
+        // For comparison, also run tri_interp model using training data
+        std::vector<double> Q_dot_3interp_ff, W_dot_3interp_ff;
+        Q_dot_3interp_ff.reserve(n_ff), W_dot_3interp_ff.reserve(n_ff);
+        for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
+            Q_dot_3interp_ff.push_back(trilineate(Q_resp_table, T_htf_hot_ff.at(i),
+                m_dot_ND_ff.at(i), T_amb_ff.at(i)));   // MWt
+            W_dot_3interp_ff.push_back(trilineate(W_resp_table, T_htf_hot_ff.at(i),
+                m_dot_ND_ff.at(i), T_amb_ff.at(i)));   // MWe
+        }
+        ssc_number_t *Q_dot_3interp_ff_cm = allocate("Q_dot_3interp_ff", n_ff);
+        std::copy(Q_dot_3interp_ff.begin(), Q_dot_3interp_ff.end(), Q_dot_3interp_ff_cm);
+        ssc_number_t *W_dot_3interp_ff_cm = allocate("W_dot_3interp_ff", n_ff);
+        std::copy(W_dot_3interp_ff.begin(), W_dot_3interp_ff.end(), W_dot_3interp_ff_cm);
 
     }
 
@@ -793,6 +869,97 @@ public:
         }
 
         return 0;
+    }
+
+    static bool trilinear_sort_compare(const vector<double> &a, const vector<double> &b) {
+        // This is a custom comparison function for the std::sort algorithm
+        bool condition;
+        if (a[0] < b[0]) {
+            condition = true;
+        }
+        else if (a[0] == b[0] && a[1] < b[1]) {
+            condition = true;
+        }
+        else if (a[0] == b[0] && a[1] == b[1] && a[2] < b[2]) {
+            condition = true;
+        }
+        else {
+            condition = false;
+        }
+
+        return condition;
+    }
+
+    int trilinear_setup(Trilinear_Interp &response_table, const std::vector<double> x, const std::vector<double> y,
+        const std::vector<double> z, const std::vector<double> resp) {
+        //bool (*sort_fun)(std::vector<double>, std::vector<double>)
+
+        // Check vectors for equal length
+        if (x.size() != y.size() || x.size() != z.size() || x.size() != resp.size()) {
+            string err_msg = "Input vectors for trilinear interpolation are not equal length";
+            log(err_msg, SSC_ERROR, -1.0);
+            throw exec_error("validate_pc_tables", err_msg);
+        }
+
+        // Check vectors for minimum length
+        if (x.size() < 2) {
+            string err_msg = "Input vector size for trilinear interpolation must be greater than 2";
+            log(err_msg, SSC_ERROR, -1.0);
+            throw exec_error("validate_pc_tables", err_msg);
+        }
+
+        // combine vectors, sort by x, then y, then z, and then remove duplicate sets
+        std::vector<std::vector<double>> var_tab;
+        for (std::size_t i = 0; i < x.size(); i++) {
+            var_tab.push_back(std::vector<double> {x.at(i), y.at(i), z.at(i), resp.at(i)});
+        }
+        std::sort(var_tab.begin(), var_tab.end(), &cm_validate_pc_tables::trilinear_sort_compare);
+        var_tab.erase(unique(var_tab.begin(), var_tab.end(),
+            [](const vector<double> &a, const vector<double> &b) {return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];}),
+            var_tab.end());    // use lamba function as predicate function to disregard response values when testing for uniqueness
+
+        // count number of unique input values
+        set<double, std::less<double>> x_unique(x.begin(), x.end());   // won't be affected by any duplicate removals
+        set<double, std::less<double>> y_unique(y.begin(), y.end());
+        set<double, std::less<double>> z_unique(z.begin(), z.end());
+        std::size_t n_x_unique = x_unique.size();
+        std::size_t n_y_unique = y_unique.size();
+        std::size_t n_z_unique = z_unique.size();
+
+        // check for complete full factorial
+        // TODO - maybe do a more thorough check?
+        if (n_x_unique * n_y_unique * n_z_unique != var_tab.size()) {
+            string err_msg = "Input vectors for trilinear interpolation do not make a full-factorial";
+            log(err_msg, SSC_ERROR, -1.0);
+            throw exec_error("validate_pc_tables", err_msg);
+        }
+
+        // intialize and populate response map
+        // the second parameter with 4 dimensions is equal to [x, y, z, response]
+        util::block_t<double> resp_map(n_x_unique*n_y_unique, 4, n_z_unique, 0.0);   // initialize all to 0.0
+        std::size_t x_idx, y_idx, z_idx;
+        for (std::size_t i = 0; i < var_tab.size(); i++) {
+            x_idx = std::distance(x_unique.begin(), x_unique.find(var_tab.at(i)[0]));
+            y_idx = std::distance(y_unique.begin(), y_unique.find(var_tab.at(i)[1]));
+            z_idx = std::distance(z_unique.begin(), z_unique.find(var_tab.at(i)[2]));
+
+            // Copy over the three independent variable values
+            for (std::size_t j = 0; j < 4; j++) {
+                resp_map.at(x_idx + y_idx*n_x_unique, j, z_idx) = var_tab.at(i)[j];
+            }
+        }
+
+        if (!response_table.Set_3D_Lookup_Table(resp_map)) {
+            string err_msg = "Initialization of trilinear interpolation response table failed";
+            log(err_msg, SSC_ERROR, -1.0);
+            throw exec_error("validate_pc_tables", err_msg);
+        }
+
+        return 0;
+    }
+
+    double trilineate(Trilinear_Interp &resp_table, const double x, const double y, const double z) {
+        return resp_table.trilinear_3D_interp(x, y, z);
     }
 
     // The following are helper functions for Rankine model tables
