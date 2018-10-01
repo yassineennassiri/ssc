@@ -2,7 +2,7 @@
 *  Copyright 2017 Alliance for Sustainable Energy, LLC
 *
 *  NOTICE: This software was developed at least in part by Alliance for Sustainable Energy, LLC
-*  (“Alliance”) under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
+*  (ï¿½Allianceï¿½) under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
 *  The Government retains for itself and others acting on its behalf a nonexclusive, paid-up,
 *  irrevocable worldwide license in the software to reproduce, prepare derivative works, distribute
 *  copies to the public, perform publicly and display publicly, and to permit others to do so.
@@ -26,8 +26,8 @@
 *  4. Redistribution of this software, without modification, must refer to the software by the same
 *  designation. Redistribution of a modified version of this software (i) may not refer to the modified
 *  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as “System Advisor Model” or “SAM”. Except
-*  to comply with the foregoing, the terms “System Advisor Model”, “SAM”, or any confusingly similar
+*  the underlying software originally provided by Alliance as ï¿½System Advisor Modelï¿½ or ï¿½SAMï¿½. Except
+*  to comply with the foregoing, the terms ï¿½System Advisor Modelï¿½, ï¿½SAMï¿½, or any confusingly similar
 *  designation may not be used to refer to any modified version of this software or any modified
 *  version of the underlying software originally provided by Alliance without the prior written consent
 *  of Alliance.
@@ -65,7 +65,7 @@ double FrictionFactor_FlexHose(double Re, double D) {
 	//		R. Gropp, Pforzheim, 1974. Flow resistance of flexible metallic lines
 	//		Excel spreadsheet Flex_hose_interpolation_test.xlsx
 
-	assert(Re > 4000);
+	assert(Re > 6000);
     double ff;
 	double d_in_mm = D * 1.e3;					// convert diameter from m to mm for use in the models
 
@@ -328,7 +328,7 @@ double intc_cpnt::PressureDrop(HTFProperties *fluidProps, double m_dot, double T
             return CSP::MajorPressureDrop(vel, rho, ff, l_, d_in_);
         case CpntType::Flex_Hose:
             Re = fluidProps->Re(T_htf_ave, P_htf_ave, vel, d_in_);
-			if (Re < 4000) {
+			if (Re < 6000) {
 				ff = CSP::FrictionFactor(rough_ / d_in_, Re);  // call standard pipe friction factor function
 			}
 			else {
