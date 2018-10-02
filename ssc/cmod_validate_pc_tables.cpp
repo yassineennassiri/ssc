@@ -71,6 +71,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "sample_type",          "0 = uniform, 1 = random (rect. distr.)",                 "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_training_data",   "Load training data set from basis model?",               "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "resume_training_row",  "The row to resume the training data set creation",       "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_validation_data", "Load validation data set from basis model?",             "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_beta",          "The interp. parameter beta, between [1, 1.99] def. 1.5", "%",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_perc_err",      "The percent error of the interpolation points",         "%",           "",    "",      "*",     "",       "" },
@@ -225,8 +226,9 @@ public:
             std::cout << std::setprecision(3) << std::fixed;    // 3 decimal places
             log.open("validate_pc_tables_log.dat");
             log << "T_htf_hot [K]" << "\t" << "m_dot_ND [-]" << "\t" << "T_amb [K]" << "\t" << "Q_dot [MWt]" << "\t" << "W_dot [MWe]" << "\n";
+            int start_row = as_integer("resume_training_row");
 
-            for (std::vector<int>::size_type i = 0; i != n_ff; i++) {
+            for (std::vector<int>::size_type i = start_row; i != n_ff; i++) {
                 mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
                 mut_od_par.m_m_dot_htf = m_dot_ND_ff.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
                 mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
@@ -280,7 +282,7 @@ public:
             }
         }
         n_ff = T_htf_hot_ff.size();
-
+/*
 
         // Obtain validation data from basis model
         std::vector<double> T_htf_hot_vset, m_dot_ND_vset, T_amb_vset;
@@ -543,7 +545,7 @@ public:
         std::copy(Q_dot_3interp_ff.begin(), Q_dot_3interp_ff.end(), Q_dot_3interp_ff_cm);
         ssc_number_t *W_dot_3interp_ff_cm = allocate("W_dot_3interp_ff", n_ff);
         std::copy(W_dot_3interp_ff.begin(), W_dot_3interp_ff.end(), W_dot_3interp_ff_cm);
-
+*/
     }
 
     int compile_params(C_sco2_recomp_csp::S_des_par &mut_params) {
