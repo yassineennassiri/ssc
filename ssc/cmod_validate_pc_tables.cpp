@@ -222,11 +222,13 @@ public:
             Q_dot_basis_ff.reserve(n_ff), W_dot_basis_ff.reserve(n_ff);
 
             // Log to file
-            std::ofstream log;
+            std::ofstream logfile;
             std::cout << std::setprecision(3) << std::fixed;    // 3 decimal places
-            log.open("validate_pc_tables_log.dat");
-            log << "T_htf_hot [K]" << "\t" << "m_dot_ND [-]" << "\t" << "T_amb [K]" << "\t" << "Q_dot [MWt]" << "\t" << "W_dot [MWe]" << "\n";
+            logfile.open("validate_pc_tables_log.dat");
+            logfile << "T_htf_hot [K]" << "\t" << "m_dot_ND [-]" << "\t" << "T_amb [K]" << "\t" << "Q_dot [MWt]" << "\t" << "W_dot [MWe]" << "\n";
             int start_row = as_integer("resume_training_row");
+            int out_type = -1;
+            std::string out_msg = "";
 
             for (std::vector<int>::size_type i = start_row; i != n_ff; i++) {
                 mut_od_par.m_T_htf_hot = T_htf_hot_ff.at(i) + 273.15;
@@ -234,8 +236,8 @@ public:
                 mut_od_par.m_T_amb = T_amb_ff.at(i) + 273.15;
 
                 // Log to file
-                log << T_htf_hot_ff.at(i) << "\t" << m_dot_ND_ff.at(i) << "\t" << T_amb_ff.at(i) << "\t";
-                log.flush();
+                logfile << T_htf_hot_ff.at(i) << "\t" << m_dot_ND_ff.at(i) << "\t" << T_amb_ff.at(i) << "\t";
+                logfile.flush();
 
                 try {
                     off_design_code = mut.optimize_off_design(mut_od_par, od_strategy);
@@ -243,45 +245,54 @@ public:
                     W_dot_basis_ff.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
 
                     // Log to file
-                    log << Q_dot_basis_ff.at(i) << "\t" << W_dot_basis_ff.at(i) << "\n";
-                    log.flush();
+                    logfile << Q_dot_basis_ff.back() << "\t" << W_dot_basis_ff.back() << "\n";
+                    logfile.flush();
                 }
-                catch(...) {
+                catch( C_csp_exception &csp_exception ) {
                     Q_dot_basis_ff.push_back(-999);
                     W_dot_basis_ff.push_back(-999);
-                    log << -999 << "\t" << -999 << "\n";
-                    log.flush();
+                    logfile << -999 << "\t" << -999 << "\n";
+                    logfile.flush();
+
+                    // Report warning before exiting with error
+                    while (mut.mc_messages.get_message(&out_type, &out_msg))
+                    {
+                        log(out_msg);
+                    }
+
+                    log(csp_exception.m_error_message, SSC_ERROR, -1.0);
+                    //throw exec_error("sco2_csp_system", csp_exception.m_error_message);
                 }
             }
-            log.close();
+            logfile.close();
 
-            // Save training data
-            ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
-            std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
-            ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
-            std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
-            ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", T_amb_ff.size());
-            std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
-            ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
-            std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
-            ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
-            std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
+            //// Save training data
+            //ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
+            //std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
+            //ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
+            //std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
+            //ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", T_amb_ff.size());
+            //std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+            //ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
+            //std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
+            //ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
+            //std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         }
         // Remove training data where model did not complete (= -999)
-        int i = 0;
-        while(i < Q_dot_basis_ff.size()) {
-            if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
-                T_htf_hot_ff.erase(T_htf_hot_ff.begin() + i);
-                m_dot_ND_ff.erase(m_dot_ND_ff.begin() + i);
-                T_amb_ff.erase(T_amb_ff.begin() + i);
-                Q_dot_basis_ff.erase(Q_dot_basis_ff.begin() + i);
-                W_dot_basis_ff.erase(W_dot_basis_ff.begin() + i);
-            }
-            else {
-                i++;
-            }
-        }
-        n_ff = T_htf_hot_ff.size();
+        //int i = 0;
+        //while(i < Q_dot_basis_ff.size()) {
+        //    if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
+        //        T_htf_hot_ff.erase(T_htf_hot_ff.begin() + i);
+        //        m_dot_ND_ff.erase(m_dot_ND_ff.begin() + i);
+        //        T_amb_ff.erase(T_amb_ff.begin() + i);
+        //        Q_dot_basis_ff.erase(Q_dot_basis_ff.begin() + i);
+        //        W_dot_basis_ff.erase(W_dot_basis_ff.begin() + i);
+        //    }
+        //    else {
+        //        i++;
+        //    }
+        //}
+        //n_ff = T_htf_hot_ff.size();
 /*
 
         // Obtain validation data from basis model
