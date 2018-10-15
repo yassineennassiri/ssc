@@ -72,6 +72,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "load_me_tables",       "Load saved main effect tables?",                         "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_training_data",   "Load training data set from basis model?",               "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "resume_training_row",  "The row to resume the training data set creation",       "",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "run_validation",       "Perform model validation?",                              "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "load_validation_data", "Load validation data set from basis model?",             "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_beta",          "The interp. parameter beta, between [1, 1.99] def. 1.5", "%",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_perc_err",      "The percent error of the interpolation points",         "%",           "",    "",      "*",     "",       "" },
@@ -266,109 +267,109 @@ public:
             }
             logfile.close();
 
-            //// Save training data
-            //ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
-            //std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
-            //ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
-            //std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
-            //ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", T_amb_ff.size());
-            //std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
-            //ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
-            //std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
-            //ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
-            //std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
+            // Save training data
+            ssc_number_t *T_htf_hot_ff_cm = allocate("T_htf_hot_ff", T_htf_hot_ff.size());
+            std::copy(T_htf_hot_ff.begin(), T_htf_hot_ff.end(), T_htf_hot_ff_cm);
+            ssc_number_t *m_dot_ND_ff_cm = allocate("m_dot_ND_ff", m_dot_ND_ff.size());
+            std::copy(m_dot_ND_ff.begin(), m_dot_ND_ff.end(), m_dot_ND_ff_cm);
+            ssc_number_t *T_amb_ff_cm = allocate("T_amb_ff", T_amb_ff.size());
+            std::copy(T_amb_ff.begin(), T_amb_ff.end(), T_amb_ff_cm);
+            ssc_number_t *Q_dot_basis_ff_cm = allocate("Q_dot_basis_ff", n_ff);
+            std::copy(Q_dot_basis_ff.begin(), Q_dot_basis_ff.end(), Q_dot_basis_ff_cm);
+            ssc_number_t *W_dot_basis_ff_cm = allocate("W_dot_basis_ff", n_ff);
+            std::copy(W_dot_basis_ff.begin(), W_dot_basis_ff.end(), W_dot_basis_ff_cm);
         }
         // Remove training data where model did not complete (= -999)
-        //int i = 0;
-        //while(i < Q_dot_basis_ff.size()) {
-        //    if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
-        //        T_htf_hot_ff.erase(T_htf_hot_ff.begin() + i);
-        //        m_dot_ND_ff.erase(m_dot_ND_ff.begin() + i);
-        //        T_amb_ff.erase(T_amb_ff.begin() + i);
-        //        Q_dot_basis_ff.erase(Q_dot_basis_ff.begin() + i);
-        //        W_dot_basis_ff.erase(W_dot_basis_ff.begin() + i);
-        //    }
-        //    else {
-        //        i++;
-        //    }
-        //}
-        //n_ff = T_htf_hot_ff.size();
-/*
+        int i = 0;
+        while(i < Q_dot_basis_ff.size()) {
+            if (Q_dot_basis_ff.at(i) == -999 || W_dot_basis_ff.at(i) == -999) {
+                T_htf_hot_ff.erase(T_htf_hot_ff.begin() + i);
+                m_dot_ND_ff.erase(m_dot_ND_ff.begin() + i);
+                T_amb_ff.erase(T_amb_ff.begin() + i);
+                Q_dot_basis_ff.erase(Q_dot_basis_ff.begin() + i);
+                W_dot_basis_ff.erase(W_dot_basis_ff.begin() + i);
+            }
+            else {
+                i++;
+            }
+        }
+        n_ff = T_htf_hot_ff.size();
 
         // Obtain validation data from basis model
         std::vector<double> T_htf_hot_vset, m_dot_ND_vset, T_amb_vset;
         std::vector<double> Q_dot_basis_vset, W_dot_basis_vset;
         int n_vset;
-        if (as_boolean("load_validation_data") && is_assigned("T_htf_hot_vset")
-            && is_assigned("m_dot_ND_vset") && is_assigned("T_amb_vset")
-            && is_assigned("Q_dot_basis_vset") && is_assigned("W_dot_basis_vset"))
-        {
-            // Load validation data
-            T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
-            m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
-            T_amb_vset = as_vector_double("T_amb_vset");
-            Q_dot_basis_vset = as_vector_double("Q_dot_basis_vset");
-            W_dot_basis_vset = as_vector_double("W_dot_basis_vset");
-            n_vset = T_htf_hot_vset.size();
+        if (as_boolean("run_validation")) {
+            if (as_boolean("load_validation_data") && is_assigned("T_htf_hot_vset")
+                && is_assigned("m_dot_ND_vset") && is_assigned("T_amb_vset")
+                && is_assigned("Q_dot_basis_vset") && is_assigned("W_dot_basis_vset"))
+            {
+                // Load validation data
+                T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
+                m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
+                T_amb_vset = as_vector_double("T_amb_vset");
+                Q_dot_basis_vset = as_vector_double("Q_dot_basis_vset");
+                W_dot_basis_vset = as_vector_double("W_dot_basis_vset");
+                n_vset = T_htf_hot_vset.size();
 
-        }
-        else
-        {
-            // Generate validation data
-            // (for now, assume validation input data is always available)
-            T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
-            m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
-            T_amb_vset = as_vector_double("T_amb_vset");
-            n_vset = T_htf_hot_vset.size();
-
-            // Run basis model with sample set
-            od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
-            Q_dot_basis_vset.reserve(n_vset), W_dot_basis_vset.reserve(n_vset);
-
-            for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
-                mut_od_par.m_T_htf_hot = T_htf_hot_vset.at(i) + 273.15;
-                mut_od_par.m_m_dot_htf = m_dot_ND_vset.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
-                mut_od_par.m_T_amb = T_amb_vset.at(i) + 273.15;
-
-                try {
-                    off_design_code = mut.optimize_off_design(mut_od_par, od_strategy);
-                    Q_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
-                    W_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
-                }
-                catch (...) {
-                    Q_dot_basis_vset.push_back(-999);
-                    W_dot_basis_vset.push_back(-999);
-                }
             }
-            // Remove validation data where model did not complete (= -999)
-            int j = 0;
-            while (j < Q_dot_basis_vset.size()) {
-                if (Q_dot_basis_vset.at(j) == -999 || W_dot_basis_vset.at(j) == -999) {
-                    T_htf_hot_vset.erase(T_htf_hot_vset.begin() + j);
-                    m_dot_ND_vset.erase(m_dot_ND_vset.begin() + j);
-                    T_amb_vset.erase(T_amb_vset.begin() + j);
-                    Q_dot_basis_vset.erase(Q_dot_basis_vset.begin() + j);
-                    W_dot_basis_vset.erase(W_dot_basis_vset.begin() + j);
+            else
+            {
+                // Generate validation data
+                // (for now, assume validation input data is always available)
+                T_htf_hot_vset = as_vector_double("T_htf_hot_vset");
+                m_dot_ND_vset = as_vector_double("m_dot_ND_vset");
+                T_amb_vset = as_vector_double("T_amb_vset");
+                n_vset = T_htf_hot_vset.size();
+
+                // Run basis model with sample set
+                od_strategy = C_sco2_recomp_csp::E_TARGET_POWER_ETA_MAX;
+                Q_dot_basis_vset.reserve(n_vset), W_dot_basis_vset.reserve(n_vset);
+
+                for (std::vector<int>::size_type i = 0; i != n_vset; i++) {
+                    mut_od_par.m_T_htf_hot = T_htf_hot_vset.at(i) + 273.15;
+                    mut_od_par.m_m_dot_htf = m_dot_ND_vset.at(i) * as_number("m_dot_htf_des");  // ND -> kg/s
+                    mut_od_par.m_T_amb = T_amb_vset.at(i) + 273.15;
+
+                    try {
+                        off_design_code = mut.optimize_off_design(mut_od_par, od_strategy);
+                        Q_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_Q_dot / 1000.);          // kWt -> MWt
+                        W_dot_basis_vset.push_back(mut.get_od_solved()->ms_rc_cycle_od_solved.m_W_dot_net / 1000.);      // kWe -> MWe
+                    }
+                    catch (...) {
+                        Q_dot_basis_vset.push_back(-999);
+                        W_dot_basis_vset.push_back(-999);
+                    }
                 }
-                else {
-                    j++;
+                // Remove validation data where model did not complete (= -999)
+                int j = 0;
+                while (j < Q_dot_basis_vset.size()) {
+                    if (Q_dot_basis_vset.at(j) == -999 || W_dot_basis_vset.at(j) == -999) {
+                        T_htf_hot_vset.erase(T_htf_hot_vset.begin() + j);
+                        m_dot_ND_vset.erase(m_dot_ND_vset.begin() + j);
+                        T_amb_vset.erase(T_amb_vset.begin() + j);
+                        Q_dot_basis_vset.erase(Q_dot_basis_vset.begin() + j);
+                        W_dot_basis_vset.erase(W_dot_basis_vset.begin() + j);
+                    }
+                    else {
+                        j++;
+                    }
                 }
+                n_vset = T_htf_hot_vset.size();
+
+                // Save validation data
+                ssc_number_t *T_htf_hot_vset_cm = allocate("T_htf_hot_vset", T_htf_hot_vset.size());
+                std::copy(T_htf_hot_vset.begin(), T_htf_hot_vset.end(), T_htf_hot_vset_cm);
+                ssc_number_t *m_dot_ND_vset_cm = allocate("m_dot_ND_vset", m_dot_ND_vset.size());
+                std::copy(m_dot_ND_vset.begin(), m_dot_ND_vset.end(), m_dot_ND_vset_cm);
+                ssc_number_t *T_amb_vset_cm = allocate("T_amb_vset", T_amb_vset.size());
+                std::copy(T_amb_vset.begin(), T_amb_vset.end(), T_amb_vset_cm);
+                ssc_number_t *Q_dot_basis_vset_cm = allocate("Q_dot_basis_vset", n_vset);
+                std::copy(Q_dot_basis_vset.begin(), Q_dot_basis_vset.end(), Q_dot_basis_vset_cm);
+                ssc_number_t *W_dot_basis_vset_cm = allocate("W_dot_basis_vset", n_vset);
+                std::copy(W_dot_basis_vset.begin(), W_dot_basis_vset.end(), W_dot_basis_vset_cm);
             }
-            n_vset = T_htf_hot_vset.size();
-
-            // Save validation data
-            ssc_number_t *T_htf_hot_vset_cm = allocate("T_htf_hot_vset", T_htf_hot_vset.size());
-            std::copy(T_htf_hot_vset.begin(), T_htf_hot_vset.end(), T_htf_hot_vset_cm);
-            ssc_number_t *m_dot_ND_vset_cm = allocate("m_dot_ND_vset", m_dot_ND_vset.size());
-            std::copy(m_dot_ND_vset.begin(), m_dot_ND_vset.end(), m_dot_ND_vset_cm);
-            ssc_number_t *T_amb_vset_cm = allocate("T_amb_vset", T_amb_vset.size());
-            std::copy(T_amb_vset.begin(), T_amb_vset.end(), T_amb_vset_cm);
-            ssc_number_t *Q_dot_basis_vset_cm = allocate("Q_dot_basis_vset", n_vset);
-            std::copy(Q_dot_basis_vset.begin(), Q_dot_basis_vset.end(), Q_dot_basis_vset_cm);
-            ssc_number_t *W_dot_basis_vset_cm = allocate("W_dot_basis_vset", n_vset);
-            std::copy(W_dot_basis_vset.begin(), W_dot_basis_vset.end(), W_dot_basis_vset_cm);
         }
-
 
         // Regression model //
         // Get regression model main effects tables from basis model
@@ -556,7 +557,7 @@ public:
         std::copy(Q_dot_3interp_ff.begin(), Q_dot_3interp_ff.end(), Q_dot_3interp_ff_cm);
         ssc_number_t *W_dot_3interp_ff_cm = allocate("W_dot_3interp_ff", n_ff);
         std::copy(W_dot_3interp_ff.begin(), W_dot_3interp_ff.end(), W_dot_3interp_ff_cm);
-*/
+
     }
 
     int compile_params(C_sco2_recomp_csp::S_des_par &mut_params) {
