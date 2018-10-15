@@ -9,6 +9,8 @@
 #include "6par_solve.h"
 #include "lib_cec6par.h"
 #include "lib_iec61853.h"
+#include "lib_mlmodel.h"
+#include "lib_ondinv.h"
 #include "lib_pvinv.h"
 #include "lib_pv_incidence_modifier.h"
 #include "lib_pvshade.h"
@@ -19,6 +21,9 @@
 
 #include "../ssc/common.h"
 #include "../ssc/core.h"
+
+enum modulePowerModelList { MODULE_SIMPLE_EFFICIENCY, MODULE_CEC_DATABASE, MODULE_CEC_USER_INPUT, MODULE_SANDIA, MODULE_IEC61853, MODULE_PVYIELD };
+enum inverterTypeList { INVERTER_CEC_DATABASE, INVERTER_DATASHEET, INVERTER_PARTLOAD, INVERTER_COEFFICIENT_GEN, INVERTER_PVYIELD };
 
 /// Structure containing data relevent at the SimulationManager level
 struct Simulation_IO;
@@ -71,6 +76,9 @@ public:
 
 	/// Get PVSystem as one object
 	PVSystem_IO * getPVSystemIO();
+
+	/// Get Shade Database
+	ShadeDB8_mpp * getShadeDatabase();
 
 
 public:
@@ -198,14 +206,15 @@ struct PVSystem_IO
 	// Inputs assumed to apply to all subarrays
 	bool enableDCLifetimeLosses;
 	bool enableACLifetimeLosses;
+	bool enableSnowModel;	
 
-	int modulesPerString;
 	int stringsInParallel;
 	double ratedACOutput;  /// AC Power rating for whole system (all inverters)
 
-	double voltageMpptLow1Module;
-	double voltageMpptHi1Module;
 	bool clipMpptWindow;
+	std::vector<std::vector<int> > mpptMapping;	///vector to hold the mapping between subarrays and mppt inputs
+	bool enableMismatchVoltageCalc;		/// Whether or not to compute mismatch between multiple subarrays attached to the same mppt input
+
 
 	double acDerate;
 	double acLossPercent;
@@ -215,34 +224,38 @@ struct PVSystem_IO
 	ssc_number_t transformerLoadLossFraction;
 	ssc_number_t transformerNoLoadLossFraction;
 
-	// General Outputs
+	// Timeseries Subarray Level Outputs
 	std::vector<ssc_number_t *> p_angleOfIncidence; /// The angle of incidence of the subarray [degrees]
 	std::vector<ssc_number_t *> p_angleOfIncidenceModifier; /// The weighted angle of incidence modifier for total poa irradiation on subarrray
-	std::vector<ssc_number_t *> p_surfaceTilt;      /// The surface tilt angle [degrees]
-	std::vector<ssc_number_t *> p_surfaceAzimuth;   /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_axisRotation;     /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_idealRotation;   /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaNominalFront;      /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaShadedFront;		/// The angle of incidence of the subarray [degrees]
+	std::vector<ssc_number_t *> p_surfaceTilt; ///The tilt of the surface [degrees]   
+	std::vector<ssc_number_t *> p_surfaceAzimuth; ///The azimuth of the surface [degrees]   
+	std::vector<ssc_number_t *> p_axisRotation;     
+	std::vector<ssc_number_t *> p_idealRotation; 
+	std::vector<ssc_number_t *> p_poaNominalFront;     
+	std::vector<ssc_number_t *> p_poaShadedFront;		
 	std::vector<ssc_number_t *> p_poaShadedSoiledFront;  
-	std::vector<ssc_number_t *> p_poaBeamFront; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaDiffuseFront; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaFront; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaTotal; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_poaRear; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_derateSoiling; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_beamShadingFactor; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_temperatureCell; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_moduleEfficiency; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_dcVoltage; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_voltageOpenCircuit; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_currentShortCircuit; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_dcPowerGross; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_derateLinear; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_derateSelfShading; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_derateSelfShadingDiffuse; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_derateSelfShadingReflected; /// The angle of incidence of the subarray [degrees]
-	std::vector<ssc_number_t *> p_shadeDBShadeFraction; /// The angle of incidence of the subarray [degrees]
+	std::vector<ssc_number_t *> p_poaBeamFront; 
+	std::vector<ssc_number_t *> p_poaDiffuseFront; 
+	std::vector<ssc_number_t *> p_poaFront; 
+	std::vector<ssc_number_t *> p_poaTotal; 
+	std::vector<ssc_number_t *> p_poaRear; 
+	std::vector<ssc_number_t *> p_derateSoiling; 
+	std::vector<ssc_number_t *> p_beamShadingFactor; 
+	std::vector<ssc_number_t *> p_temperatureCell; 
+	std::vector<ssc_number_t *> p_moduleEfficiency; 
+	std::vector<ssc_number_t *> p_dcStringVoltage; /// An output vector containing dc string voltage for each subarray [V]
+	std::vector<ssc_number_t *> p_voltageOpenCircuit; /// Open circuit voltage of a string in the subarray [V]
+	std::vector<ssc_number_t *> p_currentShortCircuit; 
+	std::vector<ssc_number_t *> p_dcPowerGross; 
+	std::vector<ssc_number_t *> p_derateLinear; 
+	std::vector<ssc_number_t *> p_derateSelfShading; 
+	std::vector<ssc_number_t *> p_derateSelfShadingDiffuse;
+	std::vector<ssc_number_t *> p_derateSelfShadingReflected; 
+	std::vector<ssc_number_t *> p_shadeDBShadeFraction; 
+
+	// MPPT level outputs
+	std::vector<ssc_number_t *> p_mpptVoltage; /// An output vector containing input DC voltage in V to each mppt input
+	std::vector<ssc_number_t *> p_dcPowerNetPerMppt; /// An output vector containing Net DC Power in W for each mppt input 
 
 	// Snow Model outputs
 	std::vector<ssc_number_t *> p_snowLoss; /// The angle of incidence of the subarray [degrees]
@@ -279,8 +292,6 @@ struct PVSystem_IO
 
 
 	ssc_number_t *p_snowLossTotal;
-
-	ssc_number_t *p_inverterDCVoltage;
 	ssc_number_t *p_inverterEfficiency;
 	ssc_number_t *p_inverterClipLoss;
 	ssc_number_t *p_inverterMPPTLoss;
@@ -288,6 +299,7 @@ struct PVSystem_IO
 	ssc_number_t *p_inverterPowerConsumptionLoss;
 	ssc_number_t *p_inverterNightTimeLoss;
 	ssc_number_t *p_inverterThermalLoss;
+	ssc_number_t *p_inverterTotalLoss;
 
 	ssc_number_t *p_acWiringLoss;
 	ssc_number_t *p_transmissionLoss;
@@ -306,9 +318,9 @@ struct poaDecompReq {
 	char stepScale; // indicates whether time steps are hours (h) or minutes (m)
 	double* POA; // Pointer to entire POA array (will have size 8760 if time step is 1 hour)
 	double* inc; // Pointer to angle of incident array (same size as POA)
-	double* tilt; // Pointer to angle of incident array (same size as POA)
-	double* zen; // Pointer to angle of incident array (same size as POA)
-	double* exTer; // Pointer to angle of incident array (same size as POA)
+	double* tilt; 
+	double* zen; 
+	double* exTer;
 	double tDew;
 	int doy;
 	double elev;
@@ -340,24 +352,30 @@ public:
 	enum self_shading {NO_SHADING, NON_LINEAR_SHADING, LINEAR_SHADING};
 
 	// Managed by Subarray
-	std::unique_ptr<Module_IO> Module;/// The PV module for this subarray
+	std::unique_ptr<Module_IO> Module; // The PV module for this subarray
 
 	// Inputs
-	bool enable;						/// Enable the subarray
-	size_t nStrings;					/// Number of strings in the subarray
-	std::vector<double> monthlySoiling; /// The soiling loss by month [%]
-	double groundCoverageRatio;			/// The ground coverage ratio [0 - 1]
-	double tiltDegrees;					/// The surface tilt [degrees]						
-	double azimuthDegrees;				/// The surface azimuth [degrees]
-	int trackMode;						/// The tracking mode [0 = fixed, 1 = single-axis tracking, 2 = two-axis tracking, 3 = azimuth-axis tracking, 4 = seasonal-tilt
-	double trackerRotationLimitDegrees; /// The rotational limit of the tracker [degrees]
-	bool tiltEqualLatitude;				/// Set the tilt equal to the latitude
-	std::vector<double> monthlyTiltDegrees; /// The seasonal tilt [degrees]
-	bool backtrackingEnabled;			/// Backtracking enabled or not
-	double moduleAspectRatio;			/// The aspect ratio of the models used in the subarray
-	bool usePOAFromWeatherFile;		
+	bool enable;						// Whether or not the subarray is enabled
 
-	// Loss inputs
+	// Electrical characteristics
+	size_t nStrings;					// Number of strings in the subarray
+	int nModulesPerString;				// The number of modules per string
+	int mpptInput;						// Which inverter MPPT input this subarray is connected to
+
+	// Physical characteristics
+	double groundCoverageRatio;			// The ground coverage ratio [0 - 1]
+	double tiltDegrees;					// The surface tilt [degrees]						
+	double azimuthDegrees;				// The surface azimuth [degrees]
+	int trackMode;						// The tracking mode [0 = fixed, 1 = single-axis tracking, 2 = two-axis tracking, 3 = azimuth-axis tracking, 4 = seasonal-tilt
+	double trackerRotationLimitDegrees; // The rotational limit of the tracker [degrees]
+	bool tiltEqualLatitude;				// Set the tilt equal to the latitude
+	std::vector<double> monthlyTiltDegrees; // The seasonal tilt [degrees]
+	bool backtrackingEnabled;			// Backtracking enabled or not
+	double moduleAspectRatio;			// The aspect ratio of the models used in the subarray
+	int nStringsBottom;					// Number of strings along bottom from self-shading
+
+	// Subarray-specific losses
+	std::vector<double> monthlySoiling; // The soiling loss by month [%]
 	double rearIrradianceLossPercent;
 	double dcOptimizerLossPercent;
 	double mismatchLossPercent;
@@ -367,19 +385,17 @@ public:
 	double nameplateLossPercent;
 	double dcLossTotalPercent;			/// The DC loss due to mismatch, diodes, wiring, tracking, optimizers [%]
 
+	// Shading and snow	
+	bool enableSelfShadingOutputs;		// Choose whether additional self-shading outputs are displayed
+	int shadeMode;						// The shading mode of the subarray [0 = none, 1 = standard (non-linear), 2 = thin film (linear)]
+	bool usePOAFromWeatherFile;			// Flag for whether or not a shading model has been selected that means POA can't be used directly for that subarray
+	ssinputs selfShadingInputs;			// Inputs and calculation methods for self-shading of the subarray
+	ssoutputs selfShadingOutputs;		// Outputs for the self-shading of the subarray
+	shading_factor_calculator shadeCalculator; // The shading calculator model for self-shading
+	bool subarrayEnableSnow;            //a copy of the enableSnowModel flag has to exist in each subarray for setting up snow model inputs specific to each subarray
+	pvsnowmodel snowModel;				// A structure to store the geometry inputs for the snow model for this subarray- even though the snow model is system wide, its effect is subarray-dependent
 
-	// Shading and snow
-	bool enableShowModel;				
-	bool enableSelfShadingOutputs;			/// Choose whether additional self-shading outputs are displayed
-	int shadeMode;						/// The shading mode of the subarray [0 = none, 1 = standard (non-linear), 2 = thin film (linear)]
-	int nModulesPerString;				/// The number of modules per string
-	int nStringsBottom;					/// Number of strings along bottom from self-shading
-	ssinputs selfShadingInputs;			/// Inputs and calculation methods for self-shading of the subarray
-	ssoutputs selfShadingOutputs;		/// Outputs for the self-shading of the subarray
-	shading_factor_calculator shadeCalculator; /// The shading calculator model for self-shading
-	pvsnowmodel snowModel;				/// The underlying snow model for this subarray
-
-										/// Calculated plane-of-array (POA) irradiace for the subarray and related geometry
+	/// Calculated plane-of-array (POA) irradiace for the subarray and related geometry
 	struct {
 		double poaBeamFront;	/// POA due to beam irradiance on the front of the subarray [W/m2]	
 		double poaDiffuseFront; /// POA due to diffuse irradiance on the front of the subarray [W/m2]
@@ -396,15 +412,8 @@ public:
 		poaDecompReq poaAll;	/// A structure containing POA decompositions into the three irrradiance components from input POA
 	} poa;
 
-	struct {
-		double dcPowerW;			/// The DC power output of the modules in the subarray [W]
-		double dcVoltage;			/// The DC voltage the subarray [V]
-		double voltageOpenCircuit;  /// The DC open circuit voltage of the subarray [V]
-		double currentShortCircuit; /// The DC short circuit current of the subarray [A]
-		double dcEfficiency;		/// The DC conversion efficiency of the subarray [%]
-		double temperatureCellCelcius; /// The average cell temperature of the modules in the subarray [C]
-		double angleOfIncidenceModifier; /// The angle of incidence modifier on the total poa front-side irradiance [0-1]
-	} module;
+	//calculated- subarray power
+	double dcPowerSubarray; /// DC power for this subarray [W]
 
 };
 
@@ -427,11 +436,10 @@ public:
 	/// Assign outputs from member data after the PV Model has run 
 	void AssignOutputs(compute_module* cm);
 
-	enum moduleTypeList {MODULE_SIMPLE_EFFICIENCY, MODULE_CEC_DATABASE, MODULE_CEC_USER_INPUT, MODULE_SANDIA, MODULE_IEC61853};
 	enum mountingSpecificConfigurationList {NONE, RACK_MOUNTING, FLUSH_MOUNTING, INTEGRATED_MOUNTING, GAP_MOUNTING};
 
-	int moduleType;						/// The PV module model selected
-	bool enableMismatchVoltageCalc;		/// Whether or not to compute string level subarray mismatch
+	int modulePowerModel;						/// The PV module model selected
+
 	double referenceArea;				/// The module area [m2]
 	double moduleWattsSTC;				/// The module energy output at STC [W]
 	double voltageMaxPower;				/// The voltage at max power [V]
@@ -449,11 +457,23 @@ public:
 	cec6par_module_t cecModel;
 	noct_celltemp_t nominalOperatingCellTemp;
 	mcsp_celltemp_t mountingSpecificCellTemp;
+	mock_celltemp_t mockCellTemp;
 	sandia_module_t sandiaModel;
 	sandia_celltemp_t sandiaCellTemp;
 	iec61853_module_t elevenParamSingleDiodeModel; 
+	mlmodel_module_t mlModuleModel;
 	pvcelltemp_t *cellTempModel;
 	pvmodule_t *moduleModel;
+
+	//outputs
+	double dcPowerW;			/// The DC power output of one module [W]
+	double dcVoltage;			/// The DC voltage of the module [V]
+	double voltageOpenCircuit;  /// The DC open circuit voltage of the module [V]
+	double currentShortCircuit; /// The DC short circuit current of the module [A]
+	double dcEfficiency;		/// The DC conversion efficiency of the module [%]
+	double temperatureCellCelcius; /// The average cell temperature of the module [C]
+	double angleOfIncidenceModifier; /// The angle of incidence modifier on the total poa front-side irradiance [0-1]
+	
 };
 
 
@@ -476,13 +496,16 @@ public:
 	/// Assign outputs from member data after the PV Model has run 
 	void AssignOutputs(compute_module* cm);
 
-	enum inverterTypeList { INVERTER_CEC_DATABASE, INVERTER_DATASHEET, INVERTER_PARTLOAD, INVERTER_COEFFICIENT_GEN };
 
 	int inverterType;		/// From inverterTypeList
+	int nMpptInputs;        /// Number of maximum power point tracking (MPPT) inputs on one inverter
+	double mpptLowVoltage;  /// Lower limit of inverter voltage range for maximum power point tracking (MPPT) per MPPT input
+	double mpptHiVoltage;   /// Upper limit of inverter voltage range for maximum power point tracking (MPPT) per MPPT input
 	double ratedACOutput;   /// Rated power for one inverter
 
 	::sandia_inverter_t sandiaInverter;
 	::partload_inverter_t partloadInverter;
+	::ond_inverter ondInverter;
 
 	SharedInverter * sharedInverter;
 };

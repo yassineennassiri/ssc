@@ -44,6 +44,7 @@ PVIOManager::PVIOManager(compute_module*  cm, std::string cmName)
 Irradiance_IO * PVIOManager::getIrradianceIO()  { return m_IrradianceIO.get(); }
 compute_module * PVIOManager::getComputeModule()  { return m_computeModule; }
 Subarray_IO * PVIOManager::getSubarrayIO(size_t subarrayNumber)  { return m_SubarraysIO[subarrayNumber].get(); }
+ShadeDB8_mpp * PVIOManager::getShadeDatabase() { return m_shadeDatabase.get(); }
 
 std::vector<Subarray_IO *> PVIOManager::getSubarrays() 
 {
@@ -264,7 +265,8 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 	if (enable)
 	{
 		nStrings = cm->as_integer(prefix + "nstrings");
-		nModulesPerString = cm->as_integer("modules_per_string");
+		nModulesPerString = cm->as_integer(prefix + "modules_per_string");
+		mpptInput = cm->as_integer(prefix + "mppt_input");
 		tiltDegrees = fabs(cm->as_double(prefix + "tilt"));
 		azimuthDegrees = cm->as_double(prefix + "azimuth");
 		trackMode = cm->as_integer(prefix + "track_mode");
@@ -343,12 +345,13 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		}
 
 		// Snow model
-		enableShowModel = cm->as_boolean("en_snow_model");
-		if (enableShowModel)
+		subarrayEnableSnow = cm->as_boolean("en_snow_model");
+		if (subarrayEnableSnow)
 		{
 			if (trackMode == SEASONAL_TILT)
 				throw compute_module::exec_error(cmName, "Time-series tilt input may not be used with the snow model at this time: subarray " + util::to_string((int)(subarrayNumber)));
-			if (snowModel.setup(selfShadingInputs.nmody, (float)tiltDegrees)) {
+			// if tracking mode is 1-axis tracking, don't need to limit tilt angles
+			if (snowModel.setup(selfShadingInputs.nmody, (float)tiltDegrees), !(trackMode == FIXED_TILT)) {
 				if (!snowModel.good) {
 					cm->log(snowModel.msg, SSC_ERROR);
 				}
@@ -387,9 +390,7 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	for (size_t s = 0; s < numberOfSubarrays; s++) {
 		stringsInParallel += static_cast<int>(Subarrays[s]->nStrings);
 	}
-	AllocateOutputs(cm);
-
-	modulesPerString = cm->as_integer("modules_per_string");
+	
 	numberOfInverters = cm->as_integer("inverter_count");
 	ratedACOutput = Inverter->ratedACOutput * numberOfInverters;
 	acDerate = 1 - cm->as_double("acwiring_loss") / 100;	
@@ -399,9 +400,10 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 
 	enableDCLifetimeLosses = cm->as_boolean("en_dc_lifetime_losses");
 	enableACLifetimeLosses = cm->as_boolean("en_ac_lifetime_losses");
-
+	enableSnowModel = cm->as_boolean("en_snow_model");
+	
 	// The shared inverter of the PV array and a tightly-coupled DC connected battery
-	std::unique_ptr<SharedInverter> tmpSharedInverter(new SharedInverter(Inverter->inverterType, numberOfInverters, &Inverter->sandiaInverter, &Inverter->partloadInverter));
+	std::unique_ptr<SharedInverter> tmpSharedInverter(new SharedInverter(Inverter->inverterType, numberOfInverters, &Inverter->sandiaInverter, &Inverter->partloadInverter, &Inverter->ondInverter));
 	m_sharedInverter = std::move(tmpSharedInverter);
 	
 	// Register shared inverter with inverter_IO
@@ -442,21 +444,21 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 				throw compute_module::exec_error(cmName, "Length of the lifetime daily AC losses array must be equal to the analysis period * 365");
 		}
 	}
+
 	// Transformer losses
 	transformerLoadLossFraction = cm->as_number("transformer_load_loss") * (ssc_number_t)(util::percent_to_fraction);  
 	transformerNoLoadLossFraction = cm->as_number("transformer_no_load_loss") *(ssc_number_t)(util::percent_to_fraction);
 
-	// MPPT
-	voltageMpptLow1Module = cm->as_double("mppt_low_inverter") / modulesPerString;
-	voltageMpptHi1Module = cm->as_double("mppt_hi_inverter") / modulesPerString;
+	// Determine whether MPPT clipping should be enabled or not
 	clipMpptWindow = false;
 
-	if (voltageMpptLow1Module > 0 && voltageMpptHi1Module > voltageMpptLow1Module)
+	if (InverterIO->mpptLowVoltage > 0 && InverterIO->mpptHiVoltage > InverterIO->mpptLowVoltage)
 	{
-		int moduleType = Subarrays[0]->Module->moduleType;
-		if (moduleType == 1     // cec with database
-			|| moduleType == 2   // cec with user specs
-			|| moduleType == 4) // iec61853 single diode
+		int modulePowerModel = Subarrays[0]->Module->modulePowerModel;
+		if (modulePowerModel == 1     // cec with database
+			|| modulePowerModel == 2   // cec with user specs
+			|| modulePowerModel == 4 // iec61853 single diode
+			|| modulePowerModel == 5) // PVYield single diode
 		{
 			clipMpptWindow = true;
 		}
@@ -469,6 +471,42 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	{
 		cm->log("Inverter MPPT voltage tracking window not defined - modules always operate at MPPT.", SSC_NOTICE);
 	}
+
+	// Check that system MPPT inputs align correctly
+	for (size_t n_subarray = 0; n_subarray < numberOfSubarrays; n_subarray++)
+		if (Subarrays[n_subarray]->enable)
+			if (Subarrays[n_subarray]->mpptInput > Inverter->nMpptInputs)
+				throw compute_module::exec_error(cmName, "Subarray " + util::to_string((int)n_subarray) + " MPPT input is greater than the number of inverter MPPT inputs.");
+	for (size_t mppt = 1; mppt <= (size_t)Inverter->nMpptInputs; mppt++) //indexed at 1 to match mppt input numbering convention
+	{
+		std::vector<int> mppt_n; //create a temporary vector to hold which subarrays are on this mppt input
+		//find all subarrays on this mppt input
+		for (size_t n_subarray = 0; n_subarray < Subarrays.size(); n_subarray++) //jmf update this so that all subarray markers are consistent, get rid of "enable" check
+			if (Subarrays[n_subarray]->enable)
+				if (Subarrays[n_subarray]->mpptInput == (int)mppt)
+					mppt_n.push_back(n_subarray);
+		if (mppt_n.size() < 1)
+			throw compute_module::exec_error(cmName, "At least one subarray must be assigned to each inverter MPPT input.");
+		mpptMapping.push_back(mppt_n); //add the subarrays on this input to the total mppt mapping vector
+	}
+
+	// Only one multi-MPPT inverter is allowed at the moment
+	if (Inverter->nMpptInputs > 1 && numberOfInverters > 1)
+		throw compute_module::exec_error(cmName, "At this time, only one multiple-MPPT-input inverter may be modeled per system. See help for details.");
+
+	//Subarray mismatch calculations
+	enableMismatchVoltageCalc = cm->as_boolean("enable_mismatch_vmax_calc");
+	if (enableMismatchVoltageCalc &&
+		Subarrays[0]->Module->modulePowerModel != MODULE_CEC_DATABASE &&
+		Subarrays[0]->Module->modulePowerModel != MODULE_CEC_USER_INPUT &&
+		Subarrays[0]->Module->modulePowerModel != MODULE_IEC61853) {
+		throw compute_module::exec_error(cmName, "String level subarray mismatch can only be calculated using a single-diode based module model.");
+	}
+	if (enableMismatchVoltageCalc && numberOfSubarrays <= 1)
+		throw compute_module::exec_error(cmName, "Subarray voltage mismatch calculation requires more than one subarray. Please check your inputs.");
+
+	// Always perform at the end!
+	AllocateOutputs(cm);
 }
 
 void PVSystem_IO::AllocateOutputs(compute_module* cm)
@@ -500,7 +538,7 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 			p_beamShadingFactor.push_back(cm->allocate(prefix + "beam_shading_factor", numberOfWeatherFileRecords));
 			p_temperatureCell.push_back(cm->allocate(prefix + "celltemp", numberOfWeatherFileRecords));
 			p_moduleEfficiency.push_back(cm->allocate(prefix + "modeff", numberOfWeatherFileRecords));
-			p_dcVoltage.push_back(cm->allocate(prefix + "dc_voltage", numberOfWeatherFileRecords));
+			p_dcStringVoltage.push_back(cm->allocate(prefix + "dc_voltage", numberOfWeatherFileRecords));
 			p_voltageOpenCircuit.push_back(cm->allocate(prefix + "voc", numberOfWeatherFileRecords));
 			p_currentShortCircuit.push_back(cm->allocate(prefix + "isc", numberOfWeatherFileRecords));
 			p_dcPowerGross.push_back(cm->allocate(prefix + "dc_gross", numberOfWeatherFileRecords));
@@ -509,7 +547,7 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 			p_derateSelfShadingDiffuse.push_back(cm->allocate(prefix + "ss_diffuse_derate", numberOfWeatherFileRecords));
 			p_derateSelfShadingReflected.push_back(cm->allocate(prefix + "ss_reflected_derate", numberOfWeatherFileRecords));
 
-			if (Subarrays[subarray]->enableShowModel) {
+			if (enableSnowModel) {
 				p_snowLoss.push_back(cm->allocate(prefix + "snow_loss", numberOfWeatherFileRecords));
 				p_snowCoverage.push_back(cm->allocate(prefix + "snow_coverage", numberOfWeatherFileRecords));
 			}
@@ -528,6 +566,13 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 			p_shadeDBShadeFraction.push_back(cm->allocate("shadedb_" + prefix + "shade_frac", numberOfWeatherFileRecords));
 		}
 	}
+
+	for (int mppt_input = 0; mppt_input < Inverter->nMpptInputs; mppt_input++)
+	{
+		p_mpptVoltage.push_back(cm->allocate("inverterMppt" + std::to_string(mppt_input + 1) + "_DCVoltage", numberOfLifetimeRecords));
+		p_dcPowerNetPerMppt.push_back(cm->allocate("inverterMppt" + std::to_string(mppt_input + 1) + "_NetDCPower", numberOfLifetimeRecords));
+	}
+
 	p_transformerNoLoadLoss = cm->allocate("xfmr_nll_ts", numberOfWeatherFileRecords);
 	p_transformerLoadLoss = cm->allocate("xfmr_ll_ts", numberOfWeatherFileRecords);
 	p_transformerLoss = cm->allocate("xfmr_loss_ts", numberOfWeatherFileRecords);
@@ -543,7 +588,6 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 
 	p_snowLossTotal = cm->allocate("dc_snow_loss", numberOfWeatherFileRecords);
 
-	p_inverterDCVoltage = cm->allocate("inverter_dc_voltage", numberOfLifetimeRecords);
 	p_inverterEfficiency = cm->allocate("inv_eff", numberOfWeatherFileRecords);
 	p_inverterClipLoss = cm->allocate("inv_cliploss", numberOfWeatherFileRecords);
 	p_inverterMPPTLoss = cm->allocate("dc_invmppt_loss", numberOfWeatherFileRecords);
@@ -551,6 +595,7 @@ void PVSystem_IO::AllocateOutputs(compute_module* cm)
 	p_inverterPowerConsumptionLoss = cm->allocate("inv_psoloss", numberOfWeatherFileRecords);
 	p_inverterNightTimeLoss = cm->allocate("inv_pntloss", numberOfWeatherFileRecords);
 	p_inverterThermalLoss = cm->allocate("inv_tdcloss", numberOfWeatherFileRecords);
+	p_inverterTotalLoss = cm->allocate("inv_total_loss", numberOfWeatherFileRecords);
 
 	p_acWiringLoss = cm->allocate("ac_wiring_loss", numberOfWeatherFileRecords);
 	p_transmissionLoss = cm->allocate("ac_transmission_loss", numberOfWeatherFileRecords);
@@ -570,15 +615,7 @@ void PVSystem_IO::AssignOutputs(compute_module* cm)
 
 Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 {
-	moduleType = cm->as_integer("module_model");
-
-	enableMismatchVoltageCalc = cm->as_boolean("enable_mismatch_vmax_calc");
-	if (enableMismatchVoltageCalc && 
-		moduleType != MODULE_CEC_DATABASE && 
-		moduleType != MODULE_CEC_USER_INPUT && 
-		moduleType != MODULE_IEC61853) {
-		throw compute_module::exec_error(cmName, "String level subarray mismatch can only be calculated using a single-diode based module model.");
-	}
+	modulePowerModel = cm->as_integer("module_model");
 
 	simpleEfficiencyForceNoPOA = false;
 	mountingSpecificCellTemperatureForceNoPOA = false;
@@ -586,7 +623,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 	isConcentratingPV = false;
 	isBifacial = false;
 
-	if (moduleType == MODULE_SIMPLE_EFFICIENCY)
+	if (modulePowerModel == MODULE_SIMPLE_EFFICIENCY)
 	{
 		simpleEfficiencyModel.VmpNominal = cm->as_double("spe_vmp");
 		simpleEfficiencyModel.VocNominal = cm->as_double("spe_voc");
@@ -654,7 +691,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 		moduleWattsSTC = simpleEfficiencyModel.WattsStc();
 		voltageMaxPower = simpleEfficiencyModel.VmpNominal;
 	}
-	else if (moduleType == MODULE_CEC_DATABASE)
+	else if (modulePowerModel == MODULE_CEC_DATABASE)
 	{
 		isBifacial = cm->as_boolean("cec_is_bifacial");
 		bifaciality = cm->as_double("cec_bifaciality");
@@ -728,7 +765,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 		moduleModel = &cecModel;
 		moduleWattsSTC = cecModel.Vmp * cecModel.Imp;
 	}
-	else if (moduleType == MODULE_CEC_USER_INPUT)
+	else if (modulePowerModel == MODULE_CEC_USER_INPUT)
 	{
 		isBifacial = cm->as_boolean("6par_is_bifacial");
 		bifaciality = cm->as_double("6par_bifaciality");
@@ -785,7 +822,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 		moduleModel = &cecModel;
 		moduleWattsSTC = cecModel.Vmp * cecModel.Imp;
 	}
-	else if (moduleType == MODULE_SANDIA)
+	else if (modulePowerModel == MODULE_SANDIA)
 	{
 		sandiaModel.A0 = cm->as_double("snl_a0");
 		sandiaModel.A1 = cm->as_double("snl_a1");
@@ -882,7 +919,7 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 		moduleModel = &sandiaModel;
 		moduleWattsSTC = sandiaModel.Vmp0 * sandiaModel.Imp0;
 	}
-	else if (moduleType == MODULE_IEC61853 )
+	else if (modulePowerModel == MODULE_IEC61853 )
 	{
 		// IEC 61853 model
 		elevenParamSingleDiodeModel.NcellSer = cm->as_integer("sd11par_nser");
@@ -919,6 +956,101 @@ Module_IO::Module_IO(compute_module* cm, std::string cmName, double dcLoss)
 		selfShadingFillFactor = elevenParamSingleDiodeModel.Vmp0 * elevenParamSingleDiodeModel.Imp0 / elevenParamSingleDiodeModel.Voc0 / elevenParamSingleDiodeModel.Isc0;
 		voltageMaxPower = elevenParamSingleDiodeModel.Vmp0;
 	}
+	else if (modulePowerModel == MODULE_PVYIELD)
+	{
+		// Mermoud/Lejeune single-diode model
+		size_t elementCount1 = 0;
+		size_t elementCount2 = 0;
+		ssc_number_t *arrayIncAngle = 0;
+		ssc_number_t *arrayIamValue = 0;
+
+		mlModuleModel.N_series = cm->as_integer("mlm_N_series");
+		mlModuleModel.N_parallel = cm->as_integer("mlm_N_parallel");
+		mlModuleModel.N_diodes = cm->as_integer("mlm_N_diodes");
+		mlModuleModel.Width = cm->as_double("mlm_Width");
+		mlModuleModel.Length = cm->as_double("mlm_Length");
+		mlModuleModel.V_mp_ref = cm->as_double("mlm_V_mp_ref");
+		mlModuleModel.I_mp_ref = cm->as_double("mlm_I_mp_ref");
+		mlModuleModel.V_oc_ref = cm->as_double("mlm_V_oc_ref");
+		mlModuleModel.I_sc_ref = cm->as_double("mlm_I_sc_ref");
+		mlModuleModel.S_ref = cm->as_double("mlm_S_ref");
+		mlModuleModel.T_ref = cm->as_double("mlm_T_ref");
+		mlModuleModel.R_shref = cm->as_double("mlm_R_shref");
+		mlModuleModel.R_sh0 = cm->as_double("mlm_R_sh0");
+		mlModuleModel.R_shexp = cm->as_double("mlm_R_shexp");
+		mlModuleModel.R_s = cm->as_double("mlm_R_s");
+		mlModuleModel.alpha_isc = cm->as_double("mlm_alpha_isc");
+		mlModuleModel.beta_voc_spec = cm->as_double("mlm_beta_voc_spec");
+		mlModuleModel.E_g = cm->as_double("mlm_E_g");
+		mlModuleModel.n_0 = cm->as_double("mlm_n_0");
+		mlModuleModel.mu_n = cm->as_double("mlm_mu_n");
+		mlModuleModel.D2MuTau = cm->as_double("mlm_D2MuTau");
+		mlModuleModel.T_mode = cm->as_integer("mlm_T_mode");
+		mlModuleModel.T_c_no_tnoct = cm->as_double("mlm_T_c_no_tnoct");
+		mlModuleModel.T_c_no_mounting = cm->as_integer("mlm_T_c_no_mounting");
+		mlModuleModel.T_c_no_standoff = cm->as_integer("mlm_T_c_no_standoff");
+		mlModuleModel.T_c_fa_alpha = cm->as_double("mlm_T_c_fa_alpha");
+		mlModuleModel.T_c_fa_U0 = cm->as_double("mlm_T_c_fa_U0");
+		mlModuleModel.T_c_fa_U1 = cm->as_double("mlm_T_c_fa_U1");
+		mlModuleModel.AM_mode = cm->as_integer("mlm_AM_mode");
+		mlModuleModel.AM_c_sa[0] = cm->as_double("mlm_AM_c_sa0");
+		mlModuleModel.AM_c_sa[1] = cm->as_double("mlm_AM_c_sa1");
+		mlModuleModel.AM_c_sa[2] = cm->as_double("mlm_AM_c_sa2");
+		mlModuleModel.AM_c_sa[3] = cm->as_double("mlm_AM_c_sa3");
+		mlModuleModel.AM_c_sa[4] = cm->as_double("mlm_AM_c_sa4");
+		mlModuleModel.AM_c_lp[0] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.AM_c_lp[1] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.AM_c_lp[2] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.AM_c_lp[3] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.AM_c_lp[4] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.AM_c_lp[5] = cm->as_double("mlm_AM_c_lp0");
+		mlModuleModel.IAM_mode = cm->as_integer("mlm_IAM_mode");
+		mlModuleModel.IAM_c_as = cm->as_double("mlm_IAM_c_as");
+		mlModuleModel.IAM_c_sa[0] = cm->as_double("mlm_IAM_c_sa0");
+		mlModuleModel.IAM_c_sa[1] = cm->as_double("mlm_IAM_c_sa1");
+		mlModuleModel.IAM_c_sa[2] = cm->as_double("mlm_IAM_c_sa2");
+		mlModuleModel.IAM_c_sa[3] = cm->as_double("mlm_IAM_c_sa3");
+		mlModuleModel.IAM_c_sa[4] = cm->as_double("mlm_IAM_c_sa4");
+		mlModuleModel.IAM_c_sa[5] = cm->as_double("mlm_IAM_c_sa5");
+		mlModuleModel.groundRelfectionFraction = cm->as_double("mlm_groundRelfectionFraction");
+
+		arrayIncAngle = cm->as_array("mlm_IAM_c_cs_incAngle", &elementCount1);
+		arrayIamValue = cm->as_array("mlm_IAM_c_cs_iamValue", &elementCount2);
+		mlModuleModel.IAM_c_cs_elements = (int)elementCount1; // as_integer("mlm_IAM_c_cs_elements");
+
+		if (mlModuleModel.IAM_mode == 3)
+		{
+			if (elementCount1 != elementCount2)
+			{
+				throw compute_module::exec_error(cmName, "Spline IAM: Number of entries for incidence angle and IAM value different.");
+			}
+			for (int i = 0; i <= mlModuleModel.IAM_c_cs_elements - 1; i = i + 1) {
+				mlModuleModel.IAM_c_cs_incAngle[i] = arrayIncAngle[i];
+				mlModuleModel.IAM_c_cs_iamValue[i] = arrayIamValue[i];
+			}
+		}
+		if (mlModuleModel.T_mode == 1) {
+			setupNOCTModel(cm,"mlm_T_c_no");
+			cellTempModel = &nominalOperatingCellTemp;
+		}
+		else if (mlModuleModel.T_mode == 2) {
+			cellTempModel = &mockCellTemp;
+		}
+		else {
+			throw compute_module::exec_error(cmName, "invalid temperature model type");
+		}
+
+		mlModuleModel.initializeManual();
+
+
+		moduleModel = &mlModuleModel;
+		moduleWattsSTC = mlModuleModel.V_oc_ref * mlModuleModel.I_mp_ref;
+		referenceArea = mlModuleModel.Width * mlModuleModel.Length;
+		selfShadingFillFactor = mlModuleModel.V_mp_ref * mlModuleModel.I_mp_ref / mlModuleModel.V_oc_ref / mlModuleModel.I_sc_ref;
+		voltageMaxPower = mlModuleModel.V_mp_ref;
+
+
+	}
 	else
 		throw compute_module::exec_error(cmName, "invalid pv module model type");
 }
@@ -952,6 +1084,18 @@ void Module_IO::AssignOutputs(compute_module* cm)
 Inverter_IO::Inverter_IO(compute_module *cm, std::string cmName)
 {
 	inverterType =  cm->as_integer("inverter_model");
+	nMpptInputs = cm->as_integer("inv_num_mppt");
+
+	if (inverterType == 4)
+	{
+		mpptLowVoltage = cm->as_double("ond_VMppMin");
+		mpptHiVoltage = cm->as_double("ond_VMppMax");
+	}
+	else
+	{
+		mpptLowVoltage = cm->as_double("mppt_low_inverter");
+		mpptHiVoltage = cm->as_double("mppt_hi_inverter");
+	}
 	
 	if (inverterType == 0) // cec database
 	{
@@ -1010,6 +1154,68 @@ Inverter_IO::Inverter_IO(compute_module *cm, std::string cmName)
 		sandiaInverter.C3 = cm->as_double("inv_cec_cg_c3");
 		ratedACOutput = sandiaInverter.Paco;
 	}
+	else if (inverterType == 4) // PVYield (ondInverter)
+	{
+		size_t elementCount = 0;
+		size_t rows = 0;
+		size_t cols = 0;
+		ssc_number_t *VNomEffArray;
+		ssc_number_t *effCurve_PdcArray;
+		ssc_number_t *effCurve_PacArray;
+		ssc_number_t *effCurve_etaArray;
+
+		ondInverter.PNomConv = cm->as_double("ond_PNomConv");
+		ondInverter.PMaxOUT = cm->as_double("ond_PMaxOUT");
+		ondInverter.VOutConv = cm->as_double("ond_VOutConv");
+		ondInverter.VMppMin = cm->as_double("ond_VMppMin");
+		ondInverter.VMPPMax = cm->as_double("ond_VMPPMax");
+		ondInverter.VAbsMax = cm->as_double("ond_VAbsMax");
+		ondInverter.PSeuil = cm->as_double("ond_PSeuil");
+		ondInverter.ModeOper = cm->as_string("ond_ModeOper");
+		ondInverter.CompPMax = cm->as_string("ond_CompPMax");
+		ondInverter.CompVMax = cm->as_string("ond_CompVMax");
+		ondInverter.ModeAffEnum = cm->as_string("ond_ModeAffEnum");
+		ondInverter.PNomDC = cm->as_double("ond_PNomDC");
+		ondInverter.PMaxDC = cm->as_double("ond_PMaxDC");
+		ondInverter.IMaxDC = cm->as_double("ond_IMaxDC");
+		ondInverter.INomDC = cm->as_double("ond_INomDC");
+		ondInverter.INomAC = cm->as_double("ond_INomAC");
+		ondInverter.IMaxAC = cm->as_double("ond_IMaxAC");
+		ondInverter.TPNom = cm->as_double("ond_TPNom");
+		ondInverter.TPMax = cm->as_double("ond_TPMax");
+		ondInverter.TPLim1 = cm->as_double("ond_TPLim1");
+		ondInverter.TPLimAbs = cm->as_double("ond_TPLimAbs");
+		ondInverter.PLim1 = cm->as_double("ond_PLim1");
+		ondInverter.PLimAbs = cm->as_double("ond_PLimAbs");
+		VNomEffArray = cm->as_array("ond_VNomEff", &elementCount);
+		ondInverter.NbInputs = cm->as_integer("ond_NbInputs");
+		ondInverter.NbMPPT = cm->as_integer("ond_NbMPPT");
+		ondInverter.Aux_Loss = cm->as_double("ond_Aux_Loss");
+		ondInverter.Night_Loss = cm->as_double("ond_Night_Loss");
+		ondInverter.lossRDc = cm->as_double("ond_lossRDc");
+		ondInverter.lossRAc = cm->as_double("ond_lossRAc");
+		ondInverter.effCurve_elements = cm->as_integer("ond_effCurve_elements");
+		effCurve_PdcArray = cm->as_matrix("ond_effCurve_Pdc", &rows, &cols);
+		effCurve_PacArray = cm->as_matrix("ond_effCurve_Pac", &rows, &cols);
+		effCurve_etaArray = cm->as_matrix("ond_effCurve_eta", &rows, &cols);
+		ondInverter.doAllowOverpower = cm->as_integer("ond_doAllowOverpower");
+		ondInverter.doUseTemperatureLimit = cm->as_integer("ond_doUseTemperatureLimit");
+		int matrixIndex;
+		const int MAX_ELEMENTS = 100;
+		for (int i = 0; i <= 2; i = i + 1) {
+			ondInverter.VNomEff[i] = VNomEffArray[i];
+			for (int j = 0; j <= MAX_ELEMENTS - 1; j = j + 1) {
+				matrixIndex = i * MAX_ELEMENTS + j;
+				ondInverter.effCurve_Pdc[i][j] = effCurve_PdcArray[matrixIndex];
+				ondInverter.effCurve_Pac[i][j] = effCurve_PacArray[matrixIndex];
+				ondInverter.effCurve_eta[i][j] = effCurve_etaArray[matrixIndex];
+			}
+		}
+
+		ondInverter.initializeManual();
+		ratedACOutput = ondInverter.PNomConv;
+
+	}
 	else
 	{
 		throw compute_module::exec_error("pvsamv1", "invalid inverter model type");
@@ -1050,6 +1256,6 @@ void Inverter_IO::setupSharedInverter(compute_module* cm, SharedInverter * a_sha
 	}
 	int err = sharedInverter->setTempDerateCurves(thermalDerateCurves);
 	if ( err > 1) {
-		//throw compute_module::exec_error("pvsamv1", "Inverter temperature derate curve " + util::to_string((int)( -err - 1)) + " is invalid.");
+		throw compute_module::exec_error("pvsamv1", "Inverter temperature derate curve " + util::to_string((int)( -err - 1)) + " is invalid.");
 	}
 }

@@ -241,7 +241,10 @@ TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelSystemDesign)
 	// Specify modules and inverters with tracking options
 	// Tracking options: Fixed, 1-axis, 2-axis, Azimuth Axis, Seasonal Tilt
 	std::map<std::string, double> pairs;
-	pairs["modules_per_string"] = 6;
+	pairs["subarray1_modules_per_string"] = 6;
+	pairs["subarray2_modules_per_string"] = 6;
+	pairs["subarray3_modules_per_string"] = 6;
+	pairs["subarray4_modules_per_string"] = 6;
 	pairs["subarray1_nstrings"] = 49;
 	pairs["inverter_count"] = 22;
 	pairs["subarray1_track_mode"] = 0;
@@ -306,7 +309,7 @@ TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelSystemDesign)
 	std::vector<double> subarray2_track_mode = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	std::vector<double> subarray3_track_mode = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 0 };
 	std::vector<double> subarray4_track_mode = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4 };
-	annual_energy_expected = { 167392, 176331, 183243, 166251, 175833, 183243, 171952, 178321, 183243, 171952, 178321, 183243, 183243, 183227, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 177310, 182927, 162456, 176883, 182902, 160961, 179014, 183024, 168431, 179014, 183024, 168431, 183243, 183243, 183243, 183243, 183243, 198796, 205187, 192695, 186088, 183243, 201501, 206750, 193370, 186290, 183243, 195419, 198925, 189995, 185277, 183243, 195419, 198925, 189995, 185277 };
+	annual_energy_expected = { 167392, 176331, 183243, 166251, 175833, 183243, 171952, 178321, 183243, 171952, 178321, 183243, 183243, 183235, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 183243, 177310, 182927, 162456, 176883, 182902, 160961, 179014, 183024, 168431, 179014, 183024, 168431, 183243, 183243, 183243, 183243, 183243, 198796, 205187, 192695, 186088, 183243, 201501, 206750, 193370, 186290, 183243, 195419, 198926, 189995, 185277, 183243, 195419, 198926, 189995, 185277 };
 
 	for (int i = 0; i != annual_energy_expected.size(); i++)
 	{
@@ -351,7 +354,10 @@ TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelShading)
 	std::map<std::string, double> pairs;
 
 	// 2 subarrays, one pointing east, one west
-	pairs["modules_per_string"] = 6;
+	pairs["subarray1_modules_per_string"] = 6;
+	pairs["subarray2_modules_per_string"] = 6;
+	pairs["subarray3_modules_per_string"] = 6;
+	pairs["subarray4_modules_per_string"] = 6;
 	pairs["inverter_count"] = 2;
 	pairs["subarray1_nstrings"] = 2;
 	pairs["subarray1_azimuth"] = 90;
@@ -399,13 +405,13 @@ TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelShading)
 
 	// 3. Add Snow losses to all shading
 	pairs["en_snow_model"] = 1;
+
 	pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
 	EXPECT_FALSE(pvsam_errors);
 	if (!pvsam_errors) {
 		SetCalculated("annual_energy");
 		EXPECT_NEAR(calculated_value, annual_energy_expected[3], m_error_tolerance_hi);
 	}
-
 }
 
 /// Test PVSAMv1 with default no-financial model and different loss options
@@ -496,4 +502,33 @@ TEST_F(CMPvsamv1PowerIntegration, InvTempDerate) {
 
 	monthly_energy = ssc_data_get_array(data, "monthly_energy", nullptr)[11];
 	EXPECT_NEAR(monthly_energy, 740, 10) << "Month energy of December not reduced";
+}
+
+/// Test PVSAMv1 multiple MPPT inverter, otherwise using default no financial model inputs
+TEST_F(CMPvsamv1PowerIntegration, NoFinancialModelMultipleMPPT)
+{
+	std::vector<double> annual_energy_expected = { 7633 };
+	std::map<std::string, double> pairs;
+
+	pairs["inv_num_mppt"] = 2;
+	pairs["subarray1_nstrings"] = 1;
+	pairs["subarray1_modules_per_string"] = 7;
+	pairs["subarray1_mppt_input"] = 1;
+	pairs["subarray1_tilt"] = 20;
+	pairs["subarray2_enable"] = 1;
+	pairs["subarray2_nstrings"] = 1;
+	pairs["subarray2_modules_per_string"] = 6;
+	pairs["subarray2_tilt"] = 0;
+	pairs["subarray2_mppt_input"] = 2;
+
+	int pvsam_errors = modify_ssc_data_and_run_module(data, "pvsamv1", pairs);
+	EXPECT_FALSE(pvsam_errors);
+
+	if (!pvsam_errors)
+	{
+		ssc_number_t annual_energy;
+		ssc_data_get_number(data, "annual_energy", &annual_energy);
+		EXPECT_NEAR(annual_energy, annual_energy_expected[0], m_error_tolerance_hi) << "Annual energy.";
+	}
+
 }
