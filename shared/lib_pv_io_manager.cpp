@@ -388,7 +388,6 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	for (size_t s = 0; s < numberOfSubarrays; s++) {
 		stringsInParallel += static_cast<int>(Subarrays[s]->nStrings);
 	}
-	AllocateOutputs(cm);
 
 	numberOfInverters = cm->as_integer("inverter_count");
 	ratedACOutput = Inverter->ratedACOutput * numberOfInverters;
@@ -507,6 +506,8 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	}
 	if (enableMismatchVoltageCalc && numberOfSubarrays <= 1)
 		throw compute_module::exec_error(cmName, "Subarray voltage mismatch calculation requires more than one subarray. Please check your inputs.");
+	
+	AllocateOutputs(cm);
 }
 
 void PVSystem_IO::AllocateOutputs(compute_module* cm)
