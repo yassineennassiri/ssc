@@ -60,17 +60,17 @@ static var_info _cm_vtab_generic_system[] = {
 //	  VARTYPE           DATATYPE         NAME                           LABEL                                 UNITS           META     GROUP                REQUIRED_IF        CONSTRAINTS           UI_HINTS
 	{ SSC_INPUT,        SSC_NUMBER,      "spec_mode",                  "Spec mode: 0=constant CF,1=profile",  "",             "",      "generic_system",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "derate",                     "Derate",                              "%",            "",      "generic_system",      "*",               "",                    "" },
-	{ SSC_INOUT,        SSC_NUMBER,      "system_capacity",         "Nameplace Capcity",                   "kW",           "",      "generic_system",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_NUMBER,      "user_capacity_factor",            "Capacity Factor",                     "%",            "",      "generic_system",      "*",               "",                    "" },
+	{ SSC_INOUT,        SSC_NUMBER,      "system_capacity",            "Nameplace Capcity",                   "kW",           "",      "generic_system",      "*",               "",                    "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "user_capacity_factor",       "Capacity Factor",                     "%",            "",      "generic_system",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "heat_rate",                  "Heat Rate",                           "MMBTUs/MWhe",  "",      "generic_system",      "*",               "",                    "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "conv_eff",                   "Conversion Efficiency",               "%",            "",      "generic_system",      "*",               "",                    "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",      "kW",          "",      "generic_system",      "*",               "",                    "" }, 
+	{ SSC_INPUT,        SSC_ARRAY,       "energy_output_array",        "Array of Energy Output Profile",      "kW",           "",      "generic_system",      "*",               "",                    "" }, 
 
 // To set enet record length to handle subhourly loads
 
 	// battery storage and dispatch
-	{ SSC_INPUT,        SSC_NUMBER,      "en_batt",                                    "Enable battery storage model",                             "0/1",     "",                     "generic_system",       "?=0",                                 "",                              "" },
-	{ SSC_INPUT,        SSC_ARRAY,       "load",                                       "Electricity load (year 1)",                                "kW", "", "generic_system", "?", "", "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "en_batt",                    "Enable battery storage model",        "0/1",          "",      "generic_system",     "?=0",              "",                    "" },
+	{ SSC_INPUT,        SSC_ARRAY,       "load",                       "Electricity load (year 1)",           "kW",           "",      "generic_system",     "?",                "",                    "" },
 
 //
 	// optional for lifetime analysis
@@ -78,7 +78,7 @@ static var_info _cm_vtab_generic_system[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "analysis_period",                             "Lifetime analysis period",                             "years",    "",                              "generic_system",             "system_use_lifetime_output=1",   "",                             "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "generic_degradation",                              "Annual module degradation",                            "%/year",   "",                              "generic_system",             "system_use_lifetime_output=1",   "",                             "" },
 
-
+	 
 
 
 //    OUTPUTS ----------------------------------------------------------------------------								      														   
@@ -126,9 +126,6 @@ public:
 		if (is32BitLifetime)
 		throw exec_error( "generic", "Lifetime simulation of generic systems is only available in the 64 bit version of SAM.");
 
-
-
-
 		ssc_number_t *enet;
 		ssc_number_t *load;
 		size_t nrec_load = 8760;
@@ -142,9 +139,10 @@ public:
 		size_t steps_per_hour_gen = steps_per_hour_load;
 		ssc_number_t ts_hour_gen = ts_hour_load;
 
-
-		size_t nyears = as_integer("analysis_period");
-		if (!system_use_lifetime_output) nyears = 1;
+		size_t nyears = 1;
+		if (system_use_lifetime_output) {
+			size_t nyears = as_integer("analysis_period");
+		}
 		size_t nlifetime = nrec_load * nyears;
 
 
@@ -301,7 +299,9 @@ public:
 			}
 
 		}
-
+		if (en_batt) {
+			batt.calculate_monthly_and_annual_outputs(*this);
+		}
 
 
 		accumulate_monthly_for_year("gen", "monthly_energy", ts_hour_gen, steps_per_hour_gen);
