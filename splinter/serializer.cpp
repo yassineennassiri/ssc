@@ -11,10 +11,10 @@
 #include <fstream>
 #include "definitions.h"
 #include "datapoint.h"
-#include <datatable.h>
-#include <bspline.h>
-#include <bsplinebasis.h>
-#include <bsplinebasis1d.h>
+#include "datatable.h"
+#include "bspline.h"
+#include "bsplinebasis.h"
+#include "bsplinebasis1d.h"
 
 namespace SPLINTER
 {

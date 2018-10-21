@@ -6,12 +6,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
-
-#include <bsplinebasis1d.h>
-#include <knots.h>
-#include <algorithm>
-#include <utilities.h>
 #include <iostream>
+#include <algorithm>
+
+#include "bsplinebasis1d.h"
+#include "knots.h""
+#include "utilities.h"
 
 namespace SPLINTER
 {

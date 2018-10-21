@@ -7,14 +7,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-#include "datatable.h"
 #include <string>
 #include <fstream>
 #include <iomanip>
 #include <stdexcept>
 #include <limits>
-#include <serializer.h>
 #include <initializer_list>
+#include "datatable.h"
+#include "serializer.h"
 
 namespace SPLINTER
 {

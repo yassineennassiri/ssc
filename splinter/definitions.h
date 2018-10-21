@@ -13,7 +13,7 @@
 
 #ifndef SPLINTER_API
 # ifdef _MSC_VER
-#  define SPLINTER_API __declspec(dllexport)
+#  define SPLINTER_API //__stdcall//__declspec(dllexport)
 # else
 #  define SPLINTER_API
 # endif
@@ -32,8 +32,32 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
 #endif
-# include <Eigen/Dense>
-# include <Eigen/Sparse>
+//# include <Eigen/Dense>
+#include "Core"
+#include "LU"
+#include "Cholesky"
+#include "QR"
+#include "SVD"
+#include "Geometry"
+#include "Eigenvalues"
+//# include <Eigen/Sparse>
+
+#include "SparseCore"
+#include "OrderingMethods"
+#include "SparseCholesky"
+#include "SparseLU"
+#include "SparseQR"
+#include "IterativeLinearSolvers"
+
+
+#include <vector>
+#include <map>
+#include <cstdlib>
+#include <cstring>
+#include <algorithm>
+
+
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif

@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-#include <function.h>
+#include "function.h"
 #include "utilities.h"
 
 namespace SPLINTER

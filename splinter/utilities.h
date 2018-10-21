@@ -12,7 +12,7 @@
 
 #include <vector>
 #include <stdlib.h> // std::abs etc
-#include <definitions.h>
+#include "definitions.h"
 
 namespace SPLINTER
 {

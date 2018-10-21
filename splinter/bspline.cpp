@@ -6,15 +6,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
+#include <iostream>
 
 #include "bspline.h"
 #include "bsplinebasis.h"
 #include "mykroneckerproduct.h"
 #include "unsupported/Eigen/KroneckerProduct"
-#include <linearsolvers.h>
-#include <serializer.h>
-#include <iostream>
-#include <utilities.h>
+#include "linearsolvers.h"
+#include "serializer.h"
+#include "utilities.h"
 
 namespace SPLINTER
 {
