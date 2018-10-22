@@ -64,6 +64,8 @@
 
 #include "lib_mlmodel.h"
 // #include "mlm_spline.h"
+#include <splinter/bsplinebuilder.h>
+#include <splinter/datatable.h>
 
 static const double k = 1.38064852e-23; // Boltzmann constant [J/K]
 static const double q = 1.60217662e-19; // Elemenatry charge [C]
@@ -99,7 +101,6 @@ mlmodel_module_t::mlmodel_module_t()
 	N_series = N_parallel = N_diodes = 0;
 
 	isInitialized = false;
-
 }
 
 // IAM functions
@@ -133,6 +134,7 @@ void mlmodel_module_t::initializeManual()
 		// set up IAM spline
 		if (IAM_mode == IAM_MODE_SPLINE)
 		{
+			/*
 			std::vector<double> X;
 			std::vector<double> Y;
 			X.clear();
@@ -142,6 +144,11 @@ void mlmodel_module_t::initializeManual()
 				Y.push_back(IAM_c_cs_iamValue[i]);
 			}
 			iamSpline.set_points(X, Y);
+			*/
+			DataTable samples;
+			for (int i = 0; i <= IAM_c_cs_elements - 1; i = i + 1) {
+				samples.addSample(IAM_c_cs_incAngle[i], IAM_c_cs_iamValue[i]);
+			m_bspline3 = BSpline::Builder(samples).degree(3).build();
 		}
 
 		isInitialized = true;
