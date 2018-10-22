@@ -59,6 +59,9 @@
     <ClCompile Include="..\test\ssc_test\cmod_pvyield_test.cpp">
       <Filter>ssc_test</Filter>
     </ClCompile>
+    <ClCompile Include="..\test\splinter_test\splinter_test.cpp">
+      <Filter>splinter_test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="shared_test">
@@ -72,6 +75,9 @@
     </Filter>
     <Filter Include="ssc_test">
       <UniqueIdentifier>{a72ae90f-81f5-484b-95a8-e25e2bff9289}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="splinter_test">
+      <UniqueIdentifier>{78c67605-530a-461c-b2d5-b825016c9ef4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

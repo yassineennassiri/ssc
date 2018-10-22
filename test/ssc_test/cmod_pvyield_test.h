@@ -11,7 +11,7 @@
 /**
  * Used to test PVYield data from Timo to address ssc issue 26
  */
-class CMPvYieldTimo : public ::testing::Test{
+class PVYieldTimo : public ::testing::Test{
 
 public:
 

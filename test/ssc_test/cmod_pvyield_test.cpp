@@ -6,7 +6,7 @@
 
 
 /// Test PVSAMv1 with inputs from PVYield
-TEST_F(CMPvYieldTimo, DefaultTimoModel)
+TEST_F(PVYieldTimo, DefaultTimoModel)
 {
 
 	ssc_data_t data = ssc_data_create();
