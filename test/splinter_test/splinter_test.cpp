@@ -3,8 +3,8 @@
 #include <splinter/bspline.h>
 #include <splinter/bsplinebuilder.h>
 
-using std::cout;
-using std::endl;
+//using std::cout;
+//using std::endl;
 
 using namespace SPLINTER;
 
@@ -56,10 +56,21 @@ TEST(splinterTests, testCamelback)
 	 * in favor of a smooth approximation) because it is a point we sampled at.
 	 */
 	x(0) = 0.35; x(1) = 1.68;
+	double func_val = f(x);
+	double lin_spline = bspline1.eval(x);
+	double cubic_spline = bspline3.eval(x);
+	double p_spline = pspline.eval(x);
+
+	EXPECT_NEAR(lin_spline, func_val, 0.15) << "Linear Spline";
+	EXPECT_NEAR(cubic_spline, func_val, 0.01) << "Cubic Spline";
+	EXPECT_NEAR(p_spline, func_val, 0.1) << "P Spline";
+
+	/*
 	cout << "-----------------------------------------------------" << endl;
 	cout << "Function at x:                 " << f(x) << endl;
 	cout << "Linear B-spline at x:          " << bspline1.eval(x) << endl;
 	cout << "Cubic B-spline at x:           " << bspline3.eval(x) << endl;
 	cout << "P-spline at x:                 " << pspline.eval(x) << endl;
 	cout << "-----------------------------------------------------" << endl;
+	*/
 }
