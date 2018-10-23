@@ -124,10 +124,10 @@ public:
     void save(const std::string &fileName) const override;
 
     std::string getDescription() const override;
+	BSpline();
 
 protected:
-    BSpline();
-
+ 
     BSplineBasis basis;
 
     /*

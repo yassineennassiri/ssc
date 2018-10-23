@@ -54,7 +54,7 @@
 
 #include "lib_pvmodel.h"
 //#include "mlm_spline.h"
-#include <splinter/bspline.h>
+#include "bspline.h"
 
 using namespace SPLINTER;
 

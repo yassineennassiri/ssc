@@ -59,6 +59,9 @@
 #include <stdexcept>
 
 #include "lib_ondinv.h"
+#include "bsplinebuilder.h"
+#include "datatable.h"
+
 
 const int TEMP_DERATE_ARRAY_LENGTH = 6;
 // test commit
@@ -216,6 +219,8 @@ void ond_inverter::initializeManual()
 		Pdc_threshold = 2;
 		std::vector<double> ondspl_X[2];
 		std::vector<double> ondspl_Y[2];
+		DenseVector xSamples(1);
+		DataTable samples[2];
 		int splineIndex;
 //		bool switchoverDone;
 
@@ -268,6 +273,7 @@ void ond_inverter::initializeManual()
 					ondspl_Y[splineIndex].push_back(effCurve_eta[j][i]);
 				}
 			}
+			/* Spline
 			bool doCubicSpline[2];
 			doCubicSpline[0] = true;
 			doCubicSpline[1] = true;
@@ -276,6 +282,24 @@ void ond_inverter::initializeManual()
 					effSpline[i][j].set_points(ondspl_X[i], ondspl_Y[i], doCubicSpline[i]);
 				}
 			}
+			*/
+			// SPLINTER
+			samples[0].clear();
+			samples[1].clear();
+			for (int i = 0; i <= 1; i = i + 1)
+			{
+				if (i == 0 || (i == 1 && Pdc_threshold < 0.8))
+				{
+					for (size_t k = 0; k < ondspl_X[i].size() && k < ondspl_Y[i].size(); k++)
+					{
+						xSamples(0) = ondspl_X[i][k];
+						samples[i].addSample(xSamples, ondspl_Y[i][k]);
+					}
+					m_bspline3[i][j] = BSpline::Builder(samples[i]).degree(3).build();
+				}
+			}
+
+
 		}
 		ondIsInitialized = true;
 	}
@@ -284,6 +308,7 @@ void ond_inverter::initializeManual()
 double ond_inverter::calcEfficiency(double Pdc, int index_eta) {
 	double eta;
 	int splineIndex;
+	DenseVector x(1);
 	if (Pdc > (Pdc_threshold * PNomDC_eff)) {
 		splineIndex = 1;
 	}
@@ -297,7 +322,9 @@ double ond_inverter::calcEfficiency(double Pdc, int index_eta) {
 		eta = 0;
 	}
 	else if (Pdc >= x_lim[index_eta]) {
-		eta = effSpline[splineIndex][index_eta](Pdc);
+//		eta = effSpline[splineIndex][index_eta](Pdc);
+		x(0) = Pdc;
+		eta = (m_bspline3[splineIndex][index_eta]).eval(x);
 	}
 	else {
 		eta = a[index_eta] * atan(b[index_eta] * Pdc / PNomDC_eff);

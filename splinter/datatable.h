@@ -58,6 +58,8 @@ public:
 
     void save(const std::string &fileName) const;
 
+	void clear() { samples.clear(); }
+
 private:
     bool allowDuplicates;
     bool allowIncompleteGrid;
