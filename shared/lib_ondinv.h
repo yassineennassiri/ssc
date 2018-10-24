@@ -131,7 +131,9 @@ private:
 
 	int noOfEfficiencyCurves;
 //	tk::spline effSpline[2][3];
-	BSpline m_bspline3[2][3];
+//	BSpline m_bspline3[2][3];
+	BSpline m_bspline3[3];
+	double x_max[3];
 	double x_lim[3];
 	double Pdc_threshold;
 	double a[3];

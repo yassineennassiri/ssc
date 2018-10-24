@@ -58,7 +58,7 @@ public:
 
     void save(const std::string &fileName) const;
 
-	void clear() { samples.clear(); }
+	void clear() { samples.clear(); grid.clear(); }
 
 private:
     bool allowDuplicates;

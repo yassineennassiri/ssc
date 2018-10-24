@@ -58,7 +58,6 @@
     <ClInclude Include="..\shared\lib_wind_obos.h" />
     <ClInclude Include="..\shared\lib_wind_obos_cable_vessel.h" />
     <ClInclude Include="..\shared\lsqfit.h" />
-    <ClInclude Include="..\shared\mlm_spline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\lib_battery.cpp" />
@@ -94,7 +93,6 @@
     <ClCompile Include="..\shared\lib_wind_obos.cpp" />
     <ClCompile Include="..\shared\lib_wind_obos_cable_vessel.cpp" />
     <ClCompile Include="..\shared\lsqfit.cpp" />
-    <ClCompile Include="..\shared\mlm_spline.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{794A2685-B70E-4504-9402-AC376D4EB459}</ProjectGuid>

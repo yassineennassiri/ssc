@@ -217,11 +217,11 @@ void ond_inverter::initializeManual()
 		//	}
 		//}
 		Pdc_threshold = 2;
-		std::vector<double> ondspl_X[2];
-		std::vector<double> ondspl_Y[2];
+		std::vector<double> ondspl_X;
+		std::vector<double> ondspl_Y;
 		DenseVector xSamples(1);
-		DataTable samples[2];
-		int splineIndex;
+		DataTable samples;
+//		int splineIndex;
 //		bool switchoverDone;
 
 		if (VNomEff[2] > 0) {
@@ -232,16 +232,17 @@ void ond_inverter::initializeManual()
 		}
 
 		for (int j = 0; j <= noOfEfficiencyCurves - 1; j = j + 1) {
-			splineIndex = 0;
+//			splineIndex = 0;
 //			switchoverDone = false;
-			ondspl_X[0].clear();
-			ondspl_Y[0].clear();
-			ondspl_X[1].clear();
-			ondspl_Y[1].clear();
+			ondspl_X.clear();
+			ondspl_Y.clear();
 			double atX[3];
 			double atY[3];
 			const int MAX_ELEMENTS = 100; // = effCurve_elements + 5;
-			for (int i = 0; i <= MAX_ELEMENTS - 1; i = i + 1) {
+//			x_lim[j] = effCurve_Pdc[j][0];
+			for (int i = 0; i <= MAX_ELEMENTS - 1; i++) 
+			{
+				
 				if (i <= 2) { // atan
 							  // atan
 					atX[i] = effCurve_Pdc[j][i];
@@ -268,9 +269,11 @@ void ond_inverter::initializeManual()
 						}
 					}
 				}
-				if (i >= 2 && i <= 99 && (effCurve_Pdc[j][i] > 0 && effCurve_eta[j][i] > 0)) { // spline
-					ondspl_X[splineIndex].push_back(effCurve_Pdc[j][i]);
-					ondspl_Y[splineIndex].push_back(effCurve_eta[j][i]);
+				// include overlap at i=2
+				if ((i >=2 && i < MAX_ELEMENTS) && (effCurve_Pdc[j][i] > 0))// && effCurve_eta[j][i] > 0)) 
+				{ // spline
+					ondspl_X.push_back(effCurve_Pdc[j][i]);
+					ondspl_Y.push_back(effCurve_eta[j][i]);
 				}
 			}
 			/* Spline
@@ -284,21 +287,14 @@ void ond_inverter::initializeManual()
 			}
 			*/
 			// SPLINTER
-			samples[0].clear();
-			samples[1].clear();
-			for (int i = 0; i <= 1; i = i + 1)
+			samples.clear();
+			x_max[j] = ondspl_X.back();
+			for (size_t k = 0; k < ondspl_X.size() && k < ondspl_Y.size(); k++)
 			{
-				if (i == 0 || (i == 1 && Pdc_threshold < 0.8))
-				{
-					for (size_t k = 0; k < ondspl_X[i].size() && k < ondspl_Y[i].size(); k++)
-					{
-						xSamples(0) = ondspl_X[i][k];
-						samples[i].addSample(xSamples, ondspl_Y[i][k]);
-					}
-					m_bspline3[i][j] = BSpline::Builder(samples[i]).degree(3).build();
-				}
+				xSamples(0) = ondspl_X[k];
+				samples.addSample(xSamples, ondspl_Y[k]);
 			}
-
+			m_bspline3[j] = BSpline::Builder(samples).degree(3).build();
 
 		}
 		ondIsInitialized = true;
@@ -309,24 +305,31 @@ double ond_inverter::calcEfficiency(double Pdc, int index_eta) {
 	double eta;
 	int splineIndex;
 	DenseVector x(1);
-	if (Pdc > (Pdc_threshold * PNomDC_eff)) {
-		splineIndex = 1;
-	}
-	else {
-		splineIndex = 0;
-	}
-	if (Pdc > PMaxDC_eff) {
-		Pdc = PMaxDC_eff;
+//	if (Pdc > (Pdc_threshold * PNomDC_eff)) {
+//		splineIndex = 1;
+//	}
+//	else {
+//		splineIndex = 0;
+//	}
+//	if (Pdc > PMaxDC_eff)
+//	{
+//		Pdc = PMaxDC_eff;
+//	}
+	if (Pdc > x_max[index_eta])
+	{
+		Pdc = x_max[index_eta];
 	}
 	if (Pdc <= 0) {
 		eta = 0;
 	}
-	else if (Pdc >= x_lim[index_eta]) {
+	else if (Pdc >= x_lim[index_eta]) 
+	{
 //		eta = effSpline[splineIndex][index_eta](Pdc);
 		x(0) = Pdc;
-		eta = (m_bspline3[splineIndex][index_eta]).eval(x);
+		eta = (m_bspline3[index_eta]).eval(x);
 	}
-	else {
+	else 
+	{
 		eta = a[index_eta] * atan(b[index_eta] * Pdc / PNomDC_eff);
 	}
 	return eta;
