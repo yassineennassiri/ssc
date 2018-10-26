@@ -37,8 +37,17 @@ PVIOManager::PVIOManager(compute_module*  cm, std::string cmName)
 	std::unique_ptr<PVSystem_IO> pvSystem(new PVSystem_IO(cm, cmName, m_SimulationIO.get(), m_IrradianceIO.get(), getSubarrays(), m_InverterIO.get()));
 	m_PVSystemIO = std::move(pvSystem);
 
+	// Allocate outputs, moved to here due to previous difficult to debug crashes due to misallocation
+	allocateOutputs(cm);
+
 	m_computeModule = cm;
 	m_computeModuleName = cmName;
+}
+
+void PVIOManager::allocateOutputs(compute_module* cm)
+{
+	m_IrradianceIO->AllocateOutputs(cm);
+	m_PVSystemIO->AllocateOutputs(cm);
 }
 
 Irradiance_IO * PVIOManager::getIrradianceIO()  { return m_IrradianceIO.get(); }
@@ -66,6 +75,7 @@ Simulation_IO::Simulation_IO(compute_module* cm, Irradiance_IO & IrradianceIO)
 	stepsPerHour = IrradianceIO.stepsPerHour;
 	dtHour = IrradianceIO.dtHour;
 
+	useLifetimeOutput = false;
 	if (cm->is_assigned("system_use_lifetime_output")) useLifetimeOutput = cm->as_integer("system_use_lifetime_output");
 	numberOfYears = 1;
 	if (useLifetimeOutput) {
@@ -135,7 +145,6 @@ Irradiance_IO::Irradiance_IO(compute_module* cm, std::string cmName)
 	userSpecifiedMonthlyAlbedo = cm->as_vector_double("albedo");
 	
 	checkWeatherFile(cm, cmName);
-	AllocateOutputs(cm);
 }
 
 void Irradiance_IO::checkWeatherFile(compute_module * cm, std::string cmName)
@@ -267,14 +276,36 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		nStrings = cm->as_integer(prefix + "nstrings");
 		nModulesPerString = cm->as_integer(prefix + "modules_per_string");
 		mpptInput = cm->as_integer(prefix + "mppt_input");
-		tiltDegrees = fabs(cm->as_double(prefix + "tilt"));
-		azimuthDegrees = cm->as_double(prefix + "azimuth");
 		trackMode = cm->as_integer(prefix + "track_mode");
+		tiltEqualLatitude = 0; 
+		if (cm->is_assigned(prefix + "tilt_eq_lat")) tiltEqualLatitude = cm->as_boolean(prefix + "tilt_eq_lat");
+
+		//tilt required for fixed tilt, single axis, and azimuth axis- can't check for this in variable table so check here
+		tiltDegrees = std::numeric_limits<double>::quiet_NaN();
+		if (trackMode == FIXED_TILT || trackMode == SINGLE_AXIS || trackMode == AZIMUTH_AXIS)
+			if (!tiltEqualLatitude && !cm->is_assigned(prefix + "tilt"))
+				throw compute_module::exec_error(cmName, "Subarray " + util::to_string((int)subarrayNumber) + " tilt required but not assigned.");
+		if (cm->is_assigned(prefix + "tilt")) tiltDegrees = fabs(cm->as_double(prefix + "tilt"));
+		//monthly tilt required if seasonal tracking mode selected- can't check for this in variable table so check here
+		if (trackMode == SEASONAL_TILT && !cm->is_assigned(prefix + "monthly_tilt"))
+			throw compute_module::exec_error(cmName, "Subarray " + util::to_string((int)subarrayNumber) + " monthly tilt required but not assigned.");
+		if (cm->is_assigned(prefix + "monthly_tilt")) monthlyTiltDegrees = cm->as_vector_double(prefix + "monthly_tilt");
+		//azimuth required for fixed tilt, single axis, and seasonal tilt- can't check for this in variable table so check here
+		azimuthDegrees = std::numeric_limits<double>::quiet_NaN();
+		if (trackMode == FIXED_TILT || trackMode == SINGLE_AXIS || trackMode == SEASONAL_TILT)
+			if (!cm->is_assigned(prefix + "azimuth"))
+				throw compute_module::exec_error(cmName, "Subarray " + util::to_string((int)subarrayNumber) + " azimuth required but not assigned.");
+		if (cm->is_assigned(prefix + "azimuth")) azimuthDegrees = cm->as_double(prefix + "azimuth");
+
 		trackerRotationLimitDegrees = cm->as_double(prefix + "rotlim");
-		tiltEqualLatitude = cm->as_boolean(prefix + "tilt_eq_lat");
 		groundCoverageRatio = cm->as_double(prefix + "gcr");
-		monthlyTiltDegrees = cm->as_vector_double(prefix + "monthly_tilt");
-		backtrackingEnabled = cm->as_boolean(prefix + "backtrack");
+
+		//check that backtracking input is assigned here because cannot check in the variable table
+		backtrackingEnabled = 0;
+		if (trackMode == SINGLE_AXIS)
+			if (!cm->is_assigned(prefix + "backtrack"))
+				throw compute_module::exec_error(cmName, "Subarray " + util::to_string((int)subarrayNumber) + " backtrack required but not assigned.");
+		if (cm->is_assigned(prefix + "backtrack")) backtrackingEnabled = cm->as_boolean(prefix + "backtrack");
 		moduleAspectRatio = cm->as_double("module_aspect_ratio");
 		usePOAFromWeatherFile = false;
 
@@ -313,10 +344,9 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 		}
 		
 		shadeMode = cm->as_integer(prefix + "shade_mode");
-		
-		selfShadingInputs.mod_orient = cm->as_integer(prefix + "mod_orient");
-		selfShadingInputs.nmody = cm->as_integer(prefix + "nmody");
-		selfShadingInputs.nmodx = cm->as_integer(prefix + "nmodx");
+		selfShadingInputs.mod_orient = cm->as_integer(prefix + "mod_orient"); //although these inputs are stored in self-shading structure, they are also used for snow model and bifacial model, so required for all enabled subarrays
+		selfShadingInputs.nmody = cm->as_integer(prefix + "nmody"); //same as above
+		selfShadingInputs.nmodx = cm->as_integer(prefix + "nmodx"); //same as above
 		selfShadingInputs.nstrx = selfShadingInputs.nmodx / nModulesPerString;
 		poa.nonlinearDCShadingDerate = 1;
 
@@ -351,7 +381,7 @@ Subarray_IO::Subarray_IO(compute_module* cm, std::string cmName, size_t subarray
 			if (trackMode == SEASONAL_TILT)
 				throw compute_module::exec_error(cmName, "Time-series tilt input may not be used with the snow model at this time: subarray " + util::to_string((int)(subarrayNumber)));
 			// if tracking mode is 1-axis tracking, don't need to limit tilt angles
-			if (snowModel.setup(selfShadingInputs.nmody, (float)tiltDegrees), !(trackMode == FIXED_TILT)) {
+			if (snowModel.setup(selfShadingInputs.nmody, (float)tiltDegrees, (trackMode != SINGLE_AXIS))) {
 				if (!snowModel.good) {
 					cm->log(snowModel.msg, SSC_ERROR);
 				}
@@ -409,24 +439,24 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	// Register shared inverter with inverter_IO
 	InverterIO->setupSharedInverter(cm, m_sharedInverter.get());
 
-	// PV Degradation
+	// PV Degradation, place into intermediate variable since pointer outputs are not allocated yet
 	if (Simulation->useLifetimeOutput)
 	{
 		std::vector<double> dc_degrad = cm->as_vector_double("dc_degradation");
 
 		// degradation assumed to start at year 2
-		p_dcDegradationFactor[0] = 1.0;
-		p_dcDegradationFactor[1] = 1.0;
+		dcDegradationFactor.push_back(1.0);
+		dcDegradationFactor.push_back(1.0);
 
 		if (dc_degrad.size() == 1)
 		{
 			for (size_t i = 1; i < Simulation->numberOfYears ; i++)
-				p_dcDegradationFactor[i + 1] = (ssc_number_t)pow((1.0 - dc_degrad[0] / 100.0), i);
+				dcDegradationFactor.push_back(pow((1.0 - dc_degrad[0] / 100.0), i));
 		}
 		else if (dc_degrad.size() > 0)
 		{
 			for (size_t i = 1; i < Simulation->numberOfYears && i < dc_degrad.size(); i++)
-				p_dcDegradationFactor[i + 1] = (ssc_number_t)(1.0 - dc_degrad[i] / 100.0);
+				dcDegradationFactor.push_back(1.0 - dc_degrad[i] / 100.0);
 		}
 
 		//read in optional DC and AC lifetime daily losses, error check length of arrays
@@ -504,9 +534,6 @@ PVSystem_IO::PVSystem_IO(compute_module* cm, std::string cmName, Simulation_IO *
 	}
 	if (enableMismatchVoltageCalc && numberOfSubarrays <= 1)
 		throw compute_module::exec_error(cmName, "Subarray voltage mismatch calculation requires more than one subarray. Please check your inputs.");
-
-	// Always perform at the end!
-	AllocateOutputs(cm);
 }
 
 void PVSystem_IO::AllocateOutputs(compute_module* cm)
