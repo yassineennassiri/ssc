@@ -76,6 +76,7 @@ static var_info _cm_vtab_validate_pc_tables[] = {
     { SSC_INPUT,    SSC_NUMBER,     "load_validation_data", "Load validation data set from basis model?",             "",           "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_beta",          "The interp. parameter beta, between [1, 1.99] def. 1.5", "%",          "",    "",      "*",     "",       "" },
     { SSC_INPUT,    SSC_NUMBER,     "interp_perc_err",      "The percent error of the interpolation points",         "%",           "",    "",      "*",     "",       "" },
+    { SSC_INPUT,    SSC_NUMBER,     "require_ff",           "Ensure values make up a full factorial, not wanted for cross-validation", "-", "", "", "*",     "",       "" },
     // Cycle Design
     { SSC_INPUT,    SSC_NUMBER,     "cycle_config",         "Cycle configuration, 1=recompression, 2=partial cooling", "-",         "",    "",      "*",     "",       "" },
     // PHX Design
@@ -523,8 +524,9 @@ public:
 
         // Populate training set and train model
         try {
-            trilinear_setup(W_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, W_dot_basis_ff);
-            trilinear_setup(Q_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, Q_dot_basis_ff);
+            bool require_ff = as_boolean("require_ff");
+            trilinear_setup(W_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, W_dot_basis_ff, require_ff);
+            trilinear_setup(Q_resp_table, T_htf_hot_ff, m_dot_ND_ff, T_amb_ff, Q_dot_basis_ff, require_ff);
         }
         catch (exec_error err) {
             throw err;
@@ -905,7 +907,7 @@ public:
     }
 
     int trilinear_setup(Trilinear_Interp &response_table, const std::vector<double> x, const std::vector<double> y,
-        const std::vector<double> z, const std::vector<double> resp) {
+        const std::vector<double> z, const std::vector<double> resp, const bool require_ff = 1) {
         //bool (*sort_fun)(std::vector<double>, std::vector<double>)
 
         // Check vectors for equal length
@@ -942,7 +944,7 @@ public:
 
         // check for complete full factorial
         // TODO - maybe do a more thorough check?
-        if (n_x_unique * n_y_unique * n_z_unique != var_tab.size()) {
+        if (require_ff && n_x_unique * n_y_unique * n_z_unique != var_tab.size()) {
             string err_msg = "Input vectors for trilinear interpolation do not make a full-factorial";
             log(err_msg, SSC_ERROR, -1.0);
             throw exec_error("validate_pc_tables", err_msg);
