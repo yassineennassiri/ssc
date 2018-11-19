@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\test\input_cases\code_generator_utilities.h" />
-	<ClInclude Include="..\test\input_cases\fuelcell_common_data.h" />
+    <ClInclude Include="..\test\input_cases\fuelcell_common_data.h" />
     <ClInclude Include="..\test\input_cases\pvsamv1_cases.h" />
     <ClInclude Include="..\test\input_cases\pvsamv1_common_data.h" />
     <ClInclude Include="..\test\input_cases\pvwattsv5_cases.h" />
@@ -59,6 +59,7 @@
     <ClInclude Include="..\test\shared_test\lib_battery_powerflow_test.h" />
     <ClInclude Include="..\test\shared_test\lib_fuel_cell_test.h" />
     <ClInclude Include="..\test\shared_test\lib_irradproc_test.h" />
+    <ClInclude Include="..\test\shared_test\lib_singleton_test.h" />
     <ClInclude Include="..\test\shared_test\lib_windwakemodel_test.h" />
     <ClInclude Include="..\test\ssc_test\cmod_fuelcell_test.h" />
     <ClInclude Include="..\test\ssc_test\cmod_pvsamv1_test.h" />
