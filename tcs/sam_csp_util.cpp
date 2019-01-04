@@ -333,7 +333,6 @@ double CSP::skytemp(double T_amb_K, double T_dp_K, double hour){
 	*/
 
 	double T_dpC, time;
-	double pi=acos(-1.);
 
 	//express "time" in terms of an angle  [rad]
 	time = hour*15.*pi/180.;
@@ -388,6 +387,7 @@ double CSP::Nusselt_FC( double ksDin, double Re )
 	int rerun = 0;
 
 	double Nu_FC, ValHi, ValLo, Nu_Lo, Nu_Hi, ValHi2, ValLo2;
+	Nu_FC = ValHi = ValLo = Nu_Lo = Nu_Hi = ValHi2 = ValLo2 = 0;
 	// Select the bounding conditions
 	
 	bool repeat_loop = true;
@@ -943,8 +943,8 @@ void CSP::HybridHR( int tech_type, double P_cond_min, int n_pl_inc, double F_wc,
 				i++;
 				//Reduce just wet cooled
 				f_hrsyswc = (1.0 - (float)((i-1.0)/n_pl_inc));
-				double m_dot_cw = m_dot_cw_des*f_hrsyswc;
-				DeltaT_cw = q_wc_rej/(m_dot_cw*c_cw);
+				double m_dot_cw_0 = m_dot_cw_des*f_hrsyswc;
+				DeltaT_cw = q_wc_rej/(m_dot_cw_0*c_cw);
 				T_condwc = T_wb + DeltaT_cw + T_hot_diff + T_approach;
 			}
 			else
@@ -953,13 +953,13 @@ void CSP::HybridHR( int tech_type, double P_cond_min, int n_pl_inc, double F_wc,
 				j++;
 				//Reduce both wet and dry cooled
 				f_hrsysair = (1.0 - (float)((j-1.0)/n_pl_inc));
-				double m_dot_acair = m_dot_acair_des*f_hrsysair;
-				dT_air = q_ac_rej/(m_dot_acair*C_air);
+				double m_dot_acair_1 = m_dot_acair_des*f_hrsysair;
+				dT_air = q_ac_rej/(m_dot_acair_1*C_air);
 				T_condair = T_db + dT_air + T_hot_diff;
 				//--
 				f_hrsyswc = (1.0 - (float)((i-1.0)/n_pl_inc));
-				double m_dot_cw = m_dot_cw_des*f_hrsyswc;
-				DeltaT_cw = q_wc_rej/(m_dot_cw*c_cw);
+				double m_dot_cw_1 = m_dot_cw_des*f_hrsyswc;
+				DeltaT_cw = q_wc_rej/(m_dot_cw_1*c_cw);
 				T_condwc = T_wb + DeltaT_cw + T_hot_diff + T_approach;
 			}
 
@@ -1089,7 +1089,7 @@ void CSP::HybridHR( int tech_type, double P_cond_min, int n_pl_inc, double F_wc,
 
 
 // Surface condenser calculations for once through cooling ARD
-void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double DeltaT_cw_des, double T_approach, double P_cycle,
+void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double DeltaT_cw_des, double , double P_cycle,
 	double eta_ref, double T_db_K, double T_wb_K, double P_amb, double T_cold, double q_reject, double &m_dot_water,
 	double &W_dot_tot, double &P_cond, double &T_cond, double &f_hrsys, double &T_cond_out)
 {
@@ -1128,15 +1128,15 @@ void CSP::surface_cond(int tech_type, double P_cond_min, int n_pl_inc, double De
 
 	// Values that can be estimated
 	double dt_out = 3.0;				// Temperature difference at hot side of the condenser
-	double drift_loss_frac = 0.001;    // Drift loss fraction
-	double blowdown_frac = 0.003;      // Blowdown fraction
+	//double drift_loss_frac = 0.001;    // Drift loss fraction
+	//double blowdown_frac = 0.003;      // Blowdown fraction
 	double dp_evap = 0.37*1.0e5;       // [Pa] Pressure drop across the condenser and cooling tower
 	double eta_pump = 0.75;            // Total pump efficiency
 	double eta_pcw_s = 0.8;            // Isentropic cooling water pump efficiency
-	double eta_fan = 0.75;             // Fan mechanical efficiency
-	double eta_fan_s = 0.8;            // Fan isentropic efficiency
-	double p_ratio_fan = 1.0025;       // Fan pressure ratio
-	double mass_ratio_fan = 1.01;      // Ratio of air flow to water flow in the cooling tower
+	//double eta_fan = 0.75;             // Fan mechanical efficiency
+	//double eta_fan_s = 0.8;            // Fan isentropic efficiency
+	//double p_ratio_fan = 1.0025;       // Fan pressure ratio
+	//double mass_ratio_fan = 1.01;      // Ratio of air flow to water flow in the cooling tower
 
 	// Cooling water specific heat
 	water_state wp;
@@ -1269,7 +1269,7 @@ double CSP::pipe_sched(double De, bool selectLarger)
         "Consider increasing the header design velocity range or the number of field subsections.",
         De*mtoinch, D_m[np - 1] * mtoinch);
     throw std::invalid_argument(buffer);
-    return De;  //mjw 10/10/2014 - NO! ---> std::numeric_limits<double>::quiet_NaN();
+    //return De;  //mjw 10/10/2014 - NO! ---> std::numeric_limits<double>::quiet_NaN();
 }
 
 double CSP::WallThickness(double d_in) {
@@ -1765,6 +1765,8 @@ void Evacuated_Receiver::FQ_34CONV(double T_3, double T_4, double P_6, double v_
 		  k_36, nu_36, alpha_36, beta_36, Pr_36, h_36, mu_3, mu_6, k_3, k_6, cp_3, Cp_6, nu_6, nu_3,
 		  Alpha_3, alpha_6, Re_D3, Pr_3, Pr_6, Natq_34conv, Kineticq_34conv;
 
+	// initialize to zero based on C4701 compiler warning
+	C = m = 0;
 	grav = 9.81; //m/s2  gravitation constant
 
 	P_A1 = m_P_a(hn,hv) * 133.322368;  //convert("torr", "Pa")  //[Pa]
@@ -1987,6 +1989,9 @@ double alpha_5, alpha_6, C, Cp_5, Cp_56, Cp_6, k_5, k_56, k_6, m, mu_5, mu_56, m
 			nu_5, nu_6, Pr_5, Pr_6, Re_D5, rho_5, rho_56, rho_6, T_56, Nu_bar,
 			nu_56, alpha_56, beta_56, Ra_D5, Pr_56;
 
+	// initialize to zero based on C4701 compiler warning
+	C = m = 0;
+
 	T_56 = (T_5 + T_6)/2.0;  //[K]
 
 	// Thermophysical Properties for air 
@@ -2097,6 +2102,8 @@ double Evacuated_Receiver::FQ_COND_BRACKET(double T_3, double T_6, double P_6, d
 			mu_brac, mu_6, rho_6, rho_brac, k_6, Cp_brac, nu_6, Cp_6, Nu_brac, Alpha_brac,
 			Re_Dbrac, Pr_brac, Pr_6, n, C, m, L_HCE, alpha_6;
 
+	// Initialize to 0 based on C4701 compiler warning
+	C = m = 0;
 
 	// effective bracket perimeter for convection heat transfer
 	P_brac = 0.2032;  //[m]

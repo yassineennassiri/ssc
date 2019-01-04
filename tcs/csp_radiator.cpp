@@ -187,7 +187,6 @@ void C_csp_radiator::analytical_panel_calc(double T_db /*K*/, double Tin /*K*/, 
 
 					//Free convection & combination of free / forced convection considerations
 					double Nusselt_free_t = 0.13 *pow(Ra,(1. / 3.));		//Correlation for free convection from heated plate.
-					double h_free_t = Nusselt_free_t * k_air / L_c_free;	//Related free convection h.
 					double Nusselt_forc_t = h_forc_t * Lc / k_air;			//Nusselt number related to forced convection correlation h.
 					double m_conv = 3.5;									//Constant for combining free & forced convection.
 					double Nusselt_tot_t = pow((c_free*pow(Nusselt_free_t,m_conv) + c_force * pow(Nusselt_forc_t,m_conv)) , (1 / m_conv));  //Combined free & forced convection.
@@ -229,7 +228,6 @@ void C_csp_radiator::analytical_panel_calc(double T_db /*K*/, double Tin /*K*/, 
 		double Qu = FR * A_c*ULad*(Tin - Tad);																		//Heat
 		T_rad_out = Tin - Qu / (m_dot*cp);																			//Outlet temperature
 		Tp = Qu / (ULad*A_c) + Tad;																			//Plate temperature
-		double Tpa = 0.5*(Tp+T_db);																				//Updated value for average of plate & ambient temperature.
 
 		//Pumping
 		W_radpump = (ms_params.radfield_dp*ms_params.m_dot_panel*ms_params.Np) / (rho_water*0.75*0.85)/1000;	//MWe pumping power when radiator field is operating. Isentropic eff = 0.75 and Mechanical pump eff = 0.85.
@@ -356,7 +354,6 @@ void C_csp_radiator::analytical_panel_calc_HX(double T_db /*K*/, double Tin /*K*
 
 	//Free convection & combination of free / forced convection considerations
 	double Nusselt_free_t = 0.13 *pow(Ra, (1. / 3.));		//Correlation for free convection from heated plate.
-	double h_free_t = Nusselt_free_t * k_air / L_c_free;	//Related free convection h.
 	double Nusselt_forc_t = h_forc_t * Lc / k_air;			//Nusselt number related to forced convection correlation h.
 	double m_conv = 3.5;									//Constant for combining free & forced convection.
 	double Nusselt_tot_t = pow((c_free*pow(Nusselt_free_t, m_conv) + c_force * pow(Nusselt_forc_t, m_conv)), (1 / m_conv));  //Combined free & forced convection.
@@ -379,7 +376,7 @@ void C_csp_radiator::analytical_panel_calc_HX(double T_db /*K*/, double Tin /*K*
 
 	//Fluid properties within tube - using inlet temperature of water side of HX - this is approximate for glygcol temperature
 	int idx_props =static_cast<int>(Tin - 273.15) - T_PG20[0][0] + 1; //Truncate temperature to degree [C] and get index in EG property data as provided based on starting point of that property data.
-	int idx_props_check= std::numeric_limits<double>::quiet_NaN();	  //In case temperature is at an extreme end, use next closest value.
+	int idx_props_check= std::numeric_limits<int>::quiet_NaN();	  //In case temperature is at an extreme end, use next closest value.
 	if (idx_props > 67) 
 	{
 		idx_props_check = 67;	
@@ -437,7 +434,6 @@ void C_csp_radiator::analytical_panel_calc_HX(double T_db /*K*/, double Tin /*K*
 	//double T_panel_out = Tin - Qu /(epsilon_HX*CMIN);															//Outlet temperature from radiator panel (glycol)
 	T_rad_out = Tin - Qu*Np / (m_dot_water*cp_water);															//Outlet temperature of water side of HX. Because this flow rate is full for all panels through HX, need to multiply Qu by Np.
 	Tp = Qu / (ULad*A_c) + Tad;																					//Plate temperature
-	double Tpa = 0.5*(Tp + T_db);																				//Updated value for average of plate & ambient temperature.
 	//Pumping
 	W_radpump = (ms_params.radfield_dp*ms_params.m_dot_panel*ms_params.Np) / (rho_fluid*0.75*0.85) / 1000;	//MWe pumping power when radiator field is operating. Isentropic eff = 0.75 and Mechanical pump eff = 0.85.
 

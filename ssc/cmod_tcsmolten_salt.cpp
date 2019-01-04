@@ -701,10 +701,10 @@ public:
 				vector<vector<double> > steps;
 				vector<double> obj, flux;
 				spi.getOptimizationSimulationHistory(steps, obj, flux);
-				int nr = steps.size();
+				size_t nr = steps.size();
 				if (nr > 0)
 				{
-					int nc = steps.front().size() + 2;
+					size_t nc = steps.front().size() + 2;
 					ssc_number_t *ssc_hist = allocate("opt_history", nr, nc);
 					for (int i = 0; i<nr; i++){
 
@@ -791,7 +791,7 @@ public:
 		{
 			// only calculates a flux map, so need to "assign" 'helio_positions_in'
 			util::matrix_t<double> helio_pos_temp = as_matrix("helio_positions");
-			int n_h_rows = helio_pos_temp.nrows();
+			size_t n_h_rows = helio_pos_temp.nrows();
 			ssc_number_t *p_helio_positions_in = allocate("helio_positions_in", n_h_rows, 2);
 			for (int i = 0; i < n_h_rows; i++)
 			{
@@ -1145,7 +1145,7 @@ public:
 				double T_rec_htf_cold = as_double("T_htf_cold_des");				//[C]
 				if (T_htf_cold_calc != T_rec_htf_cold)
 				{
-					assign("T_htf_cold_des", T_htf_cold_calc);							//[C]
+					assign("T_htf_cold_des", (ssc_number_t)T_htf_cold_calc);							//[C]
 					log(util::format("\nThe user input receiver design HTF cold temperature, %lg [C], was reset"
 						" to the calculated sCO2 cycle HTF cold return temperature, %lg [C]\n", T_rec_htf_cold, T_htf_cold_calc), SSC_WARNING);
 				}
@@ -1160,7 +1160,7 @@ public:
 					log(util::format("The user input cutoff fraction, %lg, was reset to the minimum allowable cutoff fraction"
 						" for this sCO2 cycle off-design model, %lg\n", cycle_cutoff_frac_sys, cycle_cutoff_frac_sco2), SSC_WARNING);
 					cycle_cutoff_frac_sys = cycle_cutoff_frac_sco2;
-					assign("cycle_cutoff_frac", cycle_cutoff_frac_sys);
+					assign("cycle_cutoff_frac", (ssc_number_t)cycle_cutoff_frac_sys);
 				}
 				pc->m_cycle_cutoff_frac = cycle_cutoff_frac_sys;		//[-]
 				
@@ -1315,7 +1315,7 @@ public:
 					double T_htf_cold_calc = c_sco2_recomp_csp.get_design_solved()->ms_phx_des_solved.m_T_h_out;		//[K]
 					log("sCO2 design point calculations complete.", SSC_WARNING);
 					double T_rec_htf_cold = as_double("T_htf_cold_des");			//[C]
-					assign("T_htf_cold_des", T_htf_cold_calc - 273.15);				//[C]
+					assign("T_htf_cold_des", (ssc_number_t)(T_htf_cold_calc - 273.15));				//[C]
 					log(util::format("\nThe user input receiver design HTF cold temperature, %lg [C], was reset"
 						" to the calculated sCO2 cycle HTF cold return temperature, %lg [C]\n", T_rec_htf_cold, T_htf_cold_calc - 273.15), SSC_WARNING);
 					update("Preprocessing cycle off-design...", 0.0);
@@ -1347,7 +1347,7 @@ public:
 							" for this sCO2 %s cycle off-design model, %lg\n", cycle_f_min, cycle_type.c_str(), sco2_f_min), SSC_WARNING);
 						update("Preprocessing cycle off-design...", 0.0);
 						cycle_f_min = sco2_f_min;
-						assign("cycle_cutoff_frac", cycle_f_min);
+						assign("cycle_cutoff_frac", (ssc_number_t)cycle_f_min);
 					}
 					double m_dot_htf_ND_low = min(0.95, cycle_f_min);	//[-]
 					// Design is always = 1.0, so high needs to be a value > 1.0
@@ -1374,7 +1374,7 @@ public:
 						throw exec_error("sco2_csp_system", csp_exception.m_error_message);
 					}
 
-					int ncols = T_htf_parametrics.ncols();
+					size_t ncols = T_htf_parametrics.ncols();
 
 					util::matrix_t<float> &p_udpc_T_htf_hot = allocate_matrix("ud_T_htf_ind_od_out", n_T_htf_hot_in, ncols);
 					for (int i = 0; i < n_T_htf_hot_in; i++)
@@ -2107,10 +2107,10 @@ public:
 		}		
 
 		// Set output data from heliostat class
-		int n_rows_eta_map = heliostatfield.ms_params.m_eta_map.nrows();
+		size_t n_rows_eta_map = heliostatfield.ms_params.m_eta_map.nrows();
 		ssc_number_t *eta_map_out = allocate("eta_map_out", n_rows_eta_map, 3);
-		int n_rows_flux_maps = heliostatfield.ms_params.m_flux_maps.nrows();
-		int n_cols_flux_maps = heliostatfield.ms_params.m_flux_maps.ncols() + 2;
+		size_t n_rows_flux_maps = heliostatfield.ms_params.m_flux_maps.nrows();
+		size_t n_cols_flux_maps = heliostatfield.ms_params.m_flux_maps.ncols() + 2;
 		ssc_number_t *flux_maps_out = allocate("flux_maps_out", n_rows_eta_map, n_cols_flux_maps);
 
 		if(n_rows_eta_map != n_rows_flux_maps)

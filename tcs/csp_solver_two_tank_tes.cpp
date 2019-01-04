@@ -55,7 +55,7 @@ C_heat_exchanger::C_heat_exchanger()
 	m_m_dot_des_ave = m_eff_des = m_UA_des = std::numeric_limits<double>::quiet_NaN();
 }
 
-void C_heat_exchanger::init(HTFProperties &fluid_field, HTFProperties &fluid_store, double q_transfer_des /*W*/,
+void C_heat_exchanger::init(HTFProperties &, HTFProperties &, double q_transfer_des /*W*/,
 	double dt_des, double T_h_in_des /*K*/, double T_h_out_des /*K*/)
 {
 	// Counter flow heat exchanger
@@ -364,7 +364,7 @@ void C_storage_tank::energy_balance(double timestep /*s*/, double m_dot_in, doub
 }
 
 void C_storage_tank::energy_balance_constant_mass(double timestep /*s*/, double m_dot_in, double T_in /*K*/, double T_amb /*K*/,
-	double &T_ave /*K*/, double & q_heater /*MW*/, double & q_dot_loss /*MW*/)
+	double &T_ave /*K*/, double & q_heater /*MW*/, double &  /*MW*/)
 {
 	// Get properties from tank state at the end of last time step
 	double rho = mc_htf.dens(m_T_prev, 1.0);	//[kg/m^3]

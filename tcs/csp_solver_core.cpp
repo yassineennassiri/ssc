@@ -305,7 +305,7 @@ void C_csp_solver::send_callback(double percent)
 
 		if (!cmod_ret)
 		{
-			std::string error_msg = "User terminated simulation...";
+			error_msg = "User terminated simulation...";
 			std::string loc_msg = "C_csp_solver";
 			throw(C_csp_exception(error_msg, loc_msg, 1));
 		}
@@ -3042,10 +3042,10 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 				else
 				{
 					// Haven't actually converged solution yet, so need to basically call CR_ON__PC_OFF__TES_CH
-					C_MEQ_cr_on__pc_off__tes_ch__T_htf_cold c_eq(this, m_defocus);
-					C_monotonic_eq_solver c_solver(c_eq);
+					C_MEQ_cr_on__pc_off__tes_ch__T_htf_cold c_eq_1(this, m_defocus);
+					C_monotonic_eq_solver c_solver_1(c_eq_1);
 
-					c_solver.settings(1.E-3, 50, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), false);
+					c_solver_1.settings(1.E-3, 50, std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), false);
 
 					double T_htf_cold_guess_colder = m_T_htf_pc_cold_est;				//[C]
 					double T_htf_cold_guess_warmer = T_htf_cold_guess_colder + 10.0;	//[C]
@@ -3057,7 +3057,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 					int solver_code = 0;
 					try
 					{
-						solver_code = c_solver.solve(T_htf_cold_guess_colder, T_htf_cold_guess_warmer, 0.0, T_htf_cold_solved, tol_solved, iter_solved);
+						solver_code = c_solver_1.solve(T_htf_cold_guess_colder, T_htf_cold_guess_warmer, 0.0, T_htf_cold_solved, tol_solved, iter_solved);
 					}
 					catch (C_csp_exception)
 					{
@@ -3619,7 +3619,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 				{
 					if (T_cold_code > C_monotonic_eq_solver::CONVERGED && fabs(tol_solved) < 0.1)
 					{
-						std::string msg = util::format("At time = %lg CR_ON__PC_SB__TES_DC__AUX_OFF iteration "
+							msg = util::format("At time = %lg CR_ON__PC_SB__TES_DC__AUX_OFF iteration "
 							"to find the cold HTF temperature to balance energy between the CR, TES, and PC only reached a convergence "
 							"= %lg. Check that results at this timestep are not unreasonably biasing total simulation results",
 							mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0, tol_solved);
@@ -3627,7 +3627,7 @@ void C_csp_solver::Ssimulate(C_csp_solver::S_sim_setup & sim_setup)
 					}
 					else
 					{
-						std::string msg = util::format("At time = %lg CR_ON__PC_SB__TES_DC__AUX_OFF iteration "
+							msg = util::format("At time = %lg CR_ON__PC_SB__TES_DC__AUX_OFF iteration "
 							"to find the cold HTF temperature to balance energy between the CR, TES, and PC failed",
 							mc_kernel.mc_sim_info.ms_ts.m_time / 3600.0);
 
@@ -5228,7 +5228,7 @@ int C_csp_solver::solver_cr_on__pc_match__tes_full(int pc_mode, double defocus_i
 }
 
 int C_csp_solver::solver_pc_fixed__tes_empty(double q_dot_pc_fixed /*MWt*/,
-	double tol,
+	double,
 	double & time_tes_dc)
 {
 

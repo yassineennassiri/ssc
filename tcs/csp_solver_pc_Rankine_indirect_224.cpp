@@ -1567,7 +1567,6 @@ void C_pc_Rankine_indirect_224::RankineCycle(double T_db, double T_wb,
     double T_htf_hot_ref = ms_params.m_T_htf_hot_ref;
     double T_htf_cold_ref = ms_params.m_T_htf_cold_ref;
     double dT_cw_ref = ms_params.m_dT_cw_ref;
-    double T_amb_des = ms_params.m_T_amb_des;
     double T_approach = ms_params.m_T_approach;
     double T_ITD_des = ms_params.m_T_ITD_des;
     double P_cond_ratio = ms_params.m_P_cond_ratio;
@@ -2172,7 +2171,7 @@ int C_pc_Rankine_indirect_224::split_ind_tbl(util::matrix_t<double> &cmbd_ind, u
     std::sort(cmbd_tbl.begin(), cmbd_tbl.end(), sort_vecOfvec({col_T_htf}, {ASC}));
     vec_row = 0;
     mat_row = 0;
-    int tbl_size = cmbd_tbl.size();
+    size_t tbl_size = cmbd_tbl.size();
     T_htf_test, m_dot_test, T_amb_test;
     for (std::vector<double>::size_type i = 0; i != tbl_size; i++) {
         T_htf_test = cmbd_tbl.at(vec_row).at(col_T_htf);
