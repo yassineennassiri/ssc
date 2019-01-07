@@ -612,9 +612,9 @@ public:
     }
 
     bool operator () (const vector<double> &a, const vector<double> &b) const {
-        int col;
+        size_t col;
         col = 0;
-        for (int col_idx = 0; col_idx < columns.size(); col_idx++) {
+        for (size_t col_idx = 0; col_idx < columns.size(); col_idx++) {
             col = columns[col_idx];
             if (a[col] == b[col]) {
                 continue;

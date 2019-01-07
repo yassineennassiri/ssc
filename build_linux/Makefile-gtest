@@ -14,7 +14,6 @@ LDFLAGS = -std=c++0x `wx-config-3 --libs` `wx-config-3 --libs aui` `wx-config-3 
 
 
 OBJECTS  = \
-	../test/input_cases/tcs_trough_physical_input.o \
 	../test/input_cases/weather_inputs.o \
 	../test/shared_test/lib_battery_test.o \
 	../test/shared_test/lib_battery_powerflow_test.o \
