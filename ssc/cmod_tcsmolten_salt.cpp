@@ -707,7 +707,7 @@ public:
 				{
 					size_t nc = steps.front().size() + 2;
 					ssc_number_t *ssc_hist = allocate("opt_history", nr, nc);
-					for (int i = 0; i<nr; i++){
+					for (size_t i = 0; i<nr; i++){
 
 						for (size_t j = 0; j<steps.front().size(); j++)
 							ssc_hist[i*nc + j] = (ssc_number_t)steps.at(i).at(j);
@@ -794,7 +794,7 @@ public:
 			util::matrix_t<double> helio_pos_temp = as_matrix("helio_positions");
 			size_t n_h_rows = helio_pos_temp.nrows();
 			ssc_number_t *p_helio_positions_in = allocate("helio_positions_in", n_h_rows, 2);
-			for (int i = 0; i < n_h_rows; i++)
+			for (size_t i = 0; i < n_h_rows; i++)
 			{
 				p_helio_positions_in[i * 2] = (ssc_number_t)helio_pos_temp(i, 0);
 				p_helio_positions_in[i * 2 + 1] = (ssc_number_t)helio_pos_temp(i, 1);
@@ -1378,27 +1378,27 @@ public:
 					size_t ncols = T_htf_parametrics.ncols();
 
 					util::matrix_t<float> &p_udpc_T_htf_hot = allocate_matrix("ud_T_htf_ind_od_out", n_T_htf_hot_in, ncols);
-					for (int i = 0; i < n_T_htf_hot_in; i++)
+					for (size_t i = 0; i < (size_t)n_T_htf_hot_in; i++)
 					{
-						for (int j = 0; j < ncols; j++)
+						for (size_t j = 0; j < ncols; j++)
 						{
 							p_udpc_T_htf_hot(i, j) = (float)T_htf_parametrics(i, j);
 						}
 					}
 
 					util::matrix_t<float> &p_udpc_T_amb = allocate_matrix("ud_T_amb_ind_od_out", n_T_amb_in, ncols);
-					for (int i = 0; i < n_T_amb_in; i++)
+					for (size_t i = 0; i < (size_t)n_T_amb_in; i++)
 					{
-						for (int j = 0; j < ncols; j++)
+						for (size_t j = 0; j < ncols; j++)
 						{
 							p_udpc_T_amb(i, j) = (float)T_amb_parametrics(i, j);
 						}
 					}
 
 					util::matrix_t<float> &p_udpc_m_dot_htf = allocate_matrix("ud_m_dot_htf_ind_od_out", n_m_dot_htf_ND_in, ncols);
-					for (int i = 0; i < n_m_dot_htf_ND_in; i++)
+					for (size_t i = 0; i < (size_t)n_m_dot_htf_ND_in; i++)
 					{
-						for (int j = 0; j < ncols; j++)
+						for (size_t j = 0; j < ncols; j++)
 						{
 							p_udpc_m_dot_htf(i, j) = (float)m_dot_htf_ND_parametrics(i, j);
 						}
@@ -1696,7 +1696,7 @@ public:
 			{
 				size_t n_wlim_series = 0;
 				ssc_number_t* wlim_series = as_array("wlim_series", &n_wlim_series);
-				if (n_wlim_series != n_steps_full)
+				if (n_wlim_series != (size_t)n_steps_full)
 					throw exec_error("tcsmolten_salt", "Invalid net electricity generation limit series dimension. Matrix must have "+util::to_string(n_steps_full)+" rows.");
 				for (int i = 0; i < n_steps_full; i++)
 					tou.mc_dispatch_params.m_w_lim_full.at(i) = (double)wlim_series[i];
@@ -2074,7 +2074,7 @@ public:
 		float *p_q_pc_startup = allocate("q_pc_startup", n_steps_fixed);
 		size_t count_pc_su = 0;
 		ssc_number_t *p_q_dot_pc_startup = as_array("q_dot_pc_startup", &count_pc_su);
-		if( count_pc_su != n_steps_fixed )
+		if( count_pc_su != (size_t)n_steps_fixed )
 		{
 			log("q_dot_pc_startup array is a different length than 'n_steps_fixed'.", SSC_WARNING);
 			return;
@@ -2092,8 +2092,8 @@ public:
 		ssc_number_t *p_m_dot_water_pc = as_array("m_dot_water_pc", &count_m_dot_water_pc);
 		ssc_number_t *p_m_dot_tes_dc = as_array("m_dot_tes_dc", &count_m_dot_tes_dc);
 		ssc_number_t *p_m_dot_tes_ch = as_array("m_dot_tes_ch", &count_m_dot_tes_ch);
-		if (count_m_dot_rec != n_steps_fixed || count_m_dot_pc != n_steps_fixed || count_m_dot_water_pc != n_steps_fixed
-			|| count_m_dot_tes_dc != n_steps_fixed || count_m_dot_tes_ch != n_steps_fixed)
+		if (count_m_dot_rec != (size_t)n_steps_fixed || count_m_dot_pc != (size_t)n_steps_fixed || count_m_dot_water_pc != (size_t)n_steps_fixed
+			|| count_m_dot_tes_dc != (size_t)n_steps_fixed || count_m_dot_tes_ch != (size_t)n_steps_fixed)
 		{
 			log("At least one m_dot array is a different length than 'n_steps_fixed'.", SSC_WARNING);
 			return;
@@ -2124,12 +2124,12 @@ public:
 			H_rec / rec_aspect /
 			double(heliostatfield.ms_params.m_n_flux_x));
 
-		for( int i = 0; i < n_rows_eta_map; i++ )
+		for( size_t i = 0; i < n_rows_eta_map; i++ )
 		{
 			flux_maps_out[n_cols_flux_maps*i] = eta_map_out[3 * i] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 0);		//[deg] Solar azimuth angle
 			flux_maps_out[n_cols_flux_maps*i + 1] = eta_map_out[3 * i + 1] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 1);	//[deg] Solar zenith angle
 			eta_map_out[3 * i + 2] = (ssc_number_t)heliostatfield.ms_params.m_eta_map(i, 2);							//[deg] Solar field optical efficiency
-			for( int j = 2; j < n_cols_flux_maps; j++ )
+			for( size_t j = 2; j < n_cols_flux_maps; j++ )
 			{
 				flux_maps_out[n_cols_flux_maps*i + j] = (ssc_number_t)(heliostatfield.ms_params.m_flux_maps(i, j - 2)*heliostatfield.ms_params.m_eta_map(i, 2)*flux_scaling_mult);		//[kW/m^2]
 			}
