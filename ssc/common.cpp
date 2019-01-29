@@ -975,6 +975,176 @@ bool weatherdata::read_average(weather_record *r, std::vector<int> &cols, size_t
 	if (m_index < m_data.size())
 	{
 		*r = *m_data[m_index++];
+
+		// average columns requested
+		int start = (int)m_index - (int)num_timesteps / 2;
+		if (start < 0)
+			start = 0;
+		if ((size_t)start + num_timesteps > m_nRecords)
+			start = (int)m_nRecords - (int)num_timesteps;
+		if (start < 0)
+			start = 0;
+
+
+		for (size_t i = 0; i < cols.size(); i++)
+		{
+			double col_val = 0;
+			int n_vals = 0;
+			if (cols[i] >= YEAR && cols[i] < _MAXCOL_)
+			{
+				for (size_t j = (size_t)start; j < num_timesteps && j < m_nRecords; j++)
+				{
+					switch (cols[i])
+					{
+					case YEAR:
+						col_val = m_data[j]->year;
+						n_vals++;
+						break;
+					case MONTH:
+						col_val = m_data[j]->month;
+						n_vals++;
+						break;
+					case DAY:
+						col_val = m_data[j]->day;
+						n_vals++;
+						break;
+					case HOUR:
+						col_val = m_data[j]->hour;
+						n_vals++;
+						break;
+					case MINUTE:
+						col_val = m_data[j]->minute;
+						n_vals++;
+						break;
+					case GHI:
+						col_val = m_data[j]->gh;
+						n_vals++;
+						break;
+					case DNI:
+						col_val = m_data[j]->dn;
+						n_vals++;
+						break;
+					case DHI:
+						col_val = m_data[j]->df;
+						n_vals++;
+						break;
+					case POA:
+						col_val = m_data[j]->poa;
+						n_vals++;
+						break;
+					case TDRY:
+						col_val = m_data[j]->tdry;
+						n_vals++;
+						break;
+					case TWET:
+						col_val = m_data[j]->twet;
+						n_vals++;
+						break;
+					case TDEW:
+						col_val = m_data[j]->tdew;
+						n_vals++;
+						break;
+					case WSPD:
+						col_val = m_data[j]->wspd;
+						n_vals++;
+						break;
+					case WDIR:
+						col_val = m_data[j]->wdir;
+						n_vals++;
+						break;
+					case RH:
+						col_val = m_data[j]->rhum;
+						n_vals++;
+						break;
+					case PRES:
+						col_val = m_data[j]->pres;
+						n_vals++;
+						break;
+					case SNOW:
+						col_val = m_data[j]->snow;
+						n_vals++;
+						break;
+					case ALB:
+						col_val = m_data[j]->alb;
+						n_vals++;
+						break;
+					case AOD:
+						col_val = m_data[j]->aod;
+						n_vals++;
+						break;
+					default:
+						break;
+					}
+				}
+				if (n_vals > 0)
+					col_val /= n_vals;
+			}
+			switch (cols[i])
+			{
+			case YEAR:
+				r->year = (int)col_val;
+				break;
+			case MONTH:
+				r->month = (int)col_val;
+				break;
+			case DAY:
+				r->day = (int)col_val;
+				break;
+			case HOUR:
+				r->hour = (int)col_val;
+				break;
+			case MINUTE:
+				r->minute = col_val;
+				break;
+			case GHI:
+				r->gh = col_val;
+				break;
+			case DNI:
+				r->dn = col_val;
+				break;
+			case DHI:
+				r->df = col_val;
+				break;
+			case POA:
+				r->poa = col_val;
+				break;
+			case TDRY:
+				r->tdry = col_val;
+				break;
+			case TWET:
+				r->twet = col_val;
+				break;
+			case TDEW:
+				r->tdew = col_val;
+				break;
+			case WSPD:
+				r->wspd = col_val;
+				break;
+			case WDIR:
+				r->wdir = col_val;
+				break;
+			case RH:
+				r->rhum = col_val;
+				break;
+			case PRES:
+				r->pres = col_val;
+				break;
+			case SNOW:
+				r->snow = col_val;
+				break;
+			case ALB:
+				r->alb = col_val;
+				break;
+			case AOD:
+				r->aod = col_val;
+				break;
+			default:
+				break;
+			}
+		}
+
+
+
 		return true;
 	}
 	else
