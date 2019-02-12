@@ -606,6 +606,7 @@ var_info vtab_sco2_design[] = {
 		// PHX Design
 	{ SSC_INPUT,  SSC_NUMBER,  "dT_PHX_cold_approach", "Temp diff btw cold HTF and cold CO2",                    "C",          "",    "",      "*",     "",       "" },
 		// Air Cooler Design
+	{ SSC_INPUT,  SSC_NUMBER,  "is_design_air_cooler", "Defaults to True. False will skip air cooler calcs",     "",           "",    "",      "?=1.0", "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "fan_power_frac",       "Fraction of net cycle power consumed by air cooler fan", "",           "",    "",      "*",     "",       "" },
 	{ SSC_INPUT,  SSC_NUMBER,  "deltaP_cooler_frac",   "Fraction of CO2 inlet pressure that is design point cooler CO2 pressure drop", "", "", "", "*","",       "" },
 
@@ -623,8 +624,11 @@ var_info vtab_sco2_design[] = {
 	{ SSC_OUTPUT, SSC_NUMBER,  "T_comp_in",            "Compressor inlet temperature",                           "C",          "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "P_comp_in",            "Compressor inlet pressure",                              "MPa",        "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "P_comp_out",           "Compressor outlet pressure",                             "MPa",        "",    "",      "*",     "",       "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "mc_T_out",             "Compressor outlet temperature",                          "C",          "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "mc_W_dot",             "Compressor power",                                       "MWe",        "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "mc_m_dot_des",         "Compressor mass flow rate",                              "kg/s",       "",    "",      "*",     "",       "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "mc_rho_in",            "Compressor inlet density",                               "kg/m3",      "",    "",      "*",     "",       "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "mc_ideal_spec_work",   "Compressor ideal spec work",                             "kJ/kg",      "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "mc_phi_des",           "Compressor design flow coefficient",					 "",           "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_ARRAY,   "mc_tip_ratio_des",     "Compressor design stage tip speed ratio",                "",           "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "mc_n_stages",          "Compressor stages",                                      "",           "",    "",      "*",     "",       "" },
@@ -665,6 +669,7 @@ var_info vtab_sco2_design[] = {
 	{ SSC_OUTPUT, SSC_NUMBER,  "t_W_dot",              "Turbine power",                                          "MWe",        "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "t_m_dot_des",          "Turbine mass flow rate",                                 "kg/s",       "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "T_turb_in",            "Turbine inlet temperature",                              "C",          "",    "",      "*",     "",       "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "t_T_out_des",          "Turbine outlet temperature",                             "C",          "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "t_nu_des",             "Turbine design velocity ratio",                          "",           "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "t_tip_ratio_des",	   "Turbine design tip speed ratio",                         "",           "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "t_N_des",			   "Turbine design shaft speed",	                         "rpm",        "",    "",      "*",     "",       "" },
@@ -697,7 +702,9 @@ var_info vtab_sco2_design[] = {
 		// Low Pressure Cooler
 	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_T_in",       "Low pressure cross flow cooler inlet temperature",       "C",          "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_P_in",       "Low pressure cross flow cooler inlet pressure",          "MPa",        "",    "",      "*",     "",       "" },
-	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_m_dot_co2",  "Low pressure cross flow cooler CO2 mass flow rate",      "kg/s",       "",    "",      "*",     "",       "" },	
+	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_rho_in",     "Low pressure cross flow cooler inlet density",           "kg/m3",      "",    "",      "*",     "",       "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_in_isen_deltah_to_P_mc_out", "Low pressure cross flow cooler inlet isen enthalpy rise to mc outlet pressure", "kJ/kg", "", "", "*", "", "" },
+	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_m_dot_co2",  "Low pressure cross flow cooler CO2 mass flow rate",      "kg/s",       "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_UA",         "Low pressure cross flow cooler conductance",             "MW/K",       "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_q_dot",      "Low pressure cooler heat transfer",                      "MWt",        "",    "",      "*",     "",       "" },
 	{ SSC_OUTPUT, SSC_NUMBER,  "LP_cooler_W_dot_fan",  "Low pressure cooler fan power",                          "MWe",        "",    "",      "*",     "",       "" },
@@ -861,6 +868,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	sco2_rc_des_par.m_phx_dt_cold_approach = cm->as_double("dT_PHX_cold_approach");  //[C]
 
 	// Air cooler parameters
+	sco2_rc_des_par.m_is_des_air_cooler = cm->as_boolean("is_design_air_cooler");
 	sco2_rc_des_par.m_frac_fan_power = cm->as_double("fan_power_frac");         //[-]
 	sco2_rc_des_par.m_deltaP_cooler_frac = cm->as_double("deltaP_cooler_frac");	//[-]
 
@@ -920,10 +928,10 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	if (ph_err_code != 0)
 		throw compute_module::exec_error("sco2_csp_system", "cycle plot data routine failed");
 
-	int n_v = P_t.size();
+	size_t n_v = P_t.size();
 	ssc_number_t *p_P_t_data = cm->allocate("P_t_data", n_v);
 	ssc_number_t *p_h_t_data = cm->allocate("h_t_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_P_t_data[i] = (ssc_number_t)(P_t[i]);		//[MPa]
 		p_h_t_data[i] = (ssc_number_t)(h_t[i]);		//[kJ/kg]
@@ -932,7 +940,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = P_mc.size();
 	ssc_number_t *p_P_mc_data = cm->allocate("P_mc_data", n_v);
 	ssc_number_t *p_h_mc_data = cm->allocate("h_mc_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_P_mc_data[i] = (ssc_number_t)(P_mc[i]);		//[MPa]
 		p_h_mc_data[i] = (ssc_number_t)(h_mc[i]);		//[kJ/kg]
@@ -941,7 +949,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = P_rc.size();
 	ssc_number_t *p_P_rc_data = cm->allocate("P_rc_data", n_v);
 	ssc_number_t *p_h_rc_data = cm->allocate("h_rc_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_P_rc_data[i] = (ssc_number_t)(P_rc[i]);		//[MPa]
 		p_h_rc_data[i] = (ssc_number_t)(h_rc[i]);		//[kJ/kg]
@@ -950,7 +958,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = P_pc.size();
 	ssc_number_t *p_P_pc_data = cm->allocate("P_pc_data", n_v);
 	ssc_number_t *p_h_pc_data = cm->allocate("h_pc_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_P_pc_data[i] = (ssc_number_t)(P_pc[i]);		//[MPa]
 		p_h_pc_data[i] = (ssc_number_t)(h_pc[i]);		//[kJ/kg]
@@ -995,7 +1003,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_LTR_HP.size();
 	ssc_number_t *p_T_LTR_HP_data = cm->allocate("T_LTR_HP_data", n_v);
 	ssc_number_t *p_s_LTR_HP_data = cm->allocate("s_LTR_HP_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_LTR_HP_data[i] = (ssc_number_t)(T_LTR_HP[i]);	//[C]
 		p_s_LTR_HP_data[i] = (ssc_number_t)(s_LTR_HP[i]);	//[kJ/kg-K]
@@ -1004,7 +1012,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_HTR_HP.size();
 	ssc_number_t *p_T_HTR_HP_data = cm->allocate("T_HTR_HP_data", n_v);
 	ssc_number_t *p_s_HTR_HP_data = cm->allocate("s_HTR_HP_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_HTR_HP_data[i] = (ssc_number_t)(T_HTR_HP[i]);		//[C]
 		p_s_HTR_HP_data[i] = (ssc_number_t)(s_HTR_HP[i]);		//[kJ/kg-K]
@@ -1013,7 +1021,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_PHX.size();
 	ssc_number_t *p_T_PHX_data = cm->allocate("T_PHX_data", n_v);
 	ssc_number_t *p_s_PHX_data = cm->allocate("s_PHX_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_PHX_data[i] = (ssc_number_t)(T_PHX[i]);			//[C]
 		p_s_PHX_data[i] = (ssc_number_t)(s_PHX[i]);			//[kJ/kg-K]
@@ -1022,7 +1030,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_HTR_LP.size();
 	ssc_number_t *p_T_HTR_LP_data = cm->allocate("T_HTR_LP_data", n_v);
 	ssc_number_t *p_s_HTR_LP_data = cm->allocate("s_HTR_LP_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_HTR_LP_data[i] = (ssc_number_t)(T_HTR_LP[i]);	//[C]
 		p_s_HTR_LP_data[i] = (ssc_number_t)(s_HTR_LP[i]);	//[kJ/kg-K]
@@ -1031,7 +1039,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_LTR_LP.size();
 	ssc_number_t *p_T_LTR_LP_data = cm->allocate("T_LTR_LP_data", n_v);
 	ssc_number_t *p_s_LTR_LP_data = cm->allocate("s_LTR_LP_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_LTR_LP_data[i] = (ssc_number_t)(T_LTR_LP[i]);	//[C]
 		p_s_LTR_LP_data[i] = (ssc_number_t)(s_LTR_LP[i]);	//[kJ/kg-K]
@@ -1040,7 +1048,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_main_cooler.size();
 	ssc_number_t *p_T_main_cooler = cm->allocate("T_main_cooler_data", n_v);
 	ssc_number_t *p_s_main_cooler = cm->allocate("s_main_cooler_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_main_cooler[i] = (ssc_number_t)(T_main_cooler[i]);	//[C]
 		p_s_main_cooler[i] = (ssc_number_t)(s_main_cooler[i]);	//[kJ/kg-K]
@@ -1049,7 +1057,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	n_v = T_pre_cooler.size();
 	ssc_number_t *p_T_pre_cooler = cm->allocate("T_pre_cooler_data", n_v);
 	ssc_number_t *p_s_pre_cooler = cm->allocate("s_pre_cooler_data", n_v);
-	for (int i = 0; i < n_v; i++)
+	for (size_t i = 0; i < n_v; i++)
 	{
 		p_T_pre_cooler[i] = (ssc_number_t)(T_pre_cooler[i]);	//[C]
 		p_s_pre_cooler[i] = (ssc_number_t)(s_pre_cooler[i]);	//[kJ/kg-K]
@@ -1071,7 +1079,10 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	cm->assign("T_comp_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::MC_IN] - 273.15));		//[C] convert from K
 	cm->assign("P_comp_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::MC_IN] / 1000.0));		//[MPa] convert from kPa
 	cm->assign("P_comp_out", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::MC_OUT] / 1000.0));		//[MPa] convert from kPa
+	cm->assign("mc_T_out", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::MC_OUT] - 273.15));		//[C] convert from K
 	cm->assign("mc_W_dot", (ssc_number_t)(-c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_mc*1.E-3));	//[MWe] convert kWe
+	cm->assign("mc_rho_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_dens[C_sco2_cycle_core::MC_IN]));	//[kg/m3]
+	cm->assign("mc_ideal_spec_work", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_isen_spec_work);	//[kJ/kg]
 	cm->assign("mc_m_dot_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t*(1.0 - c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_recomp_frac));	//[kg/s]
 	cm->assign("mc_phi_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_phi_des);
 	cm->assign("mc_tip_ratio_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_mc_ms_des_solved.m_tip_ratio_max);		//[-]
@@ -1205,6 +1216,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 	cm->assign("t_W_dot", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_W_dot_t*1.E-3));	//[MWe] convert from kWe
 	cm->assign("t_m_dot_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_m_dot_t);		//[kg/s]
 	cm->assign("T_turb_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::TURB_IN] - 273.15));	//[C] Turbine inlet temp, convert from K
+	cm->assign("t_T_out_des", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::TURB_OUT] - 273.15)); //[C] Turbine outlet temp, convert from K
 	cm->assign("t_nu_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_nu_design);           //[-]
 	cm->assign("t_tip_ratio_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_w_tip_ratio);  //[-]
 	cm->assign("t_N_des", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_t_des_solved.m_N_design);			   //[rpm]
@@ -1261,6 +1273,7 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 		// Low Pressure Cooler
 	cm->assign("LP_cooler_T_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_LP_air_cooler.m_T_in_co2 - 273.15));	//[C]
 	cm->assign("LP_cooler_P_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_LP_air_cooler.m_P_in_co2 / 1.E3));		//[MPa]
+	cm->assign("LP_cooler_rho_in", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_dens[C_sco2_cycle_core::LTR_LP_OUT]));	//[kg/m3]
 	cm->assign("LP_cooler_m_dot_co2", (ssc_number_t)c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_LP_air_cooler.m_m_dot_co2);		//[kg/s]
 	cm->assign("LP_cooler_UA", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_LP_air_cooler.m_UA_total*1.E-6));		//[MW/K] convert from W/K
 	cm->assign("LP_cooler_q_dot", (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.ms_LP_air_cooler.m_q_dot*1.E-6));		//[MWt] convert from W
@@ -1316,6 +1329,26 @@ int sco2_design_cmod_common(compute_module *cm, C_sco2_recomp_csp & c_sco2_cycle
 		p_s_state_points[i] = (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_entr[i]);			//[kJ/kg-K]
 		p_h_state_points[i] = (ssc_number_t)(c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_enth[i]);			//[kJ/kg]
 	}
+
+		// Calculate Isentropic Enthalpy Rise from LP Cooler Inlet to MC Outlet Pressure
+	double T_cooler_in = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_temp[C_sco2_cycle_core::LTR_LP_OUT];	//[K]
+	double P_cooler_in = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::LTR_LP_OUT];	//[MPa]
+	double P_cooler_out = c_sco2_cycle.get_design_solved()->ms_rc_cycle_solved.m_pres[C_sco2_cycle_core::MC_OUT];		//[MPa]
+	int isen_enth_check_err = 0;
+	double h_cooler_in = std::numeric_limits<double>::quiet_NaN();
+	double s_cooler_in = std::numeric_limits<double>::quiet_NaN();
+	double rho_cooler_in = std::numeric_limits<double>::quiet_NaN();
+	double T_isen_out = std::numeric_limits<double>::quiet_NaN();
+	double h_isen_out = std::numeric_limits<double>::quiet_NaN();
+	double s_isen_out = std::numeric_limits<double>::quiet_NaN();
+	double rho_isen_out = std::numeric_limits<double>::quiet_NaN();
+	double deltah_isen = std::numeric_limits<double>::quiet_NaN();
+
+	calculate_turbomachinery_outlet_1(T_cooler_in, P_cooler_in, P_cooler_out, 1.0, true, isen_enth_check_err,
+		h_cooler_in, s_cooler_in, rho_cooler_in, T_isen_out,
+		h_isen_out, s_isen_out, rho_isen_out, deltah_isen);
+
+	cm->assign("LP_cooler_in_isen_deltah_to_P_mc_out", (ssc_number_t)-deltah_isen);
 
 	return 0;
 }
