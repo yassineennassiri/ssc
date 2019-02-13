@@ -5,7 +5,7 @@
 #include "weather_inputs.h"
 
 var_data* create_winddata_array(int intervalsPerHour, int nMeasurementHeights){
-	size_t timeLength = 8760 * intervalsPerHour;
+	int timeLength = 8760 * intervalsPerHour;
 	float* year_data = new float[4 * timeLength * nMeasurementHeights];
 	for (int i = 0; i < timeLength; i++){
 		for (int j = 0; j < nMeasurementHeights; j++){
