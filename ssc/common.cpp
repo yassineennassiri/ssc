@@ -1016,7 +1016,6 @@ bool weatherdata::read( weather_record *r )
 
 bool weatherdata::read_average(weather_record *r, std::vector<int> &cols, size_t &num_timesteps)
 {
-	// finish per bool weatherfile::read_average(weather_record *r, std::vector<int> &cols, size_t &num_timesteps)
 	if (m_index < m_data.size())
 	{
 		*r = *m_data[m_index++];
