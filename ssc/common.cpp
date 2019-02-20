@@ -1024,7 +1024,7 @@ bool weatherdata::read_average(weather_record *r, std::vector<int> &cols, size_t
 		int start = (int)m_index - (int)num_timesteps / 2;
 		if (start < 0)
 			start = 0;
-		if ((size_t)start + num_timesteps > m_nRecords)
+		if (((size_t)start + num_timesteps) > m_nRecords)
 			start = (int)m_nRecords - (int)num_timesteps;
 		if (start < 0)
 			start = 0;
@@ -1041,79 +1041,79 @@ bool weatherdata::read_average(weather_record *r, std::vector<int> &cols, size_t
 					switch (cols[i])
 					{
 					case YEAR:
-						col_val = m_data[j]->year;
+						col_val += m_data[j]->year;
 						n_vals++;
 						break;
 					case MONTH:
-						col_val = m_data[j]->month;
+						col_val += m_data[j]->month;
 						n_vals++;
 						break;
 					case DAY:
-						col_val = m_data[j]->day;
+						col_val += m_data[j]->day;
 						n_vals++;
 						break;
 					case HOUR:
-						col_val = m_data[j]->hour;
+						col_val += m_data[j]->hour;
 						n_vals++;
 						break;
 					case MINUTE:
-						col_val = m_data[j]->minute;
+						col_val += m_data[j]->minute;
 						n_vals++;
 						break;
 					case GHI:
-						col_val = m_data[j]->gh;
+						col_val += m_data[j]->gh;
 						n_vals++;
 						break;
 					case DNI:
-						col_val = m_data[j]->dn;
+						col_val += m_data[j]->dn;
 						n_vals++;
 						break;
 					case DHI:
-						col_val = m_data[j]->df;
+						col_val += m_data[j]->df;
 						n_vals++;
 						break;
 					case POA:
-						col_val = m_data[j]->poa;
+						col_val += m_data[j]->poa;
 						n_vals++;
 						break;
 					case TDRY:
-						col_val = m_data[j]->tdry;
+						col_val += m_data[j]->tdry;
 						n_vals++;
 						break;
 					case TWET:
-						col_val = m_data[j]->twet;
+						col_val += m_data[j]->twet;
 						n_vals++;
 						break;
 					case TDEW:
-						col_val = m_data[j]->tdew;
+						col_val += m_data[j]->tdew;
 						n_vals++;
 						break;
 					case WSPD:
-						col_val = m_data[j]->wspd;
+						col_val += m_data[j]->wspd;
 						n_vals++;
 						break;
 					case WDIR:
-						col_val = m_data[j]->wdir;
+						col_val += m_data[j]->wdir;
 						n_vals++;
 						break;
 					case RH:
-						col_val = m_data[j]->rhum;
+						col_val += m_data[j]->rhum;
 						n_vals++;
 						break;
 					case PRES:
-						col_val = m_data[j]->pres;
+						col_val += m_data[j]->pres;
 						n_vals++;
 						break;
 					case SNOW:
-						col_val = m_data[j]->snow;
+						col_val += m_data[j]->snow;
 						n_vals++;
 						break;
 					case ALB:
-						col_val = m_data[j]->alb;
+						col_val += m_data[j]->alb;
 						n_vals++;
 						break;
 					case AOD:
-						col_val = m_data[j]->aod;
+						col_val += m_data[j]->aod;
 						n_vals++;
 						break;
 					default:

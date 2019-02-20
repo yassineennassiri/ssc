@@ -961,6 +961,9 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 	// Get Irradiance Inputs for now (eventually models can use these directly)
 	weather_header hdr = Irradiance->weatherHeader;
 	weather_data_provider * wdprov = Irradiance->weatherDataProvider.get();
+	std::vector<int> wd_cols;
+	wd_cols.push_back(weather_data_provider::TDRY); // average ambient temperature over timesteps
+	size_t wd_ts_avg = 15;
 	int radmode = Irradiance->radiationMode;
 
 	// Get System or Subarray Inputs
@@ -1074,7 +1077,8 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 	std::vector<double> dcPowerNetPerSubarray; //Net DC power in W for each subarray for THIS TIMESTEP ONLY
 	std::vector<double> dcVoltagePerMppt; //Voltage in V at each MPPT input on the system for THIS TIMESTEP ONLY	
 	std::vector<std::vector<double>> dcStringVoltage; // Voltage of string for each subarray
-	double dcPowerNetTotalSystem = 0; //Net DC power in W for the entire system (sum of all subarrays)
+	double dcPowerNetTotalSystem = 0; //Net DC power in W for the entire system (sum of all subarrays
+
 
 	for (size_t mpptInput = 0; mpptInput < PVSystem->Inverter->nMpptInputs; mpptInput++)
 	{
@@ -1123,7 +1127,8 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 				//						iyear, hour, jj, cur_load), SSC_WARNING, (float)idx);
 				p_load_full.push_back((ssc_number_t)cur_load);
 
-				if (!wdprov->read(&Irradiance->weatherRecord))
+				//if (!wdprov->read(&Irradiance->weatherRecord))
+				if (!wdprov->read_average(&Irradiance->weatherRecord,wd_cols,wd_ts_avg))
 					throw exec_error("pvsamv1", "could not read data line " + util::to_string((int)(idx + 1)) + " in weather file");
 
 				weather_record wf = Irradiance->weatherRecord;
@@ -1953,7 +1958,10 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 
 				double acpwr_gross = 0, ac_wiringloss = 0, transmissionloss = 0;
 				cur_load = p_load_full[idx];
-				wdprov->read(&Irradiance->weatherRecord);
+//				wdprov->read(&Irradiance->weatherRecord);
+				if (!wdprov->read_average(&Irradiance->weatherRecord, wd_cols, wd_ts_avg))
+					throw exec_error("pvsamv1", "could not read data line " + util::to_string((int)(idx + 1)) + " in weather file");
+
 				weather_record wf = Irradiance->weatherRecord;
 
 				//set DC voltages for use in AC power calculation

@@ -1537,7 +1537,7 @@ bool weatherfile::read_average(weather_record *r, std::vector<int> &cols, size_t
 		int start = (int)m_index - (int)num_timesteps / 2;
 		if (start < 0) 
 			start = 0;
-		if ((size_t)start + num_timesteps > m_nRecords)
+		if (((size_t)start + num_timesteps) > m_nRecords)
 			start = (int)m_nRecords - (int)num_timesteps;
 		if (start < 0) 
 			start = 0;
@@ -1551,7 +1551,7 @@ bool weatherfile::read_average(weather_record *r, std::vector<int> &cols, size_t
 			{
 				for (size_t j = (size_t)start; j < num_timesteps && j < m_nRecords; j++)
 				{
-					col_val += m_columns[cols[i]].data[start];
+					col_val += m_columns[cols[i]].data[j];
 					n_vals++;
 				}
 				if (n_vals > 0)

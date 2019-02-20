@@ -214,7 +214,9 @@ public:
 	virtual bool has_data_column(size_t id) = 0;
 
 	/// reads one more record
-	virtual bool read( weather_record *r ) = 0; 
+	virtual bool read(weather_record *r) = 0;
+	/// reads one more record
+	virtual bool read_average(weather_record *r, std::vector<int> &cols, size_t &num_timesteps)= 0;
 
 
 	// some helper methods for ease of use of this class
