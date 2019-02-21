@@ -1958,7 +1958,7 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 
 				double acpwr_gross = 0, ac_wiringloss = 0, transmissionloss = 0;
 				cur_load = p_load_full[idx];
-//				wdprov->read(&Irradiance->weatherRecord);
+//				if (!wdprov->read(&Irradiance->weatherRecord))
 				if (!wdprov->read_average(&Irradiance->weatherRecord, wd_cols, wd_ts_avg))
 					throw exec_error("pvsamv1", "could not read data line " + util::to_string((int)(idx + 1)) + " in weather file");
 

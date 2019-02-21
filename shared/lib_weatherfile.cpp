@@ -1549,7 +1549,7 @@ bool weatherfile::read_average(weather_record *r, std::vector<int> &cols, size_t
 			int n_vals = 0;
 			if (cols[i] >= YEAR && cols[i] < _MAXCOL_)
 			{
-				for (size_t j = (size_t)start; j < num_timesteps && j < m_nRecords; j++)
+				for (size_t j = (size_t)start; j < start + num_timesteps && j < m_nRecords; j++)
 				{
 					col_val += m_columns[cols[i]].data[j];
 					n_vals++;
