@@ -963,6 +963,10 @@ void cm_pvsamv1::exec( ) throw (compute_module::general_error)
 	weather_data_provider * wdprov = Irradiance->weatherDataProvider.get();
 	std::vector<int> wd_cols;
 	wd_cols.push_back(weather_data_provider::TDRY); // average ambient temperature over timesteps
+	wd_cols.push_back(weather_data_provider::WSPD); 
+	wd_cols.push_back(weather_data_provider::GHI); 
+	wd_cols.push_back(weather_data_provider::DNI); 
+	wd_cols.push_back(weather_data_provider::DHI); 
 	size_t wd_ts_avg = 15;
 	int radmode = Irradiance->radiationMode;
 
