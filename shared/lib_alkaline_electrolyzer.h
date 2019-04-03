@@ -32,3 +32,22 @@ class AlkalineElectrolyzer
   
   
           /// Run for single time step
+          void runSingleTimeStep (double power_kW);
+   
+          /// Return true if starting up but not fully running
+          bool isStarting();
+   
+          /// Return true if operating 
+          bool isRunning();
+   
+          /// Return true if shutting down
+          bool isShuttingDown();
+   
+          /// Return true if totally shut down
+          bool isShutDown();
+   
+          /// Return false if hour zero needs initial power from dispatch 
+          bool isInitialized();
+   
+   
+   
