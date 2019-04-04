@@ -46,3 +46,21 @@
 *  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *******************************************************************************************************/
+
+#ifndef _CMOD_ALKALINE_ELECTROLYZER_H_
+#define _CMOD_ALKALINE_ELECTROLYZER_H_
+
+#include <map>
+#include <memory>
+
+#include "core.h"
+#include "lib_alkaline_electrolyzer.h"
+#include "libalkaline_electrolyzer_dispatch.h"
+
+struct alkalineElectrolyzerVariables
+{
+public:
+        alkalineElectrolyzerVariables() {/* nothing to do */ };
+        alkalineElectrolyzerVariables(compute module & cm) :
+                systemUseLifetimeOutput(cm.as_boolean("system_use_lifetime_output")),
+           
